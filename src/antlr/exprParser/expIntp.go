@@ -28,8 +28,7 @@ func (v *expIntp) RunexpIntp() interface{} {
 	// Create and initialize a Visitor for the Parser
 	visitor := NewexprVisitorImpl(v.mem)
 	// Visit the Expression
-	retVal := visitor.VisitExp(v.tree.(*ExpContext))
-	return retVal
+	return visitor.VisitExp(v.tree.(*ExpContext))
 }
 
 func (v *expIntp) PevalExp() string {

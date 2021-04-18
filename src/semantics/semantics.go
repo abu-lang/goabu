@@ -101,6 +101,16 @@ func (m mSteelExecuter) Exec() {
 	fmt.Println("Exec: " + str)
 }
 
+func (m mSteelExecuter) Input(Xset []SemanticAction) {
+	str := ""
+	for _, sact := range Xset {
+		m.state.Memory[sact.Resource] = sact.Value
+		str = str + printSemanticAction(sact)
+	}
+	m.state.Pool = joinPool(m.state.Pool,m.discovery(Xset))
+	fmt.Println("Input: " + str)
+}
+
 func (m mSteelExecuter) chooseActslist() ([]SemanticAction, int) {
 	// TODO: implement other strategies
 	return m.state.Pool[0], 0
