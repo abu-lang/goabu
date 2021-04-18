@@ -16,10 +16,12 @@ func init() {
 	nodeState.Memory = make(map[string]interface{})
 }
 
+/*
 func main() {
 	// Node main behaviour
 	nodeBehaviour()
 }
+*/
 
 func nodeBehaviour() {
 	// init rules
