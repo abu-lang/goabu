@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"steel-lang/datastructure"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -124,7 +123,7 @@ func (cmp *Component) Set(att string, val int64) {
 	cmp.fire()
 }
 
-// usage example
+/* usage example
 func main() {
 	atts := make(map[string]int64)
 	atts["x"] = 1
@@ -166,3 +165,4 @@ func main() {
 	fmt.Println(cmp.Get("x"))
 	fmt.Println(cmp.Get("y"))
 }
+*/
