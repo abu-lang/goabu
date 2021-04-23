@@ -1,14 +1,18 @@
 package datastructure
 
 import (
+	"regexp"
 	"strings"
 )
 
 type StringSet map[string]bool
 
 func NewStringSet(csv string) *StringSet {
-	events := strings.Split(csv, ",")
 	var res StringSet = make(map[string]bool)
+	if csv == "" {
+		return &res
+	}
+	events := strings.Split(csv, ",")
 	for _, e := range events {
 		res[e] = true
 	}
@@ -47,4 +51,14 @@ func (fst *StringSet) Add(snd *StringSet) {
 			(*fst)[e] = true
 		}
 	}
+}
+
+func (s *StringSet) AllMatch(reg string) bool {
+	var idMatcher = regexp.MustCompile(reg)
+	for e := range *s {
+		if !idMatcher.MatchString(e) {
+			return false
+		}
+	}
+	return true
 }
