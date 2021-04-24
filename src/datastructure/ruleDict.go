@@ -11,6 +11,10 @@ func (s *RuleDict) Insert(rule *ParsedRule) {
 	(*s)[rule.Name] = rule
 }
 
+func (s *RuleDict) Empty() bool {
+	return len(*s) == 0
+}
+
 func (s *RuleDict) Add(other *RuleDict) {
 	if other != nil {
 		for name, rule := range *other {

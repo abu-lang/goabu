@@ -29,34 +29,36 @@ type ParsedTask struct {
 	Actions []ParsedAction
 }
 
-func NewParsedRule(rule *Rule, kl *ast.KnowledgeLibrary) *ParsedRule {
-	return &ParsedRule{
+func NewParsedRule(rule *Rule, kl *ast.KnowledgeLibrary, types map[string]string) *ParsedRule {
+	res := &ParsedRule{
 		Name:           rule.Name,
-		Event:          rule.Event,
-		DefaultActions: NewParsedActionList(rule.DefaultActions, rule.Name+"default", kl),
-		Task:           NewParsedTask(&(rule.Task), rule.Name+"task", kl),
+		Event:          make([]string, len(rule.Event)),
+		DefaultActions: NewParsedActionList(rule.DefaultActions, rule.Name+"default", kl, types),
+		Task:           NewParsedTask(&(rule.Task), rule.Name+"task", kl, types),
 	}
+	copy(res.Event, rule.Event)
+	return res
 }
 
-func NewParsedTask(t *Task, name string, kl *ast.KnowledgeLibrary) ParsedTask {
+func NewParsedTask(t *Task, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedTask {
 	return ParsedTask{
 		Mode:    t.Mode,
 		Exp:     NewParsedExpression(t.Exp, name+"cnd", kl),
-		Actions: NewParsedActionList(t.Actions, name+"actions", kl),
+		Actions: NewParsedActionList(t.Actions, name+"actions", kl, types),
 	}
 }
 
-func NewParsedActionList(acts []Action, name string, kl *ast.KnowledgeLibrary) []ParsedAction {
-	var res []ParsedAction = make([]ParsedAction, 0)
+func NewParsedActionList(acts []Action, name string, kl *ast.KnowledgeLibrary, types map[string]string) []ParsedAction {
+	var res []ParsedAction
 	for i, a := range acts {
-		res = append(res, NewParsedAction(&a, name+strconv.Itoa(i), kl))
+		res = append(res, NewParsedAction(&a, name+strconv.Itoa(i), kl, types))
 	}
 	return res
 }
 
-func NewParsedAction(a *Action, name string, kl *ast.KnowledgeLibrary) ParsedAction {
+func NewParsedAction(a *Action, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedAction {
 	rb := builder.NewRuleBuilder(kl)
-	rule := "rule " + name + " { when true then this.Resources[\"" + a.Resource + "\"] = " + a.Expression + "; }"
+	rule := "rule " + name + " { when true then this." + types[a.Resource] + "[\"" + a.Resource + "\"] = " + a.Expression + "; }"
 	bs := pkg.NewBytesResource([]byte(rule))
 	err := rb.BuildRuleFromResource("dummy", "0.0.0", bs)
 	if err != nil {

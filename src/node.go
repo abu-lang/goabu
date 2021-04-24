@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"steel-lang/antlr/ecaruleParser"
 	"steel-lang/datastructure"
 	"steel-lang/semantics"
 )
@@ -14,24 +13,60 @@ func main() {
 
 func nodeBehaviour() {
 	// init rules
-	r1intp := ecaruleParser.NewpruleIntp("rule R1 on x;y; for x > 0 do y = x+3;")
-	r2intp := ecaruleParser.NewpruleIntp("rule R2 on x;y; for x < 0 do x = 0;")
-	rules := []datastructure.Rule{r1intp.RunpruleIntp(), r2intp.RunpruleIntp()}
+	//r1intp := ecaruleParser.NewpruleIntp("rule R1 on x;y; for x > 0 do y = x+3;")
+	//r2intp := ecaruleParser.NewpruleIntp("rule R2 on x;y; for x < 0 do x = 0;")
+	r1 := datastructure.Rule{
+		Name:           "R1",
+		Event:          []string{"x", "y"},
+		DefaultActions: nil,
+		Task: datastructure.Task{
+			Mode: "for",
+			Exp:  `this.Integer["x"] > 0`,
+			Actions: []datastructure.Action{
+				{Resource: "y",
+					External:   false,
+					Expression: `"42"`,
+				},
+			},
+		},
+	}
+	r2 := datastructure.Rule{
+		Name:           "R2",
+		Event:          []string{"x", "y"},
+		DefaultActions: nil,
+		Task: datastructure.Task{
+			Mode: "for",
+			Exp:  `this.Integer["x"] > 0`,
+			Actions: []datastructure.Action{
+				{Resource: "x",
+					External:   false,
+					Expression: "0",
+				},
+			},
+		},
+	}
+	rules := []datastructure.Rule{r1, r2}
 	// init nodeState
-	memory := make(map[string]interface{})
-	memory["x"] = 1
-	memory["y"] = "3"
-	pool := make([][]semantics.SemanticAction, 0)
-	pool = append(pool, []semantics.SemanticAction{{Resource: "x", Value: 4}, {Resource: "y", Value: "s"}})
-	pool = append(pool, []semantics.SemanticAction{{Resource: "z", Value: true}})
+	memory := datastructure.MakeResources()
+	memory.Integer["x"] = 1
+	memory.Text["y"] = "3"
+	memory.Bool["z"] = false
+	pool := make([][]datastructure.Action, 0)
+	pool = append(pool, []datastructure.Action{{Resource: "x", Expression: "4"}, {Resource: "y", Expression: `"s"`}})
+	pool = append(pool, []datastructure.Action{{Resource: "z", Expression: "true"}})
 	// exec
-	intp := semantics.NewMuSteelExecuter(memory, pool, rules)
+	intp, err := semantics.NewMuSteelExecuter(memory)
+	intp.AddRules(rules)
+	intp.AddPool(pool)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("Rules:\n")
 	for _, rule := range rules {
 		fmt.Println(datastructure.PrintRule(rule))
 	}
 	fmt.Println(intp.PrintState())
-	// intp.Input([]semantics.SemanticAction{{Resource: "x", Value: 4},{Resource: "y", Value: "f"}})
+	// intp.Input([]datastructure.Action{{Resource: "x", Expression: "4"}, {Resource: "y", Expression: `"f"`}})
 	intp.Exec()
 	fmt.Println()
 	fmt.Println(intp.PrintState())
