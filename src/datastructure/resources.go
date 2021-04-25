@@ -27,7 +27,7 @@ func MakeResources() Resources {
 }
 
 func (r Resources) IsValid() bool {
-	atts := NewStringSet("")
+	atts := MakeStringSet("")
 	for a := range r.Bool {
 		if atts.Contains(a) {
 			return false

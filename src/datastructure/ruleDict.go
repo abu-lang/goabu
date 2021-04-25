@@ -2,23 +2,27 @@ package datastructure
 
 type RuleDict map[string]*ParsedRule
 
-func (s *RuleDict) Contains(name string) bool {
-	_, present := (*s)[name]
+func MakeRuleDict() RuleDict {
+	return make(map[string]*ParsedRule)
+}
+
+func (rules RuleDict) Contains(name string) bool {
+	_, present := rules[name]
 	return present
 }
 
-func (s *RuleDict) Insert(rule *ParsedRule) {
-	(*s)[rule.Name] = rule
+// Precondition: rules != nil
+func (rules RuleDict) Insert(rule *ParsedRule) {
+	rules[rule.Name] = rule
 }
 
-func (s *RuleDict) Empty() bool {
-	return len(*s) == 0
+func (rules RuleDict) Empty() bool {
+	return len(rules) == 0
 }
 
-func (s *RuleDict) Add(other *RuleDict) {
-	if other != nil {
-		for name, rule := range *other {
-			(*s)[name] = rule
-		}
+// Precondition: dst != nil
+func (dst RuleDict) Add(src RuleDict) {
+	for name, rule := range src {
+		dst[name] = rule
 	}
 }

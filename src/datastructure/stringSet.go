@@ -7,36 +7,37 @@ import (
 
 type StringSet map[string]bool
 
-func NewStringSet(csv string) *StringSet {
+func MakeStringSet(csv string) StringSet {
 	var res StringSet = make(map[string]bool)
 	if csv == "" {
-		return &res
+		return res
 	}
-	events := strings.Split(csv, ",")
-	for _, e := range events {
-		res[e] = true
+	elements := strings.Split(csv, ",")
+	for _, el := range elements {
+		res[el] = true
 	}
-	return &res
+	return res
 }
 
-func (s *StringSet) Contains(e string) bool {
-	_, present := (*s)[e]
+func (set StringSet) Contains(el string) bool {
+	_, present := set[el]
 	return present
 }
 
-func (s *StringSet) Insert(e string) {
-	(*s)[e] = true
+// Precondition: set != nil
+func (set StringSet) Insert(el string) {
+	set[el] = true
 }
 
-func (s *StringSet) Empty() bool {
-	return len(*s) == 0
+func (set StringSet) Empty() bool {
+	return len(set) == 0
 }
 
-func (fst *StringSet) Intersects(snd *StringSet) bool {
+func (fst StringSet) Intersects(snd StringSet) bool {
 	res := false
 	if snd != nil {
-		for e := range *fst {
-			if snd.Contains(e) {
+		for el := range fst {
+			if snd.Contains(el) {
 				res = true
 				break
 			}
@@ -45,18 +46,17 @@ func (fst *StringSet) Intersects(snd *StringSet) bool {
 	return res
 }
 
-func (fst *StringSet) Add(snd *StringSet) {
-	if snd != nil {
-		for e := range *snd {
-			(*fst)[e] = true
-		}
+// Precondition: dst != nil
+func (dst StringSet) Add(src StringSet) {
+	for el := range src {
+		dst[el] = true
 	}
 }
 
-func (s *StringSet) AllMatch(reg string) bool {
+func (set StringSet) AllMatch(reg string) bool {
 	var idMatcher = regexp.MustCompile(reg)
-	for e := range *s {
-		if !idMatcher.MatchString(e) {
+	for el := range set {
+		if !idMatcher.MatchString(el) {
 			return false
 		}
 	}

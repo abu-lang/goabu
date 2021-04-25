@@ -21,7 +21,7 @@ type MuSteelExecuter struct {
 	types         map[string]string
 	pool          [][]SemanticAction
 	parsedActions int
-	library       map[string]*datastructure.RuleDict
+	library       map[string]datastructure.RuleDict
 
 	knowledgeLibrary *ast.KnowledgeLibrary
 	workingMemory    *ast.WorkingMemory
@@ -33,7 +33,7 @@ func NewMuSteelExecuter(mem datastructure.Resources) (*MuSteelExecuter, error) {
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
 		parsedActions:    0,
-		library:          make(map[string]*datastructure.RuleDict),
+		library:          make(map[string]datastructure.RuleDict),
 		knowledgeLibrary: ast.NewKnowledgeLibrary(),
 		dataContext:      ast.NewDataContext(),
 	}
@@ -68,8 +68,8 @@ func (m *MuSteelExecuter) AddRule(rule *datastructure.Rule) {
 	m.updateWorkingMemory()
 	for _, evt := range parsed.Event {
 		if m.library[evt] == nil {
-			var dict datastructure.RuleDict = make(map[string]*datastructure.ParsedRule)
-			m.library[evt] = &dict
+			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
+			m.library[evt] = dict
 		}
 		m.library[evt].Insert(parsed)
 	}
@@ -172,7 +172,7 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) [][]SemanticAction {
 	if rules.Empty() {
 		return newpool
 	}
-	for _, rule := range *rules {
+	for _, rule := range rules {
 		if rule.DefaultActions != nil {
 			newpool = joinPool(newpool, [][]SemanticAction{m.discoveryActions(rule.DefaultActions)})
 		}
@@ -221,9 +221,8 @@ func (m *MuSteelExecuter) discoveryTask(task datastructure.ParsedTask) [][]Seman
 	return nil
 }
 
-func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) *datastructure.RuleDict {
-	var dict datastructure.RuleDict = make(map[string]*datastructure.ParsedRule)
-	var res *datastructure.RuleDict = &dict
+func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) datastructure.RuleDict {
+	res := datastructure.MakeRuleDict()
 	for _, act := range Xset {
 		res.Add(m.library[act.Resource])
 	}
