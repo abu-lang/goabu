@@ -21,7 +21,8 @@ type MuSteelExecuter struct {
 	types         map[string]string
 	pool          [][]SemanticAction
 	parsedActions int
-	library       map[string]datastructure.RuleDict
+	localLibrary  map[string]datastructure.RuleDict
+	globalLibrary map[string]datastructure.RuleDict
 
 	knowledgeLibrary *ast.KnowledgeLibrary
 	workingMemory    *ast.WorkingMemory
@@ -33,7 +34,8 @@ func NewMuSteelExecuter(mem datastructure.Resources) (*MuSteelExecuter, error) {
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
 		parsedActions:    0,
-		library:          make(map[string]datastructure.RuleDict),
+		localLibrary:     make(map[string]datastructure.RuleDict),
+		globalLibrary:    make(map[string]datastructure.RuleDict),
 		knowledgeLibrary: ast.NewKnowledgeLibrary(),
 		dataContext:      ast.NewDataContext(),
 	}
@@ -66,12 +68,16 @@ func (m *MuSteelExecuter) IsStable() bool {
 func (m *MuSteelExecuter) AddRule(rule *datastructure.Rule) {
 	parsed := datastructure.NewParsedRule(rule, m.knowledgeLibrary, m.types)
 	m.updateWorkingMemory()
+	library := m.localLibrary
+	if parsed.Task.Mode != "for" {
+		library = m.globalLibrary
+	}
 	for _, evt := range parsed.Event {
-		if m.library[evt] == nil {
+		if library[evt] == nil {
 			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
-			m.library[evt] = dict
+			library[evt] = dict
 		}
-		m.library[evt].Insert(parsed)
+		library[evt].Insert(parsed)
 	}
 }
 
@@ -153,11 +159,8 @@ func (m *MuSteelExecuter) removeActions(index int) {
 
 func (m *MuSteelExecuter) discovery(Xset []SemanticAction) [][]SemanticAction {
 	var newpool [][]SemanticAction
-	rules := m.activeRules(Xset)
-	if rules.Empty() {
-		return newpool
-	}
-	for _, rule := range rules {
+	localRules, _ := m.activeRules(Xset)
+	for _, rule := range localRules {
 		if rule.DefaultActions != nil {
 			newpool = joinPool(newpool, [][]SemanticAction{m.discoveryActions(rule.DefaultActions)})
 		}
@@ -187,31 +190,26 @@ func (m *MuSteelExecuter) discoveryActions(acts []datastructure.ParsedAction) []
 }
 
 func (m *MuSteelExecuter) discoveryTask(task datastructure.ParsedTask) [][]SemanticAction {
-	switch task.Mode {
-	case "for":
-		exp := task.Exp
-		exp = m.workingMemory.AddExpression(exp)
-		val, err := exp.Evaluate(m.dataContext, m.workingMemory)
-		if err != nil {
-			panic(err)
-		}
-		if val.Bool() {
-			return [][]SemanticAction{m.discoveryActions(task.Actions)}
-		}
-	case "for some":
-		// TODO: implement
-	case "for all":
-		// TODO: implement
+	exp := task.Exp
+	exp = m.workingMemory.AddExpression(exp)
+	val, err := exp.Evaluate(m.dataContext, m.workingMemory)
+	if err != nil {
+		panic(err)
+	}
+	if val.Bool() {
+		return [][]SemanticAction{m.discoveryActions(task.Actions)}
 	}
 	return nil
 }
 
-func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) datastructure.RuleDict {
-	res := datastructure.MakeRuleDict()
+func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global datastructure.RuleDict) {
+	local = datastructure.MakeRuleDict()
+	global = datastructure.MakeRuleDict()
 	for _, act := range Xset {
-		res.Add(m.library[act.Resource])
+		local.Add(m.localLibrary[act.Resource])
+		global.Add(m.globalLibrary[act.Resource])
 	}
-	return res
+	return local, global
 }
 
 func (m *MuSteelExecuter) updateWorkingMemory() {
