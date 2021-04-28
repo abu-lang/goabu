@@ -96,8 +96,24 @@ func (m *MuSteelExecuter) Exec() {
 		return
 	}
 	actions, index := m.chooseActions()
+	fmt.Print("Exec: ")
+	m.execActions(actions)
+	m.removeActions(index)
+}
+
+func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
+	sactions := m.parseActions(actions)
+	fmt.Print("Input: ")
+	m.execActions(sactions)
+}
+
+func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
+	// TODO: implement other strategies
+	return m.pool[0], 0
+}
+
+func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	var Xset []SemanticAction
-	str := ""
 	for _, action := range actions {
 		variable := action.Variable
 		variable = m.workingMemory.AddVariable(variable)
@@ -124,42 +140,11 @@ func (m *MuSteelExecuter) Exec() {
 				panic(err)
 			}
 			Xset = append(Xset, action)
-			str = str + action.String()
+			fmt.Print(action)
 		}
 	}
-	m.removeActions(index)
+	fmt.Println()
 	m.pool = joinPool(m.pool, m.discovery(Xset))
-	fmt.Println("Exec: " + str)
-}
-
-func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
-	sactions := m.parseActions(actions)
-	str := ""
-	for _, action := range sactions {
-		variable := action.Variable
-		variable = m.workingMemory.AddVariable(variable)
-		currentVal, err := variable.Evaluate(m.dataContext, m.workingMemory)
-		if err != nil {
-			panic(err)
-		}
-		ltype := currentVal.Type()
-		rtype := action.Value.Type()
-		if !rtype.AssignableTo(ltype) {
-			panic(fmt.Errorf("cannot assign a %v to a %v", rtype, ltype))
-		}
-		err = variable.Assign(action.Value, m.dataContext, m.workingMemory)
-		if err != nil {
-			panic(err)
-		}
-		str = str + action.String()
-	}
-	m.pool = joinPool(m.pool, m.discovery(sactions))
-	fmt.Println("Input: " + str)
-}
-
-func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
-	// TODO: implement other strategies
-	return m.pool[0], 0
 }
 
 func (m *MuSteelExecuter) removeActions(index int) {
