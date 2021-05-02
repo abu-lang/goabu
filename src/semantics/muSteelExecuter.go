@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"steel-lang/datastructure"
-	"strconv"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
@@ -20,6 +19,7 @@ type MuSteelExecuter struct {
 	memory        datastructure.Resources
 	types         map[string]string
 	pool          [][]SemanticAction
+	extPool       []ExternalAction
 	parsedActions int
 	localLibrary  map[string]datastructure.RuleDict
 	globalLibrary map[string]datastructure.RuleDict
@@ -33,6 +33,7 @@ func NewMuSteelExecuter(mem datastructure.Resources) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
+		extPool:          make([]ExternalAction, 0),
 		parsedActions:    0,
 		localLibrary:     make(map[string]datastructure.RuleDict),
 		globalLibrary:    make(map[string]datastructure.RuleDict),
@@ -88,7 +89,7 @@ func (m *MuSteelExecuter) AddRules(rules []datastructure.Rule) {
 }
 
 func (m *MuSteelExecuter) AddActions(actions []datastructure.Action) {
-	m.pool = append(m.pool, m.parseActions(actions))
+	m.pool = append(m.pool, evalActions(m.parseActions(actions), m.dataContext, m.workingMemory))
 }
 
 func (m *MuSteelExecuter) AddPool(pl [][]datastructure.Action) {
@@ -98,7 +99,7 @@ func (m *MuSteelExecuter) AddPool(pl [][]datastructure.Action) {
 }
 
 func (m *MuSteelExecuter) Exec() {
-	if m.workingMemory == nil { // => m does not have rules nor actions
+	if m.IsStable() || m.workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
 		return
 	}
 	actions, index := m.chooseActions()
@@ -108,9 +109,24 @@ func (m *MuSteelExecuter) Exec() {
 }
 
 func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
-	sactions := m.parseActions(actions)
+	sActions := evalActions(m.parseActions(actions), m.dataContext, m.workingMemory)
 	fmt.Print("Input: ")
-	m.execActions(sactions)
+	m.execActions(sActions)
+}
+
+func (m *MuSteelExecuter) TestExtPool() {
+	if len(m.extPool) == 0 {
+		return
+	}
+	fmt.Print("Ext: ")
+	context, workMem := m.NewEmptyGruleStructures("ext")
+	extAction := m.extPool[0]
+	m.extPool = m.extPool[1:]
+	fmt.Println(extAction)
+	if extAction.DefaultActions != nil {
+		m.pool = append(m.pool, evalActions(extAction.DefaultActions, context, workMem))
+	}
+	m.pool = appendNonempty(m.pool, condEvalActions(extAction.Condition, extAction.Actions, context, workMem))
 }
 
 func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
@@ -128,16 +144,20 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 			panic(err)
 		}
 		diff := false
-		eq, err := pkg.EvaluateEqual(currentVal, action.Value)
-		if err != nil {
-			panic(err)
-		}
-		if !eq.Bool() {
+		if currentVal.Kind() == reflect.Interface || action.Value.Kind() == reflect.Interface {
 			diff = true
-			ltype := currentVal.Type()
-			rtype := action.Value.Type()
-			if !rtype.AssignableTo(ltype) {
-				panic(fmt.Errorf("cannot assign a %v to a %v", rtype, ltype))
+		} else {
+			eq, err := pkg.EvaluateEqual(currentVal, action.Value)
+			if err != nil {
+				panic(err)
+			}
+			if !eq.Bool() {
+				diff = true
+				ltype := currentVal.Type()
+				rtype := action.Value.Type()
+				if !rtype.AssignableTo(ltype) {
+					panic(fmt.Errorf("cannot assign a %v to a %v", rtype, ltype))
+				}
 			}
 		}
 		if diff {
@@ -150,56 +170,30 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 		}
 	}
 	fmt.Println()
-	m.pool = joinPool(m.pool, m.discovery(Xset))
+	sActions, eActions := m.discovery(Xset)
+	m.pool = append(m.pool, sActions...)
+	m.extPool = append(m.extPool, eActions...)
 }
 
 func (m *MuSteelExecuter) removeActions(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *MuSteelExecuter) discovery(Xset []SemanticAction) [][]SemanticAction {
+func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []ExternalAction) {
 	var newpool [][]SemanticAction
-	localRules, _ := m.activeRules(Xset)
+	var extActions []ExternalAction
+	localRules, globalRules := m.activeRules(Xset)
 	for _, rule := range localRules {
 		if rule.DefaultActions != nil {
-			newpool = joinPool(newpool, [][]SemanticAction{m.discoveryActions(rule.DefaultActions)})
+			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
-		newpool = joinPool(newpool, m.discoveryTask(rule.Task))
+		newpool = appendNonempty(newpool, condEvalActions(rule.Task.Exp, rule.Task.Actions, m.dataContext, m.workingMemory))
 	}
-	return newpool
-}
-
-func (m *MuSteelExecuter) discoveryActions(acts []datastructure.ParsedAction) []SemanticAction {
-	var sacts []SemanticAction
-	for _, action := range acts {
-		assignment := action.Expression
-		variable := assignment.Variable
-		rexpr := assignment.Expression
-		rexpr = m.workingMemory.AddExpression(rexpr)
-		exprVal, err := rexpr.Evaluate(m.dataContext, m.workingMemory)
-		if err != nil {
-			panic(err)
-		}
-		sacts = append(sacts, SemanticAction{
-			Resource: action.Resource,
-			Variable: variable,
-			Value:    exprVal,
-		})
+	for _, rule := range globalRules {
+		ext := m.preEvaluated(rule)
+		extActions = append(extActions, ext)
 	}
-	return sacts
-}
-
-func (m *MuSteelExecuter) discoveryTask(task datastructure.ParsedTask) [][]SemanticAction {
-	exp := task.Exp
-	exp = m.workingMemory.AddExpression(exp)
-	val, err := exp.Evaluate(m.dataContext, m.workingMemory)
-	if err != nil {
-		panic(err)
-	}
-	if val.Bool() {
-		return [][]SemanticAction{m.discoveryActions(task.Actions)}
-	}
-	return nil
+	return newpool, extActions
 }
 
 func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global datastructure.RuleDict) {
@@ -223,11 +217,36 @@ func (m *MuSteelExecuter) updateWorkingMemory() {
 		DataContext:   m.dataContext,
 	}
 	m.dataContext.Add("DEFUNC", defunc)
+	knowledgeBase.InitializeContext(m.dataContext)
 	m.workingMemory = knowledgeBase.WorkingMemory
 }
 
+func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory) {
+	dataContext := ast.NewDataContext()
+	err := dataContext.Add(name, &(m.memory))
+	if err != nil {
+		panic(err)
+	}
+	kbName := "dummy_" + name
+	version := "0.0.0"
+	knowledgeBase := &ast.KnowledgeBase{
+		Name:          kbName,
+		Version:       version,
+		RuleEntries:   make(map[string]*ast.RuleEntry),
+		WorkingMemory: ast.NewWorkingMemory(kbName, version),
+	}
+	defunc := &ast.BuiltInFunctions{
+		Knowledge:     knowledgeBase,
+		WorkingMemory: knowledgeBase.WorkingMemory,
+		DataContext:   dataContext,
+	}
+	dataContext.Add("DEFUNC", defunc)
+	knowledgeBase.InitializeContext(dataContext)
+	return dataContext, knowledgeBase.WorkingMemory
+}
+
 func (m *MuSteelExecuter) PrintState() string {
-	return fmt.Sprintf("Memory: %v\nPool: %v\n", m.memory, m.printPool())
+	return fmt.Sprintf("Memory: %v\nPool: %v\nExtPool: %v\n", m.memory, m.printPool(), m.printExtPool())
 }
 
 func (m *MuSteelExecuter) printPool() string {
@@ -245,45 +264,14 @@ func (m *MuSteelExecuter) printPool() string {
 	}
 }
 
-//----------------------------SEMANTIC ACTION---------------------------------
-
-type SemanticAction struct {
-	Resource string
-	Variable *ast.Variable
-	Value    reflect.Value
-}
-
-func joinPool(pool1, pool2 [][]SemanticAction) [][]SemanticAction {
-	return append(pool1, pool2...)
-}
-
-func (m *MuSteelExecuter) parseActions(actions []datastructure.Action) []SemanticAction {
-	res := make([]SemanticAction, 0)
-	for _, act := range actions {
-		res = append(res, m.parseAction(act, "semaction"+strconv.Itoa(m.parsedActions)))
-		m.parsedActions++
+func (m *MuSteelExecuter) printExtPool() string {
+	if len(m.extPool) == 0 {
+		return "{}"
+	} else {
+		str := "{"
+		for _, action := range m.extPool {
+			str = str + "\n  " + action.String()
+		}
+		return str + "\n}"
 	}
-	return res
-}
-
-func (m *MuSteelExecuter) parseAction(action datastructure.Action, name string) SemanticAction {
-	parsed := datastructure.NewParsedAction(&action, name, m.knowledgeLibrary, m.types)
-	m.updateWorkingMemory()
-	assignment := parsed.Expression
-	variable := assignment.Variable
-	rexpr := assignment.Expression
-	rexpr = m.workingMemory.AddExpression(rexpr)
-	exprVal, err := rexpr.Evaluate(m.dataContext, m.workingMemory)
-	if err != nil {
-		panic(err)
-	}
-	return SemanticAction{
-		Resource: parsed.Resource,
-		Variable: variable,
-		Value:    exprVal,
-	}
-}
-
-func (action SemanticAction) String() string {
-	return fmt.Sprintf("(%s,%v)", action.Resource, action.Value)
 }

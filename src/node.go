@@ -45,12 +45,29 @@ func nodeBehaviour() {
 			},
 		},
 	}
-	rules := []datastructure.Rule{r1, r2}
+	r3 := datastructure.Rule{
+		Name:           "R3",
+		Event:          []string{"x"},
+		DefaultActions: nil,
+		Task: datastructure.Task{
+			Mode: "for all",
+			Exp:  `this.Integer["x"] > ext.Integer["x"] - 1`,
+			Actions: []datastructure.Action{
+				{Resource: "s",
+					External:   false,
+					Expression: `ext.Other[this.Text["y"].ToUpper()]`,
+				},
+			},
+		},
+	}
+	rules := []datastructure.Rule{r1, r2, r3}
 	// init nodeState
 	memory := datastructure.MakeResources()
 	memory.Integer["x"] = 1
 	memory.Text["y"] = "3"
 	memory.Bool["z"] = false
+	memory.Other["S"] = r3
+	memory.Other["s"] = false
 	pool := make([][]datastructure.Action, 0)
 	pool = append(pool, []datastructure.Action{{Resource: "x", Expression: "4"}, {Resource: "y", Expression: `"s"`}})
 	pool = append(pool, []datastructure.Action{{Resource: "z", Expression: "true"}})
@@ -68,6 +85,9 @@ func nodeBehaviour() {
 	fmt.Println(intp.PrintState())
 	// intp.Input([]datastructure.Action{{Resource: "x", Expression: "4"}, {Resource: "y", Expression: `"f"`}})
 	intp.Exec()
+	fmt.Println()
+	fmt.Println(intp.PrintState())
+	intp.TestExtPool()
 	fmt.Println()
 	fmt.Println(intp.PrintState())
 }

@@ -29,6 +29,18 @@ type ParsedTask struct {
 	Actions []ParsedAction
 }
 
+func (action ParsedAction) String() string {
+	return action.Expression.GetGrlText()
+}
+
+func ActionsToStr(actions []ParsedAction) string {
+	res := ""
+	for _, action := range actions {
+		res += action.String() + "; "
+	}
+	return res
+}
+
 func NewParsedRule(rule *Rule, kl *ast.KnowledgeLibrary, types map[string]string) *ParsedRule {
 	res := &ParsedRule{
 		Name:           rule.Name,
@@ -58,7 +70,11 @@ func NewParsedActionList(acts []Action, name string, kl *ast.KnowledgeLibrary, t
 
 func NewParsedAction(a *Action, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedAction {
 	rb := builder.NewRuleBuilder(kl)
-	rule := "rule " + name + " { when true then this." + types[a.Resource] + "[\"" + a.Resource + "\"] = " + a.Expression + "; }"
+	device := "this"
+	if a.External {
+		device = "ext"
+	}
+	rule := "rule " + name + " { when true then " + device + "." + types[a.Resource] + "[\"" + a.Resource + "\"] = " + a.Expression + "; }"
 	bs := pkg.NewBytesResource([]byte(rule))
 	err := rb.BuildRuleFromResource("dummy", "0.0.0", bs)
 	if err != nil {
