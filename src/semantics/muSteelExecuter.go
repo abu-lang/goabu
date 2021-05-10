@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"steel-lang/communication"
 	"steel-lang/datastructure"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -27,9 +28,11 @@ type MuSteelExecuter struct {
 	knowledgeLibrary *ast.KnowledgeLibrary
 	workingMemory    *ast.WorkingMemory
 	dataContext      ast.IDataContext
+
+	agent communication.ISteelAgent
 }
 
-func NewMuSteelExecuter(mem datastructure.Resources) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem datastructure.Resources, agt communication.ISteelAgent) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
@@ -39,6 +42,7 @@ func NewMuSteelExecuter(mem datastructure.Resources) (*MuSteelExecuter, error) {
 		globalLibrary:    make(map[string]datastructure.RuleDict),
 		knowledgeLibrary: ast.NewKnowledgeLibrary(),
 		dataContext:      ast.NewDataContext(),
+		agent:            agt,
 	}
 	if !res.memory.IsValid() {
 		return nil, errors.New("invalid Resources argument")
@@ -48,7 +52,35 @@ func NewMuSteelExecuter(mem datastructure.Resources) (*MuSteelExecuter, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = res.StartAgent()
+	if err != nil {
+		return nil, err
+	}
 	return res, nil
+}
+
+func (m *MuSteelExecuter) StartAgent() error {
+	err := m.agent.Start()
+	if err != nil {
+		return err
+	}
+	err = m.agent.Join()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MuSteelExecuter) StopAgent() error {
+	return m.agent.Stop()
+}
+
+func (m *MuSteelExecuter) SetAgent(agt communication.ISteelAgent) error {
+	if m.agent.IsRunning() {
+		return errors.New("agent is still running")
+	}
+	m.agent = agt
+	return nil
 }
 
 func (m *MuSteelExecuter) GetState() State {

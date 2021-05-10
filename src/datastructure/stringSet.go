@@ -46,6 +46,16 @@ func (fst StringSet) Intersects(snd StringSet) bool {
 	return res
 }
 
+func (fst StringSet) ContainsSet(snd StringSet) bool {
+	for el := range snd {
+		_, present := fst[el]
+		if !present {
+			return false
+		}
+	}
+	return true
+}
+
 // Precondition: dst != nil
 func (dst StringSet) Add(src StringSet) {
 	for el := range src {

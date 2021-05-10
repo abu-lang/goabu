@@ -90,6 +90,29 @@ func (r Resources) GetTypes() map[string]string {
 	return res
 }
 
+func (r Resources) ResourceNames() StringSet {
+	atts := MakeStringSet("")
+	for a := range r.Bool {
+		atts.Insert(a)
+	}
+	for a := range r.Integer {
+		atts.Insert(a)
+	}
+	for a := range r.Float {
+		atts.Insert(a)
+	}
+	for a := range r.Text {
+		atts.Insert(a)
+	}
+	for a := range r.Time {
+		atts.Insert(a)
+	}
+	for a := range r.Other {
+		atts.Insert(a)
+	}
+	return atts
+}
+
 func (r Resources) String() string {
 	var str string = "[ "
 	for key, value := range r.Bool {

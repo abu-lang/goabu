@@ -1,12 +1,22 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"steel-lang/communication"
 	"steel-lang/datastructure"
 	"steel-lang/semantics"
+	"strings"
+	"time"
+)
+
+var (
+	port  = flag.Int("port", 0, "listening port")
+	nodes = flag.String("nodes", "", "list of nodes to join (e.g. '127.0.0.1:8000,127:0.0.1:8001')")
 )
 
 func main() {
+	flag.Parse()
 	// Node main behaviour
 	nodeBehaviour()
 }
@@ -72,12 +82,16 @@ func nodeBehaviour() {
 	pool = append(pool, []datastructure.Action{{Resource: "x", Expression: "4"}, {Resource: "y", Expression: `"s"`}})
 	pool = append(pool, []datastructure.Action{{Resource: "z", Expression: "true"}})
 	// exec
-	intp, err := semantics.NewMuSteelExecuter(memory)
-	intp.AddRules(rules)
-	intp.AddPool(pool)
+	var initialNodes []string
+	if len(*nodes) > 0 {
+		initialNodes = strings.Split(*nodes, ",")
+	}
+	intp, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), *port, initialNodes))
 	if err != nil {
 		panic(err)
 	}
+	intp.AddRules(rules)
+	intp.AddPool(pool)
 	fmt.Println("Rules:\n")
 	for _, rule := range rules {
 		fmt.Println(datastructure.PrintRule(rule))
@@ -90,4 +104,14 @@ func nodeBehaviour() {
 	intp.TestExtPool()
 	fmt.Println()
 	fmt.Println(intp.PrintState())
+	time.Sleep(60 * time.Second) // for memberlist testing
+	err = intp.StopAgent()
+	if err != nil {
+		panic(err)
+	}
+	err = intp.StartAgent()
+	if err != nil {
+		panic(err)
+	}
+	time.Sleep(60 * time.Second) // for memberlist testing
 }
