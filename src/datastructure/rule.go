@@ -2,17 +2,15 @@ package datastructure
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type Action struct {
 	Resource string
-	External bool
 	Expression string
 }
 
 func PrintAction(syntaction Action) string {
-	return "(" + syntaction.Resource + "," + strconv.FormatBool(syntaction.External) + "," + syntaction.Expression + ")"
+	return "(" + syntaction.Resource + "," + syntaction.Expression + ")"
 }
 
 type Task struct {

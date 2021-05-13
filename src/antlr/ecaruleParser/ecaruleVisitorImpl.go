@@ -62,13 +62,7 @@ func (m *ecaruleVisitorImpl) VisitActslist(ctx *ActslistContext) interface{} {
 }
 
 func (m *ecaruleVisitorImpl) VisitAct(ctx *ActContext) interface{} {
-	var sact datastructure.Action
-	if ctx.EXT() != nil {
-		sact = datastructure.Action{Resource: ctx.Id().GetText(), External: true, Expression: ctx.Exp().GetText()}
-	} else {
-		sact = datastructure.Action{Resource: ctx.Id().GetText(), External: false, Expression: ctx.Exp().GetText()}
-	}
-	return sact
+	return datastructure.Action{Resource: ctx.Id().GetText(), Expression: ctx.Exp().GetText()}
 }
 
 // Never used

@@ -19,7 +19,6 @@ type ParsedRule struct {
 
 type ParsedAction struct {
 	Resource   string
-	External   bool
 	Expression *ast.Assignment
 }
 
@@ -70,11 +69,7 @@ func NewParsedActionList(acts []Action, name string, kl *ast.KnowledgeLibrary, t
 
 func NewParsedAction(a *Action, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedAction {
 	rb := builder.NewRuleBuilder(kl)
-	device := "this"
-	if a.External {
-		device = "ext"
-	}
-	rule := "rule " + name + " { when true then " + device + "." + types[a.Resource] + "[\"" + a.Resource + "\"] = " + a.Expression + "; }"
+	rule := "rule " + name + " { when true then this." + types[a.Resource] + "[\"" + a.Resource + "\"] = " + a.Expression + "; }"
 	bs := pkg.NewBytesResource([]byte(rule))
 	err := rb.BuildRuleFromResource("dummy", "0.0.0", bs)
 	if err != nil {
@@ -84,7 +79,6 @@ func NewParsedAction(a *Action, name string, kl *ast.KnowledgeLibrary, types map
 	ruleEntry := kb.RuleEntries[name]
 	return ParsedAction{
 		Resource:   a.Resource,
-		External:   a.External,
 		Expression: ruleEntry.ThenScope.ThenExpressionList.ThenExpressions[0].Assignment,
 	}
 }

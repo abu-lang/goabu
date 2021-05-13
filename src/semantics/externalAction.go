@@ -40,7 +40,6 @@ func (m *MuSteelExecuter) preEvaluatedActions(actions []datastructure.ParsedActi
 	for _, action := range actions {
 		res = append(res, datastructure.ParsedAction{
 			Resource:   action.Resource,
-			External:   action.External,
 			Expression: m.preEvaluatedAssignment(action.Expression),
 		})
 	}

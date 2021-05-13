@@ -34,7 +34,6 @@ func nodeBehaviour() {
 			Exp:  `this.Integer["x"] > 0`,
 			Actions: []datastructure.Action{
 				{Resource: "y",
-					External:   false,
 					Expression: `"42"`,
 				},
 			},
@@ -49,7 +48,6 @@ func nodeBehaviour() {
 			Exp:  `this.Integer["x"] > 0`,
 			Actions: []datastructure.Action{
 				{Resource: "x",
-					External:   false,
 					Expression: "0",
 				},
 			},
@@ -64,7 +62,6 @@ func nodeBehaviour() {
 			Exp:  `this.Integer["x"] > ext.Integer["x"] - 1`,
 			Actions: []datastructure.Action{
 				{Resource: "s",
-					External:   false,
 					Expression: `ext.Other[this.Text["y"].ToUpper()]`,
 				},
 			},
