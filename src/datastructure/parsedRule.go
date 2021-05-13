@@ -12,7 +12,7 @@ import (
 
 type ParsedRule struct {
 	Name           string
-	Event          []string
+	Events         []string
 	DefaultActions []ParsedAction
 	Task           ParsedTask
 }
@@ -23,13 +23,13 @@ type ParsedAction struct {
 }
 
 type ParsedTask struct {
-	Mode    string
-	Exp     *ast.Expression
-	Actions []ParsedAction
+	Mode      string
+	Condition *ast.Expression
+	Actions   []ParsedAction
 }
 
-func (action ParsedAction) String() string {
-	return action.Expression.GetGrlText()
+func (a ParsedAction) String() string {
+	return a.Expression.GetGrlText()
 }
 
 func ActionsToStr(actions []ParsedAction) string {
@@ -43,19 +43,19 @@ func ActionsToStr(actions []ParsedAction) string {
 func NewParsedRule(rule *Rule, kl *ast.KnowledgeLibrary, types map[string]string) *ParsedRule {
 	res := &ParsedRule{
 		Name:           rule.Name,
-		Event:          make([]string, len(rule.Event)),
+		Events:         make([]string, len(rule.Events)),
 		DefaultActions: NewParsedActionList(rule.DefaultActions, rule.Name+"default", kl, types),
 		Task:           NewParsedTask(&(rule.Task), rule.Name+"task", kl, types),
 	}
-	copy(res.Event, rule.Event)
+	copy(res.Events, rule.Events)
 	return res
 }
 
 func NewParsedTask(t *Task, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedTask {
 	return ParsedTask{
-		Mode:    t.Mode,
-		Exp:     NewParsedExpression(t.Exp, name+"cnd", kl),
-		Actions: NewParsedActionList(t.Actions, name+"actions", kl, types),
+		Mode:      t.Mode,
+		Condition: NewParsedExpression(t.Condition, name+"cnd", kl),
+		Actions:   NewParsedActionList(t.Actions, name+"actions", kl, types),
 	}
 }
 

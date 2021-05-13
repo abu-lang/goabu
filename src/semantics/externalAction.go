@@ -27,7 +27,7 @@ func (action ExternalAction) String() string {
 func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalAction {
 	return ExternalAction{
 		DefaultActions: m.preEvaluatedActions(rule.DefaultActions),
-		Condition:      m.preEvaluatedExpression(rule.Task.Exp),
+		Condition:      m.preEvaluatedExpression(rule.Task.Condition),
 		Actions:        m.preEvaluatedActions(rule.Task.Actions),
 	}
 }

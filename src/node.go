@@ -27,11 +27,11 @@ func nodeBehaviour() {
 	//r2intp := ecaruleParser.NewpruleIntp("rule R2 on x;y; for x < 0 do x = 0;")
 	r1 := datastructure.Rule{
 		Name:           "R1",
-		Event:          []string{"x", "y"},
+		Events:         []string{"x", "y"},
 		DefaultActions: nil,
 		Task: datastructure.Task{
-			Mode: "for",
-			Exp:  `this.Integer["x"] > 0`,
+			Mode:      "for",
+			Condition: `this.Integer["x"] > 0`,
 			Actions: []datastructure.Action{
 				{Resource: "y",
 					Expression: `"42"`,
@@ -41,11 +41,11 @@ func nodeBehaviour() {
 	}
 	r2 := datastructure.Rule{
 		Name:           "R2",
-		Event:          []string{"x", "y"},
+		Events:         []string{"x", "y"},
 		DefaultActions: nil,
 		Task: datastructure.Task{
-			Mode: "for",
-			Exp:  `this.Integer["x"] > 0`,
+			Mode:      "for",
+			Condition: `this.Integer["x"] > 0`,
 			Actions: []datastructure.Action{
 				{Resource: "x",
 					Expression: "0",
@@ -55,11 +55,11 @@ func nodeBehaviour() {
 	}
 	r3 := datastructure.Rule{
 		Name:           "R3",
-		Event:          []string{"x"},
+		Events:         []string{"x"},
 		DefaultActions: nil,
 		Task: datastructure.Task{
-			Mode: "for all",
-			Exp:  `this.Integer["x"] > ext.Integer["x"] - 1`,
+			Mode:      "for all",
+			Condition: `this.Integer["x"] > ext.Integer["x"] - 1`,
 			Actions: []datastructure.Action{
 				{Resource: "s",
 					Expression: `ext.Other[this.Text["y"].ToUpper()]`,
@@ -91,7 +91,7 @@ func nodeBehaviour() {
 	intp.AddPool(pool)
 	fmt.Println("Rules:\n")
 	for _, rule := range rules {
-		fmt.Println(datastructure.PrintRule(rule))
+		fmt.Println(rule)
 	}
 	fmt.Println(intp.PrintState())
 	// intp.Input([]datastructure.Action{{Resource: "x", Expression: "4"}, {Resource: "y", Expression: `"f"`}})

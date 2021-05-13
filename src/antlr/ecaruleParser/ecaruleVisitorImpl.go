@@ -30,7 +30,7 @@ func (m *ecaruleVisitorImpl) VisitPrule(ctx *PruleContext) interface{} {
 	} else {
 		defActs = nil
 	}
-	*m.rule = datastructure.Rule{Name: ruleName, Event: evt.([]string), DefaultActions: defActs, Task: m.VisitTask(ctx.Task().(*TaskContext)).(datastructure.Task)}
+	*m.rule = datastructure.Rule{Name: ruleName, Events: evt.([]string), DefaultActions: defActs, Task: m.VisitTask(ctx.Task().(*TaskContext)).(datastructure.Task)}
 	return nil
 }
 
@@ -50,7 +50,7 @@ func (m *ecaruleVisitorImpl) VisitTask(ctx *TaskContext) interface{} {
 	if ctx.SOME() != nil {
 		mode = mode + " some"
 	}
-	return  datastructure.Task{Mode: mode, Exp: ctx.Exp().GetText(), Actions: m.VisitActslist(ctx.Actslist().(*ActslistContext)).([]datastructure.Action)}
+	return  datastructure.Task{Mode: mode, Condition: ctx.Exp().GetText(), Actions: m.VisitActslist(ctx.Actslist().(*ActslistContext)).([]datastructure.Action)}
 }
 
 func (m *ecaruleVisitorImpl) VisitActslist(ctx *ActslistContext) interface{} {

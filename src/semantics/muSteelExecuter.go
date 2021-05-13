@@ -104,7 +104,7 @@ func (m *MuSteelExecuter) AddRule(rule *datastructure.Rule) {
 	if parsed.Task.Mode != "for" {
 		library = m.globalLibrary
 	}
-	for _, evt := range parsed.Event {
+	for _, evt := range parsed.Events {
 		if library[evt] == nil {
 			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
 			library[evt] = dict
@@ -218,7 +218,7 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 		if rule.DefaultActions != nil {
 			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
-		newpool = appendNonempty(newpool, condEvalActions(rule.Task.Exp, rule.Task.Actions, m.dataContext, m.workingMemory))
+		newpool = appendNonempty(newpool, condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory))
 	}
 	for _, rule := range globalRules {
 		ext := m.preEvaluated(rule)

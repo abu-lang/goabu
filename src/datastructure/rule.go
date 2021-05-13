@@ -4,44 +4,43 @@ import (
 	"fmt"
 )
 
-type Action struct {
-	Resource string
-	Expression string
-}
-
-func PrintAction(syntaction Action) string {
-	return "(" + syntaction.Resource + "," + syntaction.Expression + ")"
+type Rule struct {
+	Name           string
+	Events         []string
+	DefaultActions []Action
+	Task           Task
 }
 
 type Task struct {
-	Mode string
-	Exp  string
-	Actions []Action
+	Mode      string
+	Condition string
+	Actions   []Action
 }
 
-func PrintTask(task Task) string {
-	str := fmt.Sprintln(task.Mode + " " + task.Exp + " do:")
-	for _, act := range task.Actions {
-		str = str + fmt.Sprintln(PrintAction(act))
-	}
-	return str
+type Action struct {
+	Resource   string
+	Expression string
 }
 
-type Rule struct {
-	Name    string
-	Event     []string
-	DefaultActions []Action
-	Task    Task
-}
-
-func PrintRule(rule Rule) string {
-	str := fmt.Sprintf("%s on %v\n", rule.Name, rule.Event)
-	if rule.DefaultActions != nil {
+func (r Rule) String() string {
+	str := fmt.Sprintf("%s on %v\n", r.Name, r.Events)
+	if len(r.DefaultActions) > 0 {
 		str = str + "Default:\n"
-		for _, act := range rule.DefaultActions {
-			str = str + fmt.Sprintln(PrintAction(act))
+		for _, act := range r.DefaultActions {
+			str = str + act.String() + "\n"
 		}
 	}
-	str = str + PrintTask(rule.Task)
+	return str + r.Task.String()
+}
+
+func (t Task) String() string {
+	str := fmt.Sprintln(t.Mode + " " + t.Condition + " do:")
+	for _, act := range t.Actions {
+		str = str + act.String() + "\n"
+	}
 	return str
+}
+
+func (a Action) String() string {
+	return "(" + a.Resource + "," + a.Expression + ")"
 }
