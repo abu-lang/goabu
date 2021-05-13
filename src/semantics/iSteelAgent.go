@@ -1,4 +1,4 @@
-package communication
+package semantics
 
 type ISteelAgent interface {
 	Start() error

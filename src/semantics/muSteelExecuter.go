@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"steel-lang/communication"
 	"steel-lang/datastructure"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -29,10 +28,10 @@ type MuSteelExecuter struct {
 	workingMemory    *ast.WorkingMemory
 	dataContext      ast.IDataContext
 
-	agent communication.ISteelAgent
+	agent ISteelAgent
 }
 
-func NewMuSteelExecuter(mem datastructure.Resources, agt communication.ISteelAgent) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem datastructure.Resources, agt ISteelAgent) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
@@ -75,7 +74,7 @@ func (m *MuSteelExecuter) StopAgent() error {
 	return m.agent.Stop()
 }
 
-func (m *MuSteelExecuter) SetAgent(agt communication.ISteelAgent) error {
+func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 	if m.agent.IsRunning() {
 		return errors.New("agent is still running")
 	}
