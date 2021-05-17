@@ -2,6 +2,7 @@ package semantics
 
 import (
 	"fmt"
+	"reflect"
 	"steel-lang/datastructure"
 	"strings"
 
@@ -13,6 +14,11 @@ type ExternalAction struct {
 	DefaultActions []datastructure.ParsedAction
 	Condition      *ast.Expression
 	Actions        []datastructure.ParsedAction
+	ReadOrWrite    datastructure.StringSet
+	Write          datastructure.StringSet
+	Constants      map[string]interface{}
+	dataContext    ast.IDataContext
+	workingMemory  *ast.WorkingMemory
 }
 
 func (action ExternalAction) String() string {
@@ -25,14 +31,20 @@ func (action ExternalAction) String() string {
 
 // Precondition: rule.Task.Mode != "for"
 func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalAction {
-	return ExternalAction{
-		DefaultActions: m.preEvaluatedActions(rule.DefaultActions),
-		Condition:      m.preEvaluatedExpression(rule.Task.Condition),
-		Actions:        m.preEvaluatedActions(rule.Task.Actions),
+	res := ExternalAction{
+		ReadOrWrite:   datastructure.MakeStringSet(""),
+		Write:         datastructure.MakeStringSet(""),
+		Constants:     make(map[string]interface{}),
+		dataContext:   m.dataContext,
+		workingMemory: m.workingMemory,
 	}
+	res.DefaultActions = res.preEvaluatedActions(rule.DefaultActions)
+	res.Condition = res.preEvaluatedExpression(rule.Task.Condition)
+	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
+	return res
 }
 
-func (m *MuSteelExecuter) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
+func (a ExternalAction) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
 	if actions == nil {
 		return nil
 	}
@@ -40,77 +52,161 @@ func (m *MuSteelExecuter) preEvaluatedActions(actions []datastructure.ParsedActi
 	for _, action := range actions {
 		res = append(res, datastructure.ParsedAction{
 			Resource:   action.Resource,
-			Expression: m.preEvaluatedAssignment(action.Expression),
+			Expression: a.preEvaluatedAssignment(action.Expression),
 		})
+		a.ReadOrWrite.Insert(action.Resource)
+		a.Write.Insert(action.Resource)
 	}
 	return res
 }
 
-func (m *MuSteelExecuter) preEvaluatedAssignment(assign *ast.Assignment) *ast.Assignment {
+func (a ExternalAction) preEvaluatedAssignment(assign *ast.Assignment) *ast.Assignment {
 	res := assign.Clone(pkg.NewCloneTable())
-	m.partiallyEvalExpression(res.Expression)
+	a.partiallyEvalExpression(res.Expression)
 	return res
 }
 
-func (m *MuSteelExecuter) preEvaluatedExpression(exp *ast.Expression) *ast.Expression {
+func (a ExternalAction) preEvaluatedExpression(exp *ast.Expression) *ast.Expression {
 	res := exp.Clone(pkg.NewCloneTable())
-	m.partiallyEvalExpression(res)
+	a.partiallyEvalExpression(res)
 	return res
 }
 
-func (m *MuSteelExecuter) partiallyEvalExpression(e *ast.Expression) {
+func (a ExternalAction) partiallyEvalExpression(e *ast.Expression) {
 	if e == nil {
 		return
 	}
-	m.partiallyEvalExpression(e.LeftExpression)
-	m.partiallyEvalExpression(e.RightExpression)
-	m.partiallyEvalExpression(e.SingleExpression)
-	m.partiallyEvalExpressionAtom(e.ExpressionAtom)
+	a.partiallyEvalExpression(e.LeftExpression)
+	a.partiallyEvalExpression(e.RightExpression)
+	a.partiallyEvalExpression(e.SingleExpression)
+	a.partiallyEvalExpressionAtom(e.ExpressionAtom)
 }
 
-func (m *MuSteelExecuter) partiallyEvalExpressionAtom(e *ast.ExpressionAtom) {
+func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom) {
 	if e == nil {
 		return
+	}
+	if e.Constant != nil {
+		a.Constants[e.Constant.GetAstID()] = e.Constant.Value.Interface()
 	}
 	if e.FunctionCall != nil {
-		m.partiallyEvalArgumentList(e.FunctionCall.ArgumentList)
+		a.partiallyEvalArgumentList(e.FunctionCall.ArgumentList)
 	}
-	m.partiallyEvalExpressionAtom(e.ExpressionAtom)
+	a.partiallyEvalExpressionAtom(e.ExpressionAtom)
 	if e.ArrayMapSelector != nil {
-		m.partiallyEvalExpression(e.ArrayMapSelector.Expression)
+		a.partiallyEvalExpression(e.ArrayMapSelector.Expression)
 	}
 	if e.Variable == nil {
 		return
 	}
 	if strings.HasPrefix(e.Variable.GetGrlText(), "this.") {
-		variable := m.workingMemory.AddVariable(e.Variable)
-		val, err := variable.Evaluate(m.dataContext, m.workingMemory)
+		variable := a.workingMemory.AddVariable(e.Variable)
+		val, err := variable.Evaluate(a.dataContext, a.workingMemory)
 		if err != nil {
 			panic(err)
 		}
 		e.Variable = nil
 		constant := ast.NewConstant()
+		if val.Kind() == reflect.String {
+			constant.SetGrlText(fmt.Sprintf(`"%s"`, val.String()))
+		}
 		constant.Value = val
 		e.Constant = constant
+		a.Constants[constant.GetAstID()] = val.Interface()
+	} else if strings.HasPrefix(e.Variable.GetGrlText(), "ext.") {
+		a.partiallyEvalVariable(e.Variable)
+		switch {
+		case e.Variable.ArrayMapSelector == nil:
+			return
+		case e.Variable.ArrayMapSelector.Expression == nil:
+			return
+		case e.Variable.ArrayMapSelector.Expression.ExpressionAtom == nil:
+			return
+		case e.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant == nil:
+			return
+		}
+		text := e.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText()
+		res := strings.Split(text, `"`)[1]
+		a.ReadOrWrite.Insert(res)
 	} else {
-		m.partiallyEvalVariable(e.Variable)
+		a.partiallyEvalVariable(e.Variable)
 	}
 }
 
-func (m *MuSteelExecuter) partiallyEvalArgumentList(e *ast.ArgumentList) {
+func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList) {
 	if e == nil {
 		return
 	}
 	for _, arg := range e.Arguments {
-		m.partiallyEvalExpression(arg)
+		a.partiallyEvalExpression(arg)
 	}
 }
 
-func (m *MuSteelExecuter) partiallyEvalVariable(e *ast.Variable) {
+func (a ExternalAction) partiallyEvalVariable(e *ast.Variable) {
 	if e == nil {
 		return
 	}
 	if e.ArrayMapSelector != nil {
-		m.partiallyEvalExpression(e.ArrayMapSelector.Expression)
+		a.partiallyEvalExpression(e.ArrayMapSelector.Expression)
+	}
+}
+
+func (a ExternalAction) attachConstants() {
+	a.attachConstantsActions(a.DefaultActions)
+	a.attachConstantsExpression(a.Condition)
+	a.attachConstantsActions(a.Actions)
+}
+
+func (a ExternalAction) attachConstantsActions(actions []datastructure.ParsedAction) {
+	for _, action := range actions {
+		a.attachConstantsExpression(action.Expression.Expression)
+	}
+}
+
+func (a ExternalAction) attachConstantsExpression(e *ast.Expression) {
+	if e == nil {
+		return
+	}
+	a.attachConstantsExpression(e.LeftExpression)
+	a.attachConstantsExpression(e.RightExpression)
+	a.attachConstantsExpression(e.SingleExpression)
+	a.attachConstantsExpressionAtom(e.ExpressionAtom)
+}
+
+func (a ExternalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
+	if e == nil {
+		return
+	}
+	if e.Constant != nil {
+		val, present := a.Constants[e.Constant.GetAstID()]
+		if present {
+			e.Constant.Value = reflect.ValueOf(val)
+		}
+	}
+	if e.FunctionCall != nil {
+		a.attachConstantsArgumentList(e.FunctionCall.ArgumentList)
+	}
+	a.attachConstantsExpressionAtom(e.ExpressionAtom)
+	if e.ArrayMapSelector != nil {
+		a.attachConstantsExpression(e.ArrayMapSelector.Expression)
+	}
+	a.attachConstantsVariable(e.Variable)
+}
+
+func (a ExternalAction) attachConstantsArgumentList(e *ast.ArgumentList) {
+	if e == nil {
+		return
+	}
+	for _, arg := range e.Arguments {
+		a.attachConstantsExpression(arg)
+	}
+}
+
+func (a ExternalAction) attachConstantsVariable(e *ast.Variable) {
+	if e == nil {
+		return
+	}
+	if e.ArrayMapSelector != nil {
+		a.attachConstantsExpression(e.ArrayMapSelector.Expression)
 	}
 }
