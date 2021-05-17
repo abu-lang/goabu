@@ -14,7 +14,9 @@ import (
 )
 
 const (
-	registerTimeoutMs = 1000
+	// milliseconds
+	timeoutRegister = 1000
+	msgBuffLen      = 10
 )
 
 type registryInventory struct {
@@ -26,34 +28,53 @@ type messageUnion struct {
 	Type   string
 	Sender *memberlist.Node
 
-	Registry resourceRegistry
+	Registry    resourceRegistry
+	Transaction transactionInfo
 }
 
 type memberlistAgent struct {
+	// real time access from delegate
 	localResources datastructure.StringSet
 	initialNodes   []string
 	registry       resourceRegistry
 	lockRegistry   *sync.RWMutex
 	listPtr        **memberlist.Memberlist
+	terminated     map[string]string
 
-	running            bool
-	listeningPort      int
-	config             *memberlist.Config
-	list               *memberlist.Memberlist
-	waitingForRegistry chan string
-	pendingMerges      chan resourceRegistry
-	quitUpdates        chan chan bool
-	trackGossip        chan chan *sync.WaitGroup
-	stopGossipHandling chan chan bool
+	// delegate sees value set in Start()
+	running bool
+	config  *memberlist.Config
+	list    *memberlist.Memberlist
+	// chan Node.Name
+	waitingForRegistry    chan string
+	quitTransactions      chan chan bool
+	quitUpdates           chan chan bool
+	stopGossipHandling    chan chan bool
+	quitDemux             chan chan bool
+	pendingMerges         chan resourceRegistry
+	transactionMessages   chan messageUnion
+	transactionResponses  chan messageUnion
+	coordinatedChannels   chan chan transactionChannels
+	trackGossip           chan chan *sync.WaitGroup
+	initiatedTransactions int
+	transaction           transactionInfo
+	// not modified after constructor
+	listeningPort       int
+	committedOperations chan []semantics.ExternalAction
 }
 
 func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string) semantics.ISteelAgent {
 	res := &memberlistAgent{
-		running:        false,
-		listeningPort:  port,
-		localResources: names,
-		initialNodes:   nodes,
-		lockRegistry:   &sync.RWMutex{},
+		running:               false,
+		listeningPort:         port,
+		localResources:        names,
+		initialNodes:          nodes,
+		lockRegistry:          &sync.RWMutex{},
+		initiatedTransactions: 0,
+		committedOperations:   make(chan []semantics.ExternalAction),
+		transaction: transactionInfo{
+			Initiator: "",
+		},
 	}
 	res.listPtr = &res.list
 	return res
@@ -73,11 +94,17 @@ func (a *memberlistAgent) Start() error {
 	}
 
 	a.registry = makeResourceRegistry(a.localResources, uuid.String())
-	a.waitingForRegistry = make(chan string, 10)
-	a.pendingMerges = make(chan resourceRegistry, 10)
-	a.trackGossip = make(chan chan *sync.WaitGroup)
-	a.stopGossipHandling = make(chan chan bool)
+	a.terminated = make(map[string]string)
+	a.waitingForRegistry = make(chan string, msgBuffLen)
+	a.quitTransactions = make(chan chan bool)
 	a.quitUpdates = make(chan chan bool)
+	a.stopGossipHandling = make(chan chan bool)
+	a.quitDemux = make(chan chan bool)
+	a.pendingMerges = make(chan resourceRegistry, msgBuffLen)
+	a.transactionMessages = make(chan messageUnion, msgBuffLen)
+	a.transactionResponses = make(chan messageUnion, msgBuffLen)
+	a.coordinatedChannels = make(chan chan transactionChannels)
+	a.trackGossip = make(chan chan *sync.WaitGroup)
 
 	a.config = memberlist.DefaultLocalConfig()
 	a.config.BindPort = a.listeningPort
@@ -94,6 +121,8 @@ func (a *memberlistAgent) Start() error {
 	a.running = true
 	go joiner(a.trackGossip, a.stopGossipHandling)
 	go a.handleUpdates(a.config.PushPullInterval / 2)
+	go demuxResponses(a.coordinatedChannels, a.transactionResponses, a.quitDemux)
+	go a.handleTransactions()
 	return nil
 }
 
@@ -108,13 +137,50 @@ func (a *memberlistAgent) Join() error {
 	return nil
 }
 
+func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
+	if !a.running {
+		return errors.New("agent is not running")
+	}
+	if len(actions) == 0 {
+		return nil
+	}
+	partecipants := a.possiblyInterested(actions)
+	if partecipants.Empty() {
+		return nil
+	}
+	info := transactionInfo{
+		Initiator:    a.list.LocalNode().Name,
+		Number:       a.initiatedTransactions,
+		Actions:      actions,
+		Superiors:    datastructure.MakeStringSet(""),
+		Subordinates: partecipants,
+	}
+	a.initiatedTransactions++
+	return a.coordinateTransaction(info)
+}
+
+func (a *memberlistAgent) ReceivedActions() <-chan []semantics.ExternalAction {
+	return a.committedOperations
+}
+
 func (a *memberlistAgent) Stop() error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
 
-	fmt.Println("Stopping update handling...")
+	fmt.Println("Stopping transaction handling...")
 	replyCh := make(chan bool)
+	a.quitTransactions <- replyCh
+	<-replyCh
+	a.committedOperations <- nil
+	fmt.Println("Stopped transaction handling")
+	fmt.Println("Stopping response demultiplexing...")
+	replyCh = make(chan bool)
+	a.quitDemux <- replyCh
+	<-replyCh
+	fmt.Println("Stopped response demultiplexing")
+	fmt.Println("Stopping update handling...")
+	replyCh = make(chan bool)
 	a.quitUpdates <- replyCh
 	<-replyCh
 	fmt.Println("Stopped update handling")
@@ -140,13 +206,18 @@ func (a *memberlistAgent) Stop() error {
 
 	// clean up
 	a.registry = nil
+	a.terminated = nil
 	a.list = nil
 	a.waitingForRegistry = nil
 	a.pendingMerges = nil
+	a.transactionMessages = nil
+	a.quitTransactions = nil
 	a.quitUpdates = nil
-	a.trackGossip = nil
 	a.stopGossipHandling = nil
-
+	a.quitDemux = nil
+	a.transactionResponses = nil
+	a.coordinatedChannels = nil
+	a.trackGossip = nil
 	a.running = false
 	return nil
 }
@@ -223,7 +294,7 @@ func (d memberlistAgent) register() (*sync.WaitGroup, error) {
 	select {
 	case d.trackGossip <- replyCh:
 		return <-replyCh, nil
-	case <-time.After(registerTimeoutMs * time.Millisecond):
+	case <-time.After(time.Millisecond * timeoutRegister):
 		return nil, errors.New("timeout in waiting from joiner")
 	}
 }
@@ -261,8 +332,22 @@ func (d memberlistAgent) NotifyMsg(m []byte) {
 		default:
 			fmt.Println("discarded incoming registry response from", message.Sender.Name)
 		}
+	case "prepared":
+		fallthrough
+	case "aborted":
+		fallthrough
+	case "committed":
+		select {
+		case d.transactionResponses <- message:
+		default:
+			fmt.Println("discarded response from", message.Sender.Name)
+		}
 	default:
-		fmt.Println("unsupported message:", message.Type)
+		select {
+		case d.transactionMessages <- message:
+		default:
+			fmt.Println("discarded incoming transaction message from", message.Sender.Name)
+		}
 	}
 }
 

@@ -29,6 +29,10 @@ func (set StringSet) Insert(el string) {
 	set[el] = true
 }
 
+func (set StringSet) Remove(el string) {
+	delete(set, el)
+}
+
 func (set StringSet) Empty() bool {
 	return len(set) == 0
 }

@@ -3,7 +3,8 @@ package semantics
 type ISteelAgent interface {
 	Start() error
 	Join() error
-	// ForAll(...) error TODO
+	ForAll([]ExternalAction) error
+	ReceivedActions() <-chan []ExternalAction
 	Stop() error
 	IsRunning() bool
 }

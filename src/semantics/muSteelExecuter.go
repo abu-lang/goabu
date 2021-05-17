@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"steel-lang/datastructure"
+	"sync"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
@@ -19,7 +20,7 @@ type MuSteelExecuter struct {
 	memory        datastructure.Resources
 	types         map[string]string
 	pool          [][]SemanticAction
-	extPool       []ExternalAction
+	lockPool      sync.Mutex
 	parsedActions int
 	localLibrary  map[string]datastructure.RuleDict
 	globalLibrary map[string]datastructure.RuleDict
@@ -35,7 +36,6 @@ func NewMuSteelExecuter(mem datastructure.Resources, agt ISteelAgent) (*MuSteelE
 	res := &MuSteelExecuter{
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
-		extPool:          make([]ExternalAction, 0),
 		parsedActions:    0,
 		localLibrary:     make(map[string]datastructure.RuleDict),
 		globalLibrary:    make(map[string]datastructure.RuleDict),
@@ -63,6 +63,7 @@ func (m *MuSteelExecuter) StartAgent() error {
 	if err != nil {
 		return err
 	}
+	go m.receiveExternalActions()
 	err = m.agent.Join()
 	if err != nil {
 		return err
@@ -84,16 +85,20 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 
 func (m *MuSteelExecuter) GetState() State {
 	memCopy := m.memory.Clone()
+	m.lockPool.Lock()
 	poolCopy := make([][]SemanticAction, 0, len(m.pool))
 	for _, acts := range m.pool {
 		actsCopy := make([]SemanticAction, len(acts))
 		copy(actsCopy, acts)
 		poolCopy = append(poolCopy, actsCopy)
 	}
+	m.lockPool.Unlock()
 	return State{Memory: memCopy, Pool: poolCopy}
 }
 
 func (m *MuSteelExecuter) IsStable() bool {
+	m.lockPool.Lock()
+	defer m.lockPool.Unlock()
 	return len(m.pool) == 0
 }
 
@@ -120,7 +125,9 @@ func (m *MuSteelExecuter) AddRules(rules []datastructure.Rule) {
 }
 
 func (m *MuSteelExecuter) AddActions(actions []datastructure.Action) {
+	m.lockPool.Lock()
 	m.pool = append(m.pool, evalActions(m.parseActions(actions), m.dataContext, m.workingMemory))
+	m.lockPool.Unlock()
 }
 
 func (m *MuSteelExecuter) AddPool(pl [][]datastructure.Action) {
@@ -133,31 +140,40 @@ func (m *MuSteelExecuter) Exec() {
 	if m.IsStable() || m.workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
 		return
 	}
+	m.lockPool.Lock()
 	actions, index := m.chooseActions()
 	fmt.Print("Exec: ")
 	m.execActions(actions)
 	m.removeActions(index)
+	m.lockPool.Unlock()
 }
 
 func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
 	sActions := evalActions(m.parseActions(actions), m.dataContext, m.workingMemory)
 	fmt.Print("Input: ")
+	m.lockPool.Lock()
 	m.execActions(sActions)
+	m.lockPool.Unlock()
 }
 
-func (m *MuSteelExecuter) TestExtPool() {
-	if len(m.extPool) == 0 {
-		return
+func (m *MuSteelExecuter) receiveExternalActions() {
+	actionsCh := m.agent.ReceivedActions()
+	for {
+		eActions := <-actionsCh
+		if eActions == nil {
+			return
+		}
+		m.lockPool.Lock()
+		context, workMem := m.NewEmptyGruleStructures("ext")
+		for _, eAction := range eActions {
+			eAction.attachConstants()
+			if eAction.DefaultActions != nil {
+				m.pool = append(m.pool, evalActions(eAction.DefaultActions, context, workMem))
+			}
+			m.pool = appendNonempty(m.pool, condEvalActions(eAction.Condition, eAction.Actions, context, workMem))
+		}
+		m.lockPool.Unlock()
 	}
-	fmt.Print("Ext: ")
-	context, workMem := m.NewEmptyGruleStructures("ext")
-	extAction := m.extPool[0]
-	m.extPool = m.extPool[1:]
-	fmt.Println(extAction)
-	if extAction.DefaultActions != nil {
-		m.pool = append(m.pool, evalActions(extAction.DefaultActions, context, workMem))
-	}
-	m.pool = appendNonempty(m.pool, condEvalActions(extAction.Condition, extAction.Actions, context, workMem))
 }
 
 func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
@@ -203,7 +219,12 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	fmt.Println()
 	sActions, eActions := m.discovery(Xset)
 	m.pool = append(m.pool, sActions...)
-	m.extPool = append(m.extPool, eActions...)
+	if len(eActions) > 0 {
+		err := m.agent.ForAll(eActions)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
 }
 
 func (m *MuSteelExecuter) removeActions(index int) {
@@ -277,10 +298,12 @@ func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext
 }
 
 func (m *MuSteelExecuter) PrintState() string {
-	return fmt.Sprintf("Memory: %v\nPool: %v\nExtPool: %v\n", m.memory, m.printPool(), m.printExtPool())
+	return fmt.Sprintf("Memory: %v\nPool: %v\n", m.memory, m.printPool())
 }
 
 func (m *MuSteelExecuter) printPool() string {
+	m.lockPool.Lock()
+	defer m.lockPool.Unlock()
 	if len(m.pool) == 0 {
 		return "{}"
 	} else {
@@ -290,18 +313,6 @@ func (m *MuSteelExecuter) printPool() string {
 			for _, action := range list {
 				str = str + action.String()
 			}
-		}
-		return str + "\n}"
-	}
-}
-
-func (m *MuSteelExecuter) printExtPool() string {
-	if len(m.extPool) == 0 {
-		return "{}"
-	} else {
-		str := "{"
-		for _, action := range m.extPool {
-			str = str + "\n  " + action.String()
 		}
 		return str + "\n}"
 	}

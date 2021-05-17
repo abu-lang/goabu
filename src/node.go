@@ -98,7 +98,9 @@ func nodeBehaviour() {
 	intp.Exec()
 	fmt.Println()
 	fmt.Println(intp.PrintState())
-	intp.TestExtPool()
+	fmt.Println()
+	fmt.Println(intp.PrintState())
+	intp.Exec()
 	fmt.Println()
 	fmt.Println(intp.PrintState())
 	time.Sleep(60 * time.Second) // for memberlist testing
