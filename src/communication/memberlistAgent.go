@@ -47,11 +47,11 @@ type memberlistAgent struct {
 	list    *memberlist.Memberlist
 	// chan Node.Name
 	waitingForRegistry    chan string
+	haltUpdates           chan bool
 	quitTransactions      chan chan bool
-	quitUpdates           chan chan bool
-	stopGossipHandling    chan chan bool
+	quitGossip            chan chan bool
 	quitDemux             chan chan bool
-	pendingMerges         chan resourceRegistry
+	pendingUpdates        chan resourceRegistry
 	transactionMessages   chan messageUnion
 	transactionResponses  chan messageUnion
 	coordinatedChannels   chan chan transactionChannels
@@ -96,11 +96,11 @@ func (a *memberlistAgent) Start() error {
 	a.registry = makeResourceRegistry(a.localResources, uuid.String())
 	a.terminated = make(map[string]string)
 	a.waitingForRegistry = make(chan string, msgBuffLen)
+	a.haltUpdates = make(chan bool)
 	a.quitTransactions = make(chan chan bool)
-	a.quitUpdates = make(chan chan bool)
-	a.stopGossipHandling = make(chan chan bool)
+	a.quitGossip = make(chan chan bool)
 	a.quitDemux = make(chan chan bool)
-	a.pendingMerges = make(chan resourceRegistry, msgBuffLen)
+	a.pendingUpdates = make(chan resourceRegistry, msgBuffLen)
 	a.transactionMessages = make(chan messageUnion, msgBuffLen)
 	a.transactionResponses = make(chan messageUnion, msgBuffLen)
 	a.coordinatedChannels = make(chan chan transactionChannels)
@@ -119,8 +119,8 @@ func (a *memberlistAgent) Start() error {
 	}
 
 	a.running = true
-	go joiner(a.trackGossip, a.stopGossipHandling)
-	go a.handleUpdates(a.config.PushPullInterval / 2)
+	go joiner(a.trackGossip, a.quitGossip)
+	go a.handleUpdates()
 	go demuxResponses(a.coordinatedChannels, a.transactionResponses, a.quitDemux)
 	go a.handleTransactions()
 	return nil
@@ -180,9 +180,7 @@ func (a *memberlistAgent) Stop() error {
 	<-replyCh
 	fmt.Println("Stopped response demultiplexing")
 	fmt.Println("Stopping update handling...")
-	replyCh = make(chan bool)
-	a.quitUpdates <- replyCh
-	<-replyCh
+	a.haltUpdates <- true
 	fmt.Println("Stopped update handling")
 	fmt.Println("Gossiping leave...")
 	err := a.list.Leave(a.config.PushPullInterval)
@@ -200,7 +198,7 @@ func (a *memberlistAgent) Stop() error {
 	}
 	fmt.Println("Stopping gossip handling...")
 	replyCh = make(chan bool)
-	a.stopGossipHandling <- replyCh
+	a.quitGossip <- replyCh
 	<-replyCh
 	fmt.Println("Stopped gossip handling")
 
@@ -209,11 +207,11 @@ func (a *memberlistAgent) Stop() error {
 	a.terminated = nil
 	a.list = nil
 	a.waitingForRegistry = nil
-	a.pendingMerges = nil
+	a.pendingUpdates = nil
 	a.transactionMessages = nil
 	a.quitTransactions = nil
-	a.quitUpdates = nil
-	a.stopGossipHandling = nil
+	a.haltUpdates = nil
+	a.quitGossip = nil
 	a.quitDemux = nil
 	a.transactionResponses = nil
 	a.coordinatedChannels = nil
@@ -222,51 +220,45 @@ func (a *memberlistAgent) Stop() error {
 	return nil
 }
 
-func (a *memberlistAgent) handleUpdates(sleepTime time.Duration) {
+func (a *memberlistAgent) handleUpdates() {
 	for {
 		select {
-		case c := <-a.quitUpdates:
-			defer func() { c <- true }()
+		case <-a.haltUpdates:
 			return
-		default:
-			select {
-			case remoteRegistry := <-a.pendingMerges:
-				for nodeName, resources := range remoteRegistry {
+		case remoteRegistry := <-a.pendingUpdates:
+			for nodeName, resources := range remoteRegistry {
+				a.lockRegistry.RLock()
+				entry, present := a.registry[nodeName]
+				a.lockRegistry.RUnlock()
+				if !present || (entry != nil && resources == nil) {
+					a.lockRegistry.Lock()
+					a.registry[nodeName] = resources
+					a.lockRegistry.Unlock()
+				}
+			}
+		case destName := <-a.waitingForRegistry:
+			for _, node := range a.list.Members() {
+				if node.Name == destName {
+					message := messageUnion{
+						Type:     "registry_response",
+						Sender:   a.list.LocalNode(),
+						Registry: a.registry,
+					}
 					a.lockRegistry.RLock()
-					entry, present := a.registry[nodeName]
+					localRegistry, err := json.Marshal(message)
 					a.lockRegistry.RUnlock()
-					if !present || (entry != nil && resources == nil) {
-						a.lockRegistry.Lock()
-						a.registry[nodeName] = resources
-						a.lockRegistry.Unlock()
+					if err != nil {
+						fmt.Println("error in message marshalling:", err.Error())
+						return
 					}
-				}
-			case destName := <-a.waitingForRegistry:
-				for _, node := range a.list.Members() {
-					if node.Name == destName {
-						message := messageUnion{
-							Type:     "registry_response",
-							Sender:   a.list.LocalNode(),
-							Registry: a.registry,
-						}
-						a.lockRegistry.RLock()
-						localRegistry, err := json.Marshal(message)
-						a.lockRegistry.RUnlock()
-						if err != nil {
-							fmt.Println("error in message marshalling:", err.Error())
-							return
-						}
-						err = a.list.SendReliable(node, localRegistry)
-						if err != nil {
-							fmt.Println("error in sending registry response to", destName, err.Error())
-							return
-						}
-						fmt.Println("sent registry response to", node.Name)
-						break
+					err = a.list.SendReliable(node, localRegistry)
+					if err != nil {
+						fmt.Println("error in sending registry response to", destName, err.Error())
+						return
 					}
+					fmt.Println("sent registry response to", node.Name)
+					break
 				}
-			default:
-				time.Sleep(sleepTime)
 			}
 		}
 	}
@@ -327,7 +319,7 @@ func (d memberlistAgent) NotifyMsg(m []byte) {
 		}
 	case "registry_response":
 		select {
-		case d.pendingMerges <- message.Registry:
+		case d.pendingUpdates <- message.Registry:
 			fmt.Println("received registry response from", message.Sender.Name)
 		default:
 			fmt.Println("discarded incoming registry response from", message.Sender.Name)
@@ -405,7 +397,7 @@ func (d memberlistAgent) MergeRemoteState(buf []byte, join bool) {
 			return
 		}
 		select {
-		case d.pendingMerges <- remoteRegistry:
+		case d.pendingUpdates <- remoteRegistry:
 			fmt.Println("join: received registry")
 		default:
 			fmt.Println("join: discarded received registry")

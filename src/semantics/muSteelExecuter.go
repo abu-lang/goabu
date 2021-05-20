@@ -166,8 +166,11 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 		m.lockPool.Lock()
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
+			if !m.memory.ResourceNames().ContainsSet(eAction.WorkingSet) {
+				continue
+			}
 			eAction.attachConstants()
-			if eAction.DefaultActions != nil {
+			if len(eAction.DefaultActions) > 0 {
 				m.pool = append(m.pool, evalActions(eAction.DefaultActions, context, workMem))
 			}
 			m.pool = appendNonempty(m.pool, condEvalActions(eAction.Condition, eAction.Actions, context, workMem))
@@ -236,7 +239,7 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 	var extActions []ExternalAction
 	localRules, globalRules := m.activeRules(Xset)
 	for _, rule := range localRules {
-		if rule.DefaultActions != nil {
+		if len(rule.DefaultActions) > 0 {
 			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
 		newpool = appendNonempty(newpool, condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory))

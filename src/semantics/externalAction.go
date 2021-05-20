@@ -14,8 +14,8 @@ type ExternalAction struct {
 	DefaultActions []datastructure.ParsedAction
 	Condition      *ast.Expression
 	Actions        []datastructure.ParsedAction
-	ReadOrWrite    datastructure.StringSet
-	Write          datastructure.StringSet
+	WorkingSet     datastructure.StringSet
+	WriteSet       datastructure.StringSet
 	Constants      map[string]interface{}
 	dataContext    ast.IDataContext
 	workingMemory  *ast.WorkingMemory
@@ -32,8 +32,8 @@ func (action ExternalAction) String() string {
 // Precondition: rule.Task.Mode != "for"
 func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalAction {
 	res := ExternalAction{
-		ReadOrWrite:   datastructure.MakeStringSet(""),
-		Write:         datastructure.MakeStringSet(""),
+		WorkingSet:    datastructure.MakeStringSet(""),
+		WriteSet:      datastructure.MakeStringSet(""),
 		Constants:     make(map[string]interface{}),
 		dataContext:   m.dataContext,
 		workingMemory: m.workingMemory,
@@ -54,8 +54,8 @@ func (a ExternalAction) preEvaluatedActions(actions []datastructure.ParsedAction
 			Resource:   action.Resource,
 			Expression: a.preEvaluatedAssignment(action.Expression),
 		})
-		a.ReadOrWrite.Insert(action.Resource)
-		a.Write.Insert(action.Resource)
+		a.WorkingSet.Insert(action.Resource)
+		a.WriteSet.Insert(action.Resource)
 	}
 	return res
 }
@@ -127,7 +127,7 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom) {
 		}
 		text := e.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText()
 		res := strings.Split(text, `"`)[1]
-		a.ReadOrWrite.Insert(res)
+		a.WorkingSet.Insert(res)
 	} else {
 		a.partiallyEvalVariable(e.Variable)
 	}

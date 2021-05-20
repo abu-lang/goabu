@@ -83,7 +83,7 @@ func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction)
 			continue
 		}
 		for _, action := range actions { // member should have at least the resources for executing one action
-			if resources.ContainsSet(action.ReadOrWrite) {
+			if resources.ContainsSet(action.WorkingSet) {
 				res.Insert(member.Name)
 				continue
 			}
@@ -92,7 +92,7 @@ func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction)
 	return res
 }
 
-func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
+func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error { // TODO fix inconsistent Superiors and Subordinates between partecipants
 	canCommit := messageUnion{
 		Type:        "can_commit?",
 		Sender:      a.list.LocalNode(),
