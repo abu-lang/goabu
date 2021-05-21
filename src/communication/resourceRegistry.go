@@ -6,9 +6,11 @@ import (
 
 type resourceRegistry map[string]datastructure.StringSet
 
-func makeResourceRegistry(localRes datastructure.StringSet, localNodeName string) resourceRegistry {
+func makeResourceRegistry(localRes datastructure.StringSet, localNodeName string, size int) resourceRegistry {
 	res := make(map[string]datastructure.StringSet)
-	res[localNodeName] = localRes
+	if size != 0 {
+		res[localNodeName] = localRes
+	}
 	return res
 }
 

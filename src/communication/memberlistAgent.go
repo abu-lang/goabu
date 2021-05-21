@@ -17,6 +17,7 @@ const (
 	// milliseconds
 	timeoutRegister = 1000
 	msgBuffLen      = 10
+	registrySize    = 0
 )
 
 type registryInventory struct {
@@ -93,7 +94,7 @@ func (a *memberlistAgent) Start() error {
 		return err
 	}
 
-	a.registry = makeResourceRegistry(a.localResources, uuid.String())
+	a.registry = makeResourceRegistry(a.localResources, uuid.String(), registrySize)
 	a.terminated = make(map[string]string)
 	a.waitingForRegistry = make(chan string, msgBuffLen)
 	a.haltUpdates = make(chan bool)
@@ -232,6 +233,10 @@ func (a *memberlistAgent) handleUpdates() {
 				a.lockRegistry.RUnlock()
 				if !present || (entry != nil && resources == nil) {
 					a.lockRegistry.Lock()
+					if len(a.registry) == registrySize {
+						a.lockRegistry.Unlock()
+						break
+					}
 					a.registry[nodeName] = resources
 					a.lockRegistry.Unlock()
 				}
@@ -396,6 +401,14 @@ func (d memberlistAgent) MergeRemoteState(buf []byte, join bool) {
 			fmt.Println("join: error in registry unmarshalling:", err.Error())
 			return
 		}
+
+		d.lockRegistry.RLock()
+		size := len(d.registry)
+		d.lockRegistry.RUnlock()
+		if size == registrySize {
+			fmt.Println("join: discarded received registry as already reached maximum registry size")
+			return
+		}
 		select {
 		case d.pendingUpdates <- remoteRegistry:
 			fmt.Println("join: received registry")
@@ -411,6 +424,12 @@ func (d memberlistAgent) MergeRemoteState(buf []byte, join bool) {
 		return
 	}
 	d.lockRegistry.RLock()
+	size := len(d.registry)
+	d.lockRegistry.RUnlock()
+	if size == registrySize {
+		return
+	}
+	d.lockRegistry.RLock()
 	inventory := d.registry.inventory()
 	d.lockRegistry.RUnlock()
 	if !inventory.ContainsSet(remoteInventory.Inventory) {
@@ -420,7 +439,7 @@ func (d memberlistAgent) MergeRemoteState(buf []byte, join bool) {
 		}
 		marshalled, err := json.Marshal(message)
 		if err != nil {
-			fmt.Println("error in registry unmarshalling:", err.Error())
+			fmt.Println("error in registry request marshalling:", err.Error())
 			return
 		}
 		err = (*d.listPtr).SendBestEffort(remoteInventory.Sender, marshalled)

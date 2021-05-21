@@ -76,7 +76,6 @@ func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction)
 		a.lockRegistry.RUnlock()
 		if !present { // I do not know the resources of member
 			res.Insert(member.Name)
-			// TODO ask his registry
 			continue
 		}
 		if resources == nil { // member is leaving
