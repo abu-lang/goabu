@@ -11,22 +11,17 @@ import (
 )
 
 type ExternalAction struct {
-	DefaultActions []datastructure.ParsedAction
-	Condition      *ast.Expression
-	Actions        []datastructure.ParsedAction
-	WorkingSet     datastructure.StringSet
-	WriteSet       datastructure.StringSet
-	Constants      map[string]interface{}
-	dataContext    ast.IDataContext
-	workingMemory  *ast.WorkingMemory
+	Condition     *ast.Expression
+	Actions       []datastructure.ParsedAction
+	WorkingSet    datastructure.StringSet
+	WriteSet      datastructure.StringSet
+	Constants     map[string]interface{}
+	dataContext   ast.IDataContext
+	workingMemory *ast.WorkingMemory
 }
 
 func (action ExternalAction) String() string {
-	tail := fmt.Sprintf("if %v do:\n  %v", action.Condition.GetGrlText(), datastructure.ActionsToStr(action.Actions))
-	if len(action.DefaultActions) > 0 {
-		return fmt.Sprintf("default %v\n  ", datastructure.ActionsToStr(action.DefaultActions)) + tail
-	}
-	return tail
+	return fmt.Sprintf("if %v do:\n  %v", action.Condition.GetGrlText(), datastructure.ActionsToStr(action.Actions))
 }
 
 // Precondition: rule.Task.Mode != "for"
@@ -38,7 +33,6 @@ func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalA
 		dataContext:   m.dataContext,
 		workingMemory: m.workingMemory,
 	}
-	res.DefaultActions = res.preEvaluatedActions(rule.DefaultActions)
 	res.Condition = res.preEvaluatedExpression(rule.Task.Condition)
 	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
 	return res
@@ -152,7 +146,6 @@ func (a ExternalAction) partiallyEvalVariable(e *ast.Variable) {
 }
 
 func (a ExternalAction) attachConstants() {
-	a.attachConstantsActions(a.DefaultActions)
 	a.attachConstantsExpression(a.Condition)
 	a.attachConstantsActions(a.Actions)
 }
