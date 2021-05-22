@@ -376,7 +376,10 @@ func (a *memberlistAgent) handleTransactions() {
 				}
 				if status == "prepared" {
 					a.transaction.stopMonitor <- true
-					a.committedOperations <- a.transaction.Actions
+					actionsCh := make(chan []semantics.ExternalAction)
+					a.committedOperations <- actionsCh
+					actionsCh <- a.transaction.Actions
+					<-actionsCh
 					a.terminated[message.Transaction.id()] = "committed"
 					a.transaction = transactionInfo{Initiator: ""}
 				}

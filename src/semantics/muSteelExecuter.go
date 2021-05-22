@@ -137,32 +137,32 @@ func (m *MuSteelExecuter) AddPool(pl [][]datastructure.Action) {
 }
 
 func (m *MuSteelExecuter) Exec() {
-	if m.IsStable() || m.workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
+	m.lockPool.Lock()
+	if len(m.pool) == 0 || m.workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
+		m.lockPool.Unlock()
 		return
 	}
-	m.lockPool.Lock()
 	actions, index := m.chooseActions()
-	fmt.Print("Exec: ")
-	m.execActions(actions)
 	m.removeActions(index)
 	m.lockPool.Unlock()
+	fmt.Print("Exec: ")
+	m.execActions(actions)
 }
 
 func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
 	sActions := evalActions(m.parseActions(actions), m.dataContext, m.workingMemory)
 	fmt.Print("Input: ")
-	m.lockPool.Lock()
 	m.execActions(sActions)
-	m.lockPool.Unlock()
 }
 
 func (m *MuSteelExecuter) receiveExternalActions() {
-	actionsCh := m.agent.ReceivedActions()
+	requests := m.agent.ReceivedActions()
 	for {
-		eActions := <-actionsCh
-		if eActions == nil {
+		actionsCh := <-requests
+		if actionsCh == nil {
 			return
 		}
+		eActions := <-actionsCh
 		m.lockPool.Lock()
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
@@ -172,6 +172,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			}
 		}
 		m.lockPool.Unlock()
+		actionsCh <- nil
 	}
 }
 
@@ -181,6 +182,7 @@ func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
 }
 
 func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
+	m.lockPool.Lock()
 	var Xset []SemanticAction
 	for _, action := range actions {
 		variable := action.Variable
@@ -218,6 +220,7 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	fmt.Println()
 	sActions, eActions := m.discovery(Xset)
 	m.pool = append(m.pool, sActions...)
+	m.lockPool.Unlock()
 	if len(eActions) > 0 {
 		err := m.agent.ForAll(eActions)
 		if err != nil {

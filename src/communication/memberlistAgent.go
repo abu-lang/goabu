@@ -61,7 +61,7 @@ type memberlistAgent struct {
 	transaction           transactionInfo
 	// not modified after constructor
 	listeningPort       int
-	committedOperations chan []semantics.ExternalAction
+	committedOperations chan chan []semantics.ExternalAction
 }
 
 func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string) semantics.ISteelAgent {
@@ -72,7 +72,7 @@ func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string
 		initialNodes:          nodes,
 		lockRegistry:          &sync.RWMutex{},
 		initiatedTransactions: 0,
-		committedOperations:   make(chan []semantics.ExternalAction),
+		committedOperations:   make(chan chan []semantics.ExternalAction),
 		transaction: transactionInfo{
 			Initiator: "",
 		},
@@ -160,7 +160,7 @@ func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
 	return a.coordinateTransaction(info)
 }
 
-func (a *memberlistAgent) ReceivedActions() <-chan []semantics.ExternalAction {
+func (a *memberlistAgent) ReceivedActions() <-chan chan []semantics.ExternalAction {
 	return a.committedOperations
 }
 

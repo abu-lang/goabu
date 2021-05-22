@@ -4,7 +4,7 @@ type ISteelAgent interface {
 	Start() error
 	Join() error
 	ForAll([]ExternalAction) error
-	ReceivedActions() <-chan []ExternalAction
+	ReceivedActions() <-chan chan []ExternalAction
 	Stop() error
 	IsRunning() bool
 }
