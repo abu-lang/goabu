@@ -21,29 +21,39 @@ type transactionInfo struct {
 	Initiator    string
 	Number       int
 	Actions      []semantics.ExternalAction
-	Superiors    datastructure.StringSet
-	Subordinates datastructure.StringSet
+	Partecipants []string
 	stopMonitor  chan bool
+	coordinated  bool
 }
 
 func (t *transactionInfo) id() string {
 	return fmt.Sprintf("%s->%d", t.Initiator, t.Number)
 }
 
-func (t *transactionInfo) buryPartecipants(nodes []*memberlist.Node) {
-	newSuperiors := datastructure.MakeStringSet("")
-	newSubordinates := datastructure.MakeStringSet("")
-	for _, alive := range nodes {
-		if t.Superiors.Contains(alive.Name) {
-			newSuperiors.Insert(alive.Name)
-			continue
-		}
-		if t.Subordinates.Contains(alive.Name) {
-			newSubordinates.Insert(alive.Name)
+func (t *transactionInfo) buryPartecipants(members []*memberlist.Node) {
+	alives := datastructure.MakeStringSet("")
+	for _, member := range members {
+		alives.Insert(member.Name)
+	}
+	buried := 0
+	for i, partecipant := range t.Partecipants {
+		if !alives.Contains(partecipant) {
+			t.Partecipants[i] = ""
+			buried++
 		}
 	}
-	t.Superiors = newSuperiors
-	t.Subordinates = newSubordinates
+	remaining := len(t.Partecipants) - buried
+	j := 1
+	for i := 0; i < remaining; i++ {
+		if t.Partecipants[i] == "" {
+			for t.Partecipants[j] == "" {
+				j++
+			}
+			t.Partecipants[i], t.Partecipants[j] = t.Partecipants[j], t.Partecipants[i]
+		}
+		j++
+	}
+	t.Partecipants = t.Partecipants[:remaining]
 }
 
 type transactionChannels struct {
@@ -68,14 +78,14 @@ func (t transactionChannels) id() string {
 	return fmt.Sprintf("%s->%d", t.Initiator, t.Number)
 }
 
-func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction) datastructure.StringSet {
-	res := datastructure.MakeStringSet("")
+func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction) []string {
+	var res []string
 	for _, member := range a.list.Members() {
 		a.lockRegistry.RLock()
 		resources, present := a.registry[member.Name]
 		a.lockRegistry.RUnlock()
 		if !present { // I do not know the resources of member
-			res.Insert(member.Name)
+			res = append(res, member.Name)
 			continue
 		}
 		if resources == nil { // member is leaving
@@ -83,7 +93,7 @@ func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction)
 		}
 		for _, action := range actions { // member should have at least the resources for executing one action
 			if resources.ContainsSet(action.WorkingSet) {
-				res.Insert(member.Name)
+				res = append(res, member.Name)
 				continue
 			}
 		}
@@ -91,44 +101,26 @@ func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction)
 	return res
 }
 
-func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error { // TODO fix inconsistent Superiors and Subordinates between partecipants
+func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	canCommit := messageUnion{
 		Type:        "can_commit?",
 		Sender:      a.list.LocalNode(),
 		Transaction: tran,
 	}
-	canCommits := make(map[string][]byte)
-	if tran.Subordinates.Contains(a.list.LocalNode().Name) {
-		msg, err := json.Marshal(canCommit)
-		if err != nil {
-			panic(err)
-		}
-		canCommits[a.list.LocalNode().Name] = msg
-		tran.Superiors.Insert(a.list.LocalNode().Name)
-		tran.Subordinates.Remove(a.list.LocalNode().Name)
+	msg, err := json.Marshal(canCommit)
+	if err != nil {
+		return err
 	}
-	for _, member := range a.list.Members() {
-		if !tran.Subordinates.Contains(member.Name) {
-			continue
-		}
-		msg, err := json.Marshal(canCommit)
-		if err != nil {
-			panic(err)
-		}
-		canCommits[member.Name] = msg
-		tran.Superiors.Insert(member.Name)
-		tran.Subordinates.Remove(member.Name)
-	}
-	partecipants := datastructure.MakeStringSet("")
-	for nodeName := range canCommits {
-		partecipants.Insert(nodeName)
+	receivers := datastructure.MakeStringSet("")
+	for _, nodeName := range tran.Partecipants {
+		receivers.Insert(nodeName)
 	}
 	channels := makeTransactionChannels(tran)
 	channelsCh := make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- channels
-	fmt.Printf("started transaction with %d partecipants\n", len(canCommits))
-	res := a.firstPhase(canCommits, channels)
+	fmt.Printf("started transaction with %d partecipants\n", receivers.Size())
+	res := a.firstPhase(receivers, msg, channels)
 	responses := channels.haveCommitted
 	action := "do_commit"
 	if res != nil {
@@ -143,11 +135,11 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error { //
 			Number:    tran.Number,
 		},
 	}
-	msg, err := json.Marshal(order)
+	msg, err = json.Marshal(order)
 	if err != nil {
 		panic(err)
 	}
-	a.secondPhase(partecipants, msg, responses)
+	a.secondPhase(receivers, msg, responses)
 	channelsCh = make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- transactionChannels{
@@ -158,27 +150,21 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error { //
 	return res
 }
 
-func (a *memberlistAgent) firstPhase(canCommits map[string][]byte, channels transactionChannels) error {
-	for len(canCommits) > 0 {
+func (a *memberlistAgent) firstPhase(partecipants datastructure.StringSet, msg []byte, channels transactionChannels) error {
+	waitFor := partecipants.Clone()
+	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
-		canCommitsCopy := make(map[string][]byte)
-		for nodeName, msg := range canCommits {
-			canCommitsCopy[nodeName] = msg
-		}
+		waitForCopy := waitFor.Clone()
 		receiversCh := make(chan datastructure.StringSet)
-		go a.firstPhaseSend(canCommitsCopy, receiversCh)
+		go a.phaseSend(waitForCopy, msg, true, receiversCh)
 	GET_RESPONSES_1:
-		for len(canCommits) > 0 {
+		for !waitFor.Empty() {
 			select {
 			case receivers := <-receiversCh:
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
-				for nodeName := range canCommits {
-					if !receivers.Contains(nodeName) { // nodeName has left
-						delete(canCommits, nodeName)
-					}
-				}
+				waitFor.Intersect(receivers)
 			case prepared := <-channels.arePrepared:
-				delete(canCommits, prepared)
+				delete(waitFor, prepared)
 			case <-channels.haveCommitted: // I am substituting initiator
 				return nil
 			case aborted := <-channels.haveAborted:
@@ -191,39 +177,20 @@ func (a *memberlistAgent) firstPhase(canCommits map[string][]byte, channels tran
 	return nil
 }
 
-func (a *memberlistAgent) firstPhaseSend(canCommits map[string][]byte, done chan<- datastructure.StringSet) {
-	receivers := datastructure.MakeStringSet("")
-	for _, member := range a.list.Members() {
-		msg, present := canCommits[member.Name]
-		if present {
-			receivers.Insert(member.Name)
-			a.list.SendReliable(member, msg)
-		}
-	}
-	done <- receivers
-}
-
-func (a *memberlistAgent) secondPhase(awaiting datastructure.StringSet, msg []byte, responses <-chan string) {
-	for len(awaiting) > 0 {
+func (a *memberlistAgent) secondPhase(waitFor datastructure.StringSet, msg []byte, responses <-chan string) {
+	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
-		awaitingCopy := datastructure.MakeStringSet("")
-		for nodeName := range awaiting {
-			awaitingCopy.Insert(nodeName)
-		}
+		waitForCopy := waitFor.Clone()
 		receiversCh := make(chan datastructure.StringSet)
-		go a.secondPhaseSend(awaitingCopy, msg, receiversCh)
+		go a.phaseSend(waitForCopy, msg, false, receiversCh)
 	GET_RESPONSES_2:
-		for len(awaiting) > 0 {
+		for !waitFor.Empty() {
 			select {
 			case receivers := <-receiversCh:
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
-				for nodeName := range awaiting {
-					if !receivers.Contains(nodeName) { // nodeName has left
-						awaiting.Remove(nodeName)
-					}
-				}
+				waitFor.Intersect(receivers)
 			case responded := <-responses:
-				awaiting.Remove(responded)
+				waitFor.Remove(responded)
 			case <-timeout:
 				break GET_RESPONSES_2
 			}
@@ -231,12 +198,16 @@ func (a *memberlistAgent) secondPhase(awaiting datastructure.StringSet, msg []by
 	}
 }
 
-func (a *memberlistAgent) secondPhaseSend(receivers datastructure.StringSet, msg []byte, done chan<- datastructure.StringSet) {
+func (a *memberlistAgent) phaseSend(receivers datastructure.StringSet, msg []byte, reliableSend bool, done chan<- datastructure.StringSet) {
 	newReceivers := datastructure.MakeStringSet("")
 	for _, member := range a.list.Members() {
 		if receivers.Contains(member.Name) {
 			newReceivers.Insert(member.Name)
-			a.list.SendBestEffort(member, msg)
+			if reliableSend {
+				a.list.SendReliable(member, msg)
+			} else {
+				a.list.SendBestEffort(member, msg)
+			}
 		}
 	}
 	done <- newReceivers
@@ -418,10 +389,25 @@ func (a *memberlistAgent) handleTransactions() {
 					break
 				}
 				if status == "prepared" {
+					if a.transaction.coordinated {
+						message.Transaction.Actions = nil
+						message.Transaction.Partecipants = nil
+						message.Type = "prepared"
+						select {
+						case a.transactionResponses <- message:
+						default:
+						}
+						break
+					}
 					a.transaction.buryPartecipants(a.list.Members())
-					if a.transaction.Superiors.Empty() && a.transaction.Initiator != a.list.LocalNode().Name {
+					if len(a.transaction.Partecipants) == 0 {
+						panic(errors.New("empty partecipant list"))
+					}
+					head := a.transaction.Partecipants[0]
+					if head == a.list.LocalNode().Name && a.transaction.Initiator != a.list.LocalNode().Name {
 						fmt.Println("initiator", a.transaction.Initiator, "is dead: becoming new coordinator")
 						go a.coordinateTransaction(a.transaction)
+						a.transaction.coordinated = true
 						break
 					}
 					message.Sender = a.list.LocalNode()
@@ -431,14 +417,13 @@ func (a *memberlistAgent) handleTransactions() {
 						break
 					}
 					for _, member := range a.list.Members() {
-						if a.transaction.Superiors.Contains(member.Name) {
+						if member.Name == head {
 							a.list.SendReliable(member, deflected)
 							break
 						}
 					}
 					break
 				}
-
 				response := messageUnion{
 					Sender: a.list.LocalNode(),
 					Transaction: transactionInfo{
@@ -481,6 +466,8 @@ func (a *memberlistAgent) monitorTransaction(transaction transactionInfo) {
 		Sender:      a.list.LocalNode(),
 		Transaction: transaction,
 	}
+	message.Transaction.stopMonitor = nil
+	message.Transaction.coordinated = false
 	for {
 		select {
 		case <-transaction.stopMonitor:

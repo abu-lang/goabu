@@ -146,15 +146,22 @@ func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
 		return nil
 	}
 	partecipants := a.possiblyInterested(actions)
-	if partecipants.Empty() {
+	if len(partecipants) == 0 {
 		return nil
+	}
+	for i := 0; i < len(partecipants); i++ {
+		if partecipants[i] == a.list.LocalNode().Name {
+			if i > 0 {
+				partecipants[0], partecipants[i] = partecipants[i], partecipants[0]
+			}
+			break
+		}
 	}
 	info := transactionInfo{
 		Initiator:    a.list.LocalNode().Name,
 		Number:       a.initiatedTransactions,
 		Actions:      actions,
-		Superiors:    datastructure.MakeStringSet(""),
-		Subordinates: partecipants,
+		Partecipants: partecipants,
 	}
 	a.initiatedTransactions++
 	return a.coordinateTransaction(info)

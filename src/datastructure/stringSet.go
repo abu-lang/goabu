@@ -37,7 +37,11 @@ func (set StringSet) Empty() bool {
 	return len(set) == 0
 }
 
-func (fst StringSet) Intersects(snd StringSet) bool {
+func (set StringSet) Size() int {
+	return len(set)
+}
+
+func (fst StringSet) IntersectsWith(snd StringSet) bool {
 	res := false
 	if snd != nil {
 		for el := range fst {
@@ -67,6 +71,14 @@ func (dst StringSet) Add(src StringSet) {
 	}
 }
 
+func (dst StringSet) Intersect(src StringSet) {
+	for el := range dst {
+		if !src.Contains(el) {
+			delete(dst, el)
+		}
+	}
+}
+
 func (set StringSet) AllMatch(reg string) bool {
 	var idMatcher = regexp.MustCompile(reg)
 	for el := range set {
@@ -75,4 +87,12 @@ func (set StringSet) AllMatch(reg string) bool {
 		}
 	}
 	return true
+}
+
+func (set StringSet) Clone() StringSet {
+	res := MakeStringSet("")
+	for el := range set {
+		res[el] = true
+	}
+	return res
 }
