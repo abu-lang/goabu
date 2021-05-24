@@ -281,27 +281,23 @@ func (a *memberlistAgent) handleTransactions() {
 		case message := <-a.transactionMessages:
 			switch message.Type {
 			case "can_commit?":
+				status := a.getStatus(message.Transaction)
+				if status == "new" {
+					if a.transaction.Initiator != "" {
+						break
+					}
+					a.transaction = message.Transaction
+					a.transaction.stopMonitor = make(chan bool)
+					go a.monitorTransaction(a.transaction)
+					status = "prepared"
+				}
 				response := messageUnion{
+					Type:   status,
 					Sender: a.list.LocalNode(),
 					Transaction: transactionInfo{
 						Initiator: message.Transaction.Initiator,
 						Number:    message.Transaction.Number,
 					},
-				}
-				status := a.getStatus(message.Transaction)
-				switch status {
-				case "new":
-					if a.transaction.Initiator == "" {
-						a.transaction = message.Transaction
-						a.transaction.stopMonitor = make(chan bool)
-						go a.monitorTransaction(a.transaction)
-						response.Type = "prepared"
-					} else {
-						a.terminated[message.Transaction.id()] = "aborted"
-						response.Type = "aborted"
-					}
-				default:
-					response.Type = status
 				}
 				responseMsg, err := json.Marshal(response)
 				if err != nil {
@@ -379,12 +375,10 @@ func (a *memberlistAgent) handleTransactions() {
 						a.transaction = message.Transaction
 						a.transaction.stopMonitor = make(chan bool)
 						go a.monitorTransaction(a.transaction)
-					} else {
-						a.terminated[message.Transaction.id()] = "aborted"
-					}
-					select {
-					case a.transactionMessages <- message:
-					default:
+						select {
+						case a.transactionMessages <- message:
+						default:
+						}
 					}
 					break
 				}
