@@ -343,6 +343,10 @@ func (a *memberlistAgent) handleTransactions() {
 				status := a.getStatus(message.Transaction)
 				if status == "new" {
 					if a.transaction.Initiator != "" {
+						select {
+						case a.transactionMessages <- message:
+						default:
+						}
 						break
 					}
 					actionsCh := make(chan []semantics.ExternalAction)
