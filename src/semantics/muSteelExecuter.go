@@ -156,23 +156,37 @@ func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
 }
 
 func (m *MuSteelExecuter) receiveExternalActions() {
-	requests := m.agent.ReceivedActions()
+	requests, commandRequests := m.agent.ReceivedActions()
 	for {
 		actionsCh := <-requests
 		if actionsCh == nil {
 			return
 		}
+		commandsCh := <-commandRequests
 		eActions := <-actionsCh
+		var sActions [][]SemanticAction
 		m.lockPool.Lock()
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
 			if m.memory.ResourceNames().ContainsSet(eAction.WorkingSet) {
 				eAction.attachConstants()
-				m.pool = appendNonempty(m.pool, condEvalActions(eAction.Condition, eAction.Actions, context, workMem))
+				sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, eAction.Actions, context, workMem))
 			}
 		}
+		if len(sActions) == 0 {
+			commandsCh <- "not_interested"
+			m.lockPool.Unlock()
+			continue
+		}
+		commandsCh <- "interested"
+		switch <-commandsCh {
+		case "do_commit":
+			m.pool = append(m.pool, sActions...)
+			fallthrough
+		case "do_abort":
+			commandsCh <- "done"
+		}
 		m.lockPool.Unlock()
-		actionsCh <- nil
 	}
 }
 

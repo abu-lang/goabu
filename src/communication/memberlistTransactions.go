@@ -24,6 +24,7 @@ type transactionInfo struct {
 	Partecipants []string
 	stopMonitor  chan bool
 	coordinated  bool
+	commands     chan string
 }
 
 func (t *transactionInfo) id() string {
@@ -57,20 +58,24 @@ func (t *transactionInfo) buryPartecipants(members []*memberlist.Node) {
 }
 
 type transactionChannels struct {
-	Initiator     string
-	Number        int
-	arePrepared   chan string
-	haveAborted   chan string
-	haveCommitted chan string
+	Initiator       string
+	Number          int
+	areInterested   chan string
+	areUninterested chan string
+	arePrepared     chan string
+	haveAborted     chan string
+	haveCommitted   chan string
 }
 
 func makeTransactionChannels(t transactionInfo) transactionChannels {
 	return transactionChannels{
-		Initiator:     t.Initiator,
-		Number:        t.Number,
-		arePrepared:   make(chan string, msgBuffLen),
-		haveAborted:   make(chan string, msgBuffLen),
-		haveCommitted: make(chan string, msgBuffLen),
+		Initiator:       t.Initiator,
+		Number:          t.Number,
+		areInterested:   make(chan string, msgBuffLen),
+		areUninterested: make(chan string, msgBuffLen),
+		arePrepared:     make(chan string, msgBuffLen),
+		haveAborted:     make(chan string, msgBuffLen),
+		haveCommitted:   make(chan string, msgBuffLen),
 	}
 }
 
@@ -78,27 +83,60 @@ func (t transactionChannels) id() string {
 	return fmt.Sprintf("%s->%d", t.Initiator, t.Number)
 }
 
-func (a *memberlistAgent) possiblyInterested(actions []semantics.ExternalAction) []string {
-	var res []string
-	for _, member := range a.list.Members() {
-		a.lockRegistry.RLock()
-		resources, present := a.registry[member.Name]
-		a.lockRegistry.RUnlock()
-		if !present { // I do not know the resources of member
-			res = append(res, member.Name)
-			continue
-		}
-		if resources == nil { // member is leaving
-			continue
-		}
-		for _, action := range actions { // member should have at least the resources for executing one action
-			if resources.ContainsSet(action.WorkingSet) {
-				res = append(res, member.Name)
-				continue
-			}
+func (a *memberlistAgent) interested(tran transactionInfo) []string {
+	message := messageUnion{
+		Type:        "interested?",
+		Sender:      a.list.LocalNode(),
+		Transaction: tran,
+	}
+	msg, err := json.Marshal(message)
+	if err != nil {
+		panic(errors.New("could not marshal interested? message"))
+	}
+	channels := makeTransactionChannels(tran)
+	channelsCh := make(chan transactionChannels)
+	a.coordinatedChannels <- channelsCh
+	channelsCh <- channels
+	res := a.interestPhase(msg, channels)
+	if len(res) == 0 {
+		channelsCh := make(chan transactionChannels)
+		a.coordinatedChannels <- channelsCh
+		channelsCh <- transactionChannels{
+			Initiator: tran.Initiator,
+			Number:    tran.Number,
 		}
 	}
 	return res
+}
+
+func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
+	waitFor := datastructure.MakeStringSet("")
+	for _, member := range a.list.Members() {
+		waitFor.Insert(member.Name)
+	}
+	var interested []string
+	for !waitFor.Empty() {
+		var timeout <-chan time.Time = nil
+		waitForCopy := waitFor.Clone()
+		receiversCh := make(chan datastructure.StringSet)
+		go a.phaseSend(waitForCopy, msg, true, receiversCh)
+	INTERESTED:
+		for !waitFor.Empty() {
+			select {
+			case receivers := <-receiversCh:
+				timeout = time.After(time.Millisecond * timeoutPhaseResend)
+				waitFor.Intersect(receivers)
+			case partecipant := <-channels.areInterested:
+				interested = append(interested, partecipant)
+				delete(waitFor, partecipant)
+			case uninterested := <-channels.areUninterested:
+				delete(waitFor, uninterested)
+			case <-timeout:
+				break INTERESTED
+			}
+		}
+	}
+	return interested
 }
 
 func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
@@ -241,6 +279,20 @@ func demuxResponses(coordinated <-chan chan transactionChannels, responses <-cha
 				break
 			}
 			switch response.Type {
+			case "interested":
+				select {
+				case channels.areInterested <- response.Sender.Name:
+					fmt.Printf("%s is interested\n", response.Sender.Name)
+				default:
+					fmt.Println("discarded interested status from", response.Sender.Name)
+				}
+			case "not_interested":
+				select {
+				case channels.areUninterested <- response.Sender.Name:
+					fmt.Printf("%s is not interested\n", response.Sender.Name)
+				default:
+					fmt.Println("discarded not interested status from", response.Sender.Name)
+				}
 			case "prepared":
 				select {
 				case channels.arePrepared <- response.Sender.Name:
@@ -280,15 +332,53 @@ func (a *memberlistAgent) handleTransactions() {
 			}
 		case message := <-a.transactionMessages:
 			switch message.Type {
-			case "can_commit?":
+			case "interested?":
+				response := messageUnion{
+					Sender: a.list.LocalNode(),
+					Transaction: transactionInfo{
+						Initiator: message.Transaction.Initiator,
+						Number:    message.Transaction.Number,
+					},
+				}
 				status := a.getStatus(message.Transaction)
 				if status == "new" {
 					if a.transaction.Initiator != "" {
 						break
 					}
-					a.transaction = message.Transaction
-					a.transaction.stopMonitor = make(chan bool)
-					go a.monitorTransaction(a.transaction)
+					actionsCh := make(chan []semantics.ExternalAction)
+					commandsCh := make(chan string)
+					a.operations <- actionsCh
+					a.operationCommands <- commandsCh
+					actionsCh <- message.Transaction.Actions
+					response.Type = <-commandsCh
+					if response.Type == "interested" {
+						a.transaction = message.Transaction
+						a.transaction.Actions = nil
+						a.transaction.Partecipants = nil
+						a.transaction.stopMonitor = make(chan bool)
+						go a.monitorTransaction(a.transaction)
+						a.transaction.commands = commandsCh
+					} else {
+						a.terminated[message.Transaction.id()] = response.Type
+					}
+				} else if status == "interested" || status == "not_interested" {
+					response.Type = status
+				} else {
+					break
+				}
+				responseMsg, err := json.Marshal(response)
+				if err != nil {
+					fmt.Println("interested?: error during response marshalling,", err.Error())
+					break
+				}
+				a.list.SendBestEffort(message.Sender, responseMsg)
+			case "can_commit?":
+				status := a.getStatus(message.Transaction)
+				if status == "not_interested" {
+					panic(errors.New("received can_commit? but I wasn't interested"))
+				}
+				if status == "interested" {
+					a.transaction.Partecipants = message.Transaction.Partecipants
 					status = "prepared"
 				}
 				response := messageUnion{
@@ -307,15 +397,13 @@ func (a *memberlistAgent) handleTransactions() {
 				a.list.SendBestEffort(message.Sender, responseMsg)
 			case "do_abort":
 				status := a.getStatus(message.Transaction)
-				if status == "commited" {
-					panic(errors.New("received do abort for a committed tran"))
+				if status == "commited" || status == "new" {
+					panic(errors.New("received do abort for a committed or a new transaction"))
 				}
-				if status == "new" {
-					fmt.Println("do_abort on new transaction")
-					a.terminated[message.Transaction.id()] = "aborted"
-				}
-				if status == "prepared" {
+				if status == "prepared" || status == "interested" {
 					a.transaction.stopMonitor <- true
+					a.transaction.commands <- "do_abort"
+					<-a.transaction.commands
 					a.terminated[message.Transaction.id()] = "aborted"
 					a.transaction = transactionInfo{Initiator: ""}
 				}
@@ -343,10 +431,8 @@ func (a *memberlistAgent) handleTransactions() {
 				}
 				if status == "prepared" {
 					a.transaction.stopMonitor <- true
-					actionsCh := make(chan []semantics.ExternalAction)
-					a.committedOperations <- actionsCh
-					actionsCh <- a.transaction.Actions
-					<-actionsCh
+					a.transaction.commands <- "do_commit"
+					<-a.transaction.commands
 					a.terminated[message.Transaction.id()] = "committed"
 					a.transaction = transactionInfo{Initiator: ""}
 				}
@@ -370,14 +456,25 @@ func (a *memberlistAgent) handleTransactions() {
 			case "get_decision":
 				status := a.getStatus(message.Transaction)
 				if status == "new" {
-					fmt.Println("get_decision on new transaction")
-					if a.transaction.Initiator == "" {
-						a.transaction = message.Transaction
-						a.transaction.stopMonitor = make(chan bool)
-						go a.monitorTransaction(a.transaction)
-						select {
-						case a.transactionMessages <- message:
-						default:
+					panic(errors.New("received get_decision for a new transaction"))
+				}
+				if status == "interested" {
+					abort := true
+					for _, member := range a.list.Members() {
+						if member.Name == a.transaction.Initiator {
+							abort = false
+							break
+						}
+					}
+					if abort {
+						fmt.Println("aborting: I was interested but initiator is dead")
+						a.transaction.stopMonitor <- true
+						a.transaction.commands <- "do_abort"
+						<-a.transaction.commands
+						a.terminated[message.Transaction.id()] = "aborted"
+						a.transaction = transactionInfo{Initiator: ""}
+						if stopping {
+							return
 						}
 					}
 					break
@@ -448,10 +545,13 @@ func (a *memberlistAgent) getStatus(tran transactionInfo) string {
 	if present {
 		return outcome
 	}
-	if a.transaction.id() == tran.id() {
-		return "prepared"
+	if a.transaction.id() != tran.id() {
+		return "new"
 	}
-	return "new"
+	if len(a.transaction.Partecipants) == 0 {
+		return "interested"
+	}
+	return "prepared"
 }
 
 func (a *memberlistAgent) monitorTransaction(transaction transactionInfo) {

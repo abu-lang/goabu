@@ -60,8 +60,9 @@ type memberlistAgent struct {
 	initiatedTransactions int
 	transaction           transactionInfo
 	// not modified after constructor
-	listeningPort       int
-	committedOperations chan chan []semantics.ExternalAction
+	listeningPort     int
+	operations        chan chan []semantics.ExternalAction
+	operationCommands chan chan string
 }
 
 func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string) semantics.ISteelAgent {
@@ -72,7 +73,8 @@ func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string
 		initialNodes:          nodes,
 		lockRegistry:          &sync.RWMutex{},
 		initiatedTransactions: 0,
-		committedOperations:   make(chan chan []semantics.ExternalAction),
+		operations:            make(chan chan []semantics.ExternalAction),
+		operationCommands:     make(chan chan string),
 		transaction: transactionInfo{
 			Initiator: "",
 		},
@@ -145,8 +147,15 @@ func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
 	if len(actions) == 0 {
 		return nil
 	}
-	partecipants := a.possiblyInterested(actions)
+	info := transactionInfo{
+		Initiator: a.list.LocalNode().Name,
+		Number:    a.initiatedTransactions,
+		Actions:   actions,
+	}
+	a.initiatedTransactions++
+	partecipants := a.interested(info)
 	if len(partecipants) == 0 {
+		fmt.Println("terminated transaction: none interested")
 		return nil
 	}
 	for i := 0; i < len(partecipants); i++ {
@@ -157,18 +166,12 @@ func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
 			break
 		}
 	}
-	info := transactionInfo{
-		Initiator:    a.list.LocalNode().Name,
-		Number:       a.initiatedTransactions,
-		Actions:      actions,
-		Partecipants: partecipants,
-	}
-	a.initiatedTransactions++
+	info.Partecipants = partecipants
 	return a.coordinateTransaction(info)
 }
 
-func (a *memberlistAgent) ReceivedActions() <-chan chan []semantics.ExternalAction {
-	return a.committedOperations
+func (a *memberlistAgent) ReceivedActions() (<-chan chan []semantics.ExternalAction, <-chan chan string) {
+	return a.operations, a.operationCommands
 }
 
 func (a *memberlistAgent) Stop() error {
@@ -180,7 +183,7 @@ func (a *memberlistAgent) Stop() error {
 	replyCh := make(chan bool)
 	a.quitTransactions <- replyCh
 	<-replyCh
-	a.committedOperations <- nil
+	a.operations <- nil
 	fmt.Println("Stopped transaction handling")
 	fmt.Println("Stopping response demultiplexing...")
 	replyCh = make(chan bool)
@@ -336,6 +339,10 @@ func (d memberlistAgent) NotifyMsg(m []byte) {
 		default:
 			fmt.Println("discarded incoming registry response from", message.Sender.Name)
 		}
+	case "interested":
+		fallthrough
+	case "not_interested":
+		fallthrough
 	case "prepared":
 		fallthrough
 	case "aborted":
