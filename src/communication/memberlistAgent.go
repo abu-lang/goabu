@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"steel-lang/datastructure"
-	"steel-lang/semantics"
 	"sync"
 	"time"
 
@@ -65,7 +64,7 @@ type memberlistAgent struct {
 	operationCommands chan chan string
 }
 
-func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string) semantics.ISteelAgent {
+func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string) *memberlistAgent {
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,
