@@ -1,9 +1,8 @@
-package semantics
+package datastructure
 
 import (
 	"fmt"
 	"reflect"
-	"steel-lang/datastructure"
 	"strings"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -12,39 +11,25 @@ import (
 
 type ExternalAction struct {
 	Condition     *ast.Expression
-	Actions       []datastructure.ParsedAction
-	WorkingSet    datastructure.StringSet
-	WriteSet      datastructure.StringSet
+	Actions       []ParsedAction
+	WorkingSet    StringSet
+	WriteSet      StringSet
 	Constants     map[string]interface{}
 	dataContext   ast.IDataContext
 	workingMemory *ast.WorkingMemory
 }
 
 func (action ExternalAction) String() string {
-	return fmt.Sprintf("if %v do:\n  %v", action.Condition.GetGrlText(), datastructure.ActionsToStr(action.Actions))
+	return fmt.Sprintf("if %v do:\n  %v", action.Condition.GetGrlText(), ActionsToStr(action.Actions))
 }
 
-// Precondition: rule.Task.Mode != "for"
-func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalAction {
-	res := ExternalAction{
-		WorkingSet:    datastructure.MakeStringSet(""),
-		WriteSet:      datastructure.MakeStringSet(""),
-		Constants:     make(map[string]interface{}),
-		dataContext:   m.dataContext,
-		workingMemory: m.workingMemory,
-	}
-	res.Condition = res.preEvaluatedExpression(rule.Task.Condition)
-	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
-	return res
-}
-
-func (a ExternalAction) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
+func (a ExternalAction) preEvaluatedActions(actions []ParsedAction) []ParsedAction {
 	if actions == nil {
 		return nil
 	}
-	res := make([]datastructure.ParsedAction, 0, len(actions))
+	res := make([]ParsedAction, 0, len(actions))
 	for _, action := range actions {
-		res = append(res, datastructure.ParsedAction{
+		res = append(res, ParsedAction{
 			Resource:   action.Resource,
 			Expression: a.preEvaluatedAssignment(action.Expression),
 		})
@@ -145,12 +130,12 @@ func (a ExternalAction) partiallyEvalVariable(e *ast.Variable) {
 	}
 }
 
-func (a ExternalAction) attachConstants() {
+func (a ExternalAction) AttachConstants() {
 	a.attachConstantsExpression(a.Condition)
 	a.attachConstantsActions(a.Actions)
 }
 
-func (a ExternalAction) attachConstantsActions(actions []datastructure.ParsedAction) {
+func (a ExternalAction) attachConstantsActions(actions []ParsedAction) {
 	for _, action := range actions {
 		a.attachConstantsExpression(action.Expression.Expression)
 	}

@@ -61,7 +61,7 @@ type memberlistAgent struct {
 	transaction           transactionInfo
 	// not modified after constructor
 	listeningPort     int
-	operations        chan chan []semantics.ExternalAction
+	operations        chan chan []datastructure.ExternalAction
 	operationCommands chan chan string
 }
 
@@ -73,7 +73,7 @@ func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string
 		initialNodes:          nodes,
 		lockRegistry:          &sync.RWMutex{},
 		initiatedTransactions: 0,
-		operations:            make(chan chan []semantics.ExternalAction),
+		operations:            make(chan chan []datastructure.ExternalAction),
 		operationCommands:     make(chan chan string),
 		transaction: transactionInfo{
 			Initiator: "",
@@ -140,7 +140,7 @@ func (a *memberlistAgent) Join() error {
 	return nil
 }
 
-func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
+func (a *memberlistAgent) ForAll(actions []datastructure.ExternalAction) error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
@@ -170,7 +170,7 @@ func (a *memberlistAgent) ForAll(actions []semantics.ExternalAction) error {
 	return a.coordinateTransaction(info)
 }
 
-func (a *memberlistAgent) ReceivedActions() (<-chan chan []semantics.ExternalAction, <-chan chan string) {
+func (a *memberlistAgent) ReceivedActions() (<-chan chan []datastructure.ExternalAction, <-chan chan string) {
 	return a.operations, a.operationCommands
 }
 

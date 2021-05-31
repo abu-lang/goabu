@@ -169,7 +169,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
 			if m.memory.ResourceNames().ContainsSet(eAction.WorkingSet) {
-				eAction.attachConstants()
+				eAction.AttachConstants()
 				sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, eAction.Actions, context, workMem))
 			}
 		}
@@ -247,9 +247,9 @@ func (m *MuSteelExecuter) removeActions(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []ExternalAction) {
+func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []datastructure.ExternalAction) {
 	var newpool [][]SemanticAction
-	var extActions []ExternalAction
+	var extActions []datastructure.ExternalAction
 	localRules, globalRules := m.activeRules(Xset)
 	for _, rule := range localRules {
 		if len(rule.DefaultActions) > 0 {
@@ -261,7 +261,7 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 		if len(rule.DefaultActions) > 0 {
 			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
-		ext := m.preEvaluated(rule)
+		ext := rule.PreEvaluated(m.dataContext, m.workingMemory)
 		extActions = append(extActions, ext)
 	}
 	return newpool, extActions

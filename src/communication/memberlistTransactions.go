@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"steel-lang/datastructure"
-	"steel-lang/semantics"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -20,7 +19,7 @@ const (
 type transactionInfo struct {
 	Initiator    string
 	Number       int
-	Actions      []semantics.ExternalAction
+	Actions      []datastructure.ExternalAction
 	Partecipants []string
 	stopMonitor  chan bool
 	coordinated  bool
@@ -349,7 +348,7 @@ func (a *memberlistAgent) handleTransactions() {
 						}
 						break
 					}
-					actionsCh := make(chan []semantics.ExternalAction)
+					actionsCh := make(chan []datastructure.ExternalAction)
 					commandsCh := make(chan string)
 					a.operations <- actionsCh
 					a.operationCommands <- commandsCh
