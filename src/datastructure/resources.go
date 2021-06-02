@@ -64,7 +64,7 @@ func (r Resources) IsValid() bool {
 		}
 		atts.Insert(a)
 	}
-	return atts.AllMatch(`[a-zA-Z]+[a-zA-Z0-9_]*`)
+	return atts.AllMatch(`\A[a-zA-Z]+[a-zA-Z0-9_]*\z`)
 }
 
 func (r Resources) GetTypes() map[string]string {
