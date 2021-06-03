@@ -65,6 +65,7 @@ func (a *MockAgent) Stop() error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
+	a.operations <- nil
 	a.running = false
 	return nil
 }
