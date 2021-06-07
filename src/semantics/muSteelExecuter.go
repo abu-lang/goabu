@@ -163,14 +163,16 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			return
 		}
 		commandsCh := <-commandRequests
-		eActions := <-actionsCh
+		eActions, err := datastructure.UnmarshalExternalActions(<-actionsCh)
+		if err != nil {
+			panic(err)
+		}
 		var sActions [][]SemanticAction
 		m.lockPool.Lock()
 		localResources := m.memory.ResourceNames()
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
 			if localResources.ContainsSet(eAction.CondWorkingSet) {
-				eAction.AttachConstants()
 				actions := eAction.CullActions(localResources)
 				if len(actions) == 0 {
 					continue
@@ -241,7 +243,10 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	m.pool = append(m.pool, sActions...)
 	m.lockPool.Unlock()
 	if len(eActions) > 0 {
-		err := m.agent.ForAll(eActions)
+		payload, err := datastructure.MarshalExternalActions(eActions)
+		if err == nil {
+			err = m.agent.ForAll(payload)
+		}
 		if err != nil {
 			fmt.Println(err.Error())
 		}

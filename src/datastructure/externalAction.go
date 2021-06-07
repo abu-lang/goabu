@@ -1,6 +1,7 @@
 package datastructure
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -149,7 +150,7 @@ func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet String
 	}
 }
 
-func (a ExternalAction) AttachConstants() {
+func (a ExternalAction) attachConstants() {
 	a.attachConstantsExpression(a.Condition)
 	a.attachConstantsActions(a.Actions)
 }
@@ -215,4 +216,20 @@ func (a ExternalAction) attachConstantsVariable(e *ast.Variable) {
 	if e.ArrayMapSelector != nil {
 		a.attachConstantsExpression(e.ArrayMapSelector.Expression)
 	}
+}
+
+func MarshalExternalActions(actions []ExternalAction) ([]byte, error) {
+	return json.Marshal(actions)
+}
+
+func UnmarshalExternalActions(b []byte) ([]ExternalAction, error) {
+	var eActions []ExternalAction
+	err := json.Unmarshal(b, &eActions)
+	if err != nil {
+		return nil, err
+	}
+	for _, action := range eActions {
+		action.attachConstants()
+	}
+	return eActions, nil
 }

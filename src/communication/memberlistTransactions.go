@@ -19,7 +19,7 @@ const (
 type transactionInfo struct {
 	Initiator    string
 	Number       int
-	Actions      []datastructure.ExternalAction
+	Payload      []byte
 	Partecipants []string
 	stopMonitor  chan bool
 	coordinated  bool
@@ -348,15 +348,15 @@ func (a *memberlistAgent) handleTransactions() {
 						}
 						break
 					}
-					actionsCh := make(chan []datastructure.ExternalAction)
+					actionsCh := make(chan []byte)
 					commandsCh := make(chan string)
 					a.operations <- actionsCh
 					a.operationCommands <- commandsCh
-					actionsCh <- message.Transaction.Actions
+					actionsCh <- message.Transaction.Payload
 					response.Type = <-commandsCh
 					if response.Type == "interested" {
 						a.transaction = message.Transaction
-						a.transaction.Actions = nil
+						a.transaction.Payload = nil
 						a.transaction.Partecipants = nil
 						a.transaction.stopMonitor = make(chan bool)
 						go a.monitorTransaction(a.transaction)
@@ -484,7 +484,7 @@ func (a *memberlistAgent) handleTransactions() {
 				}
 				if status == "prepared" {
 					if a.transaction.coordinated {
-						message.Transaction.Actions = nil
+						message.Transaction.Payload = nil
 						message.Transaction.Partecipants = nil
 						message.Type = "prepared"
 						select {

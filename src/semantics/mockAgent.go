@@ -2,19 +2,18 @@ package semantics
 
 import (
 	"errors"
-	"steel-lang/datastructure"
 )
 
 type MockAgent struct {
 	running           bool
-	operations        chan chan []datastructure.ExternalAction
+	operations        chan chan []byte
 	operationCommands chan chan string
 }
 
 func MakeMockAgent() ISteelAgent {
 	return &MockAgent{
 		running:           false,
-		operations:        make(chan chan []datastructure.ExternalAction),
+		operations:        make(chan chan []byte),
 		operationCommands: make(chan chan string),
 	}
 }
@@ -38,14 +37,14 @@ func (a *MockAgent) Join() error {
 	return nil
 }
 
-func (a *MockAgent) ForAll(actions []datastructure.ExternalAction) error {
+func (a *MockAgent) ForAll(actions []byte) error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
 	if len(actions) == 0 {
 		return nil
 	}
-	actionsCh := make(chan []datastructure.ExternalAction)
+	actionsCh := make(chan []byte)
 	commandsCh := make(chan string)
 	a.operations <- actionsCh
 	a.operationCommands <- commandsCh
@@ -57,7 +56,7 @@ func (a *MockAgent) ForAll(actions []datastructure.ExternalAction) error {
 	return nil
 }
 
-func (a *MockAgent) ReceivedActions() (<-chan chan []datastructure.ExternalAction, <-chan chan string) {
+func (a *MockAgent) ReceivedActions() (<-chan chan []byte, <-chan chan string) {
 	return a.operations, a.operationCommands
 }
 
