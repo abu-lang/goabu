@@ -49,27 +49,28 @@ func (a ExternalAction) preEvaluatedActions(actions []ParsedAction) []ParsedActi
 
 func (a ExternalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet StringSet) *ast.Assignment {
 	res := assign.Clone(pkg.NewCloneTable())
-	a.partiallyEvalExpression(res.Expression, workingSet)
+	a.partiallyEvalVariable(res.Variable, MakeStringSet(""), false)
+	a.partiallyEvalExpression(res.Expression, workingSet, true)
 	return res
 }
 
 func (a ExternalAction) preEvaluatedExpression(exp *ast.Expression, workingSet StringSet) *ast.Expression {
 	res := exp.Clone(pkg.NewCloneTable())
-	a.partiallyEvalExpression(res, workingSet)
+	a.partiallyEvalExpression(res, workingSet, true)
 	return res
 }
 
-func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet StringSet) {
+func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet StringSet, eval bool) {
 	if e == nil {
 		return
 	}
-	a.partiallyEvalExpression(e.LeftExpression, workingSet)
-	a.partiallyEvalExpression(e.RightExpression, workingSet)
-	a.partiallyEvalExpression(e.SingleExpression, workingSet)
-	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet)
+	a.partiallyEvalExpression(e.LeftExpression, workingSet, eval)
+	a.partiallyEvalExpression(e.RightExpression, workingSet, eval)
+	a.partiallyEvalExpression(e.SingleExpression, workingSet, eval)
+	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet, eval)
 }
 
-func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet StringSet) {
+func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -77,16 +78,16 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 		a.Constants[e.Constant.GetAstID()] = e.Constant.Value.Interface()
 	}
 	if e.FunctionCall != nil {
-		a.partiallyEvalArgumentList(e.FunctionCall.ArgumentList, workingSet)
+		a.partiallyEvalArgumentList(e.FunctionCall.ArgumentList, workingSet, eval)
 	}
-	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet)
+	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet, eval)
 	if e.ArrayMapSelector != nil {
-		a.partiallyEvalExpression(e.ArrayMapSelector.Expression, workingSet)
+		a.partiallyEvalExpression(e.ArrayMapSelector.Expression, workingSet, eval)
 	}
 	if e.Variable == nil {
 		return
 	}
-	if strings.HasPrefix(e.Variable.GetGrlText(), "this.") {
+	if eval && strings.HasPrefix(e.Variable.GetGrlText(), "this.") {
 		variable := a.workingMemory.AddVariable(e.Variable)
 		val, err := variable.Evaluate(a.dataContext, a.workingMemory)
 		if err != nil {
@@ -100,8 +101,8 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 		constant.Value = val
 		e.Constant = constant
 		a.Constants[constant.GetAstID()] = val.Interface()
-	} else if strings.HasPrefix(e.Variable.GetGrlText(), "ext.") {
-		a.partiallyEvalVariable(e.Variable, workingSet)
+	} else if eval && strings.HasPrefix(e.Variable.GetGrlText(), "ext.") {
+		a.partiallyEvalVariable(e.Variable, workingSet, eval)
 		switch {
 		case e.Variable.ArrayMapSelector == nil:
 			return
@@ -116,25 +117,25 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 		res := strings.Split(text, `"`)[1]
 		workingSet.Insert(res)
 	} else {
-		a.partiallyEvalVariable(e.Variable, workingSet)
+		a.partiallyEvalVariable(e.Variable, workingSet, eval)
 	}
 }
 
-func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet StringSet) {
+func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet StringSet, eval bool) {
 	if e == nil {
 		return
 	}
 	for _, arg := range e.Arguments {
-		a.partiallyEvalExpression(arg, workingSet)
+		a.partiallyEvalExpression(arg, workingSet, eval)
 	}
 }
 
-func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet StringSet) {
+func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet StringSet, eval bool) {
 	if e == nil {
 		return
 	}
 	if e.ArrayMapSelector != nil {
-		a.partiallyEvalExpression(e.ArrayMapSelector.Expression, workingSet)
+		a.partiallyEvalExpression(e.ArrayMapSelector.Expression, workingSet, eval)
 	}
 }
 
@@ -145,8 +146,13 @@ func (a ExternalAction) AttachConstants() {
 
 func (a ExternalAction) attachConstantsActions(actions []ParsedAction) {
 	for _, action := range actions {
-		a.attachConstantsExpression(action.Expression.Expression)
+		a.attachConstantsAssignment(action.Expression)
 	}
+}
+
+func (a ExternalAction) attachConstantsAssignment(e *ast.Assignment) {
+	a.attachConstantsVariable(e.Variable)
+	a.attachConstantsExpression(e.Expression)
 }
 
 func (a ExternalAction) attachConstantsExpression(e *ast.Expression) {
