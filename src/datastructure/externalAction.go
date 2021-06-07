@@ -15,6 +15,7 @@ type ExternalAction struct {
 	CondWorkingSet StringSet
 	WorkingSets    []StringSet
 	Constants      map[string]interface{}
+	IntConstants   map[string]int64
 	dataContext    ast.IDataContext
 	workingMemory  *ast.WorkingMemory
 }
@@ -75,7 +76,7 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 		return
 	}
 	if e.Constant != nil {
-		a.Constants[e.Constant.GetAstID()] = e.Constant.Value.Interface()
+		a.detach(e.Constant.GetAstID(), e.Constant.Value)
 	}
 	if e.FunctionCall != nil {
 		a.partiallyEvalArgumentList(e.FunctionCall.ArgumentList, workingSet, eval)
@@ -100,7 +101,7 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 		}
 		constant.Value = val
 		e.Constant = constant
-		a.Constants[constant.GetAstID()] = val.Interface()
+		a.detach(constant.GetAstID(), val)
 	} else if eval && strings.HasPrefix(e.Variable.GetGrlText(), "ext.") {
 		a.partiallyEvalVariable(e.Variable, workingSet, eval)
 		switch {
@@ -118,6 +119,15 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 		workingSet.Insert(res)
 	} else {
 		a.partiallyEvalVariable(e.Variable, workingSet, eval)
+	}
+}
+
+func (a ExternalAction) detach(key string, val reflect.Value) {
+	switch val.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		a.IntConstants[key] = val.Int()
+	default:
+		a.Constants[key] = val.Interface()
 	}
 }
 
@@ -173,6 +183,10 @@ func (a ExternalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
 		val, present := a.Constants[e.Constant.GetAstID()]
 		if present {
 			e.Constant.Value = reflect.ValueOf(val)
+		}
+		integer, present := a.IntConstants[e.Constant.GetAstID()]
+		if present {
+			e.Constant.Value = reflect.ValueOf(integer)
 		}
 	}
 	if e.FunctionCall != nil {

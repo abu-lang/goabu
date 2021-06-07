@@ -101,6 +101,7 @@ func (r *ParsedRule) PreEvaluated(dataCtx ast.IDataContext, workMem *ast.Working
 	res := ExternalAction{
 		CondWorkingSet: MakeStringSet(""),
 		Constants:      make(map[string]interface{}),
+		IntConstants:   make(map[string]int64),
 		dataContext:    dataCtx,
 		workingMemory:  workMem,
 	}
