@@ -166,11 +166,16 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 		eActions := <-actionsCh
 		var sActions [][]SemanticAction
 		m.lockPool.Lock()
+		localResources := m.memory.ResourceNames()
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
-			if m.memory.ResourceNames().ContainsSet(eAction.WorkingSet) {
+			if localResources.ContainsSet(eAction.CondWorkingSet) {
 				eAction.AttachConstants()
-				sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, eAction.Actions, context, workMem))
+				actions := eAction.CullActions(localResources)
+				if len(actions) == 0 {
+					continue
+				}
+				sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, actions, context, workMem))
 			}
 		}
 		if len(sActions) == 0 {

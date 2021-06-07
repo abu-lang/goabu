@@ -227,6 +227,91 @@ func TestLocal(t *testing.T) {
 	}
 }
 
+func TestReceiveExternalActions(t *testing.T) {
+	r1 := datastructure.Rule{
+		Name:           "r1",
+		Events:         []string{"elit"},
+		DefaultActions: nil,
+		Task: datastructure.Task{
+			Mode:      "for all",
+			Condition: `ext.Float["elit"] > 0 || ext.Bool["labore"]`,
+			Actions: []datastructure.Action{
+				{Resource: "elit",
+					Expression: `0`,
+				},
+				{Resource: "consectetur",
+					Expression: `"-10"`,
+				},
+			},
+		},
+	}
+	r2 := datastructure.Rule{
+		Name:           "r2",
+		Events:         []string{"consectetur"},
+		DefaultActions: nil,
+		Task: datastructure.Task{
+			Mode:      "for all",
+			Condition: `ext.Integer["consectetur"] < 0`,
+			Actions: []datastructure.Action{
+				{Resource: "elit",
+					Expression: `ext.Float["elit"] * 2 + 3.14`,
+				},
+				{Resource: "adipiscing",
+					Expression: `ext.Text["incididunt"]`,
+				},
+				{Resource: "tempor",
+					Expression: `MakeTime(2000, 1, 1, 0, 0, 0)`,
+				},
+				{Resource: "labore",
+					Expression: `false`,
+				},
+			},
+		},
+	}
+	memory := datastructure.MakeResources()
+	memory.Float["elit"] = -100.0
+	memory.Integer["consectetur"] = 30
+	memory.Text["adipiscing"] = "sed"
+	memory.Time["tempor"] = time.Unix(0, 0)
+
+	memory.Text["incididunt"] = "ut"
+	memory.Bool["labore"] = true
+	e, err := NewMuSteelExecuter(memory, MakeMockAgent())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	e.AddRule(&r1)
+	e.AddRule(&r2)
+
+	// remove some resources
+	delete(e.memory.Bool, "labore")
+	delete(e.memory.Text, "incididunt")
+	e.types = e.memory.GetTypes()
+
+	e.AddActions([]datastructure.Action{{Resource: "elit", Expression: `100.0`}})
+	e.AddActions([]datastructure.Action{{Resource: "consectetur", Expression: `-2`}})
+	execs := 0
+	for !e.IsStable() {
+		e.Exec()
+		execs++
+		if e.memory.Text["adipiscing"] != "sed" {
+			t.Error("adipiscing should be \"sed\"")
+		}
+	}
+	if execs != 3 {
+		t.Error("should be stable after 3 calls to Exec")
+	}
+	if e.memory.Float["elit"] != 203.14 {
+		t.Error("elit should be 203.14")
+	}
+	if e.memory.Integer["consectetur"] != -2 {
+		t.Error("counter should be 0")
+	}
+	if e.memory.Time["tempor"] != time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local) {
+		t.Error("tempor should be 2000-01-01 00:00:00")
+	}
+}
+
 func TestForall(t *testing.T) {
 	memory := datastructure.MakeResources()
 	memory.Bool["start"] = false
