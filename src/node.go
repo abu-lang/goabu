@@ -89,7 +89,7 @@ func nodeBehaviour() {
 	}
 	intp.AddRules(rules)
 	intp.AddPool(pool)
-	fmt.Println("Rules:\n")
+	fmt.Print("Rules:\n\n")
 	for _, rule := range rules {
 		fmt.Println(rule)
 	}
