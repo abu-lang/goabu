@@ -95,21 +95,3 @@ func NewParsedExpression(str, name string, kl *ast.KnowledgeLibrary) *ast.Expres
 	ruleEntry := kb.RuleEntries[name]
 	return ruleEntry.WhenScope.Expression
 }
-
-// Precondition: rule.Task.Mode != "for"
-func (r *ParsedRule) PreEvaluated(dataCtx ast.IDataContext, workMem *ast.WorkingMemory) ExternalAction {
-	res := ExternalAction{
-		CondWorkingSet: MakeStringSet(""),
-		Constants:      make(map[string]interface{}),
-		IntConstants:   make(map[string]int64),
-		dataContext:    dataCtx,
-		workingMemory:  workMem,
-	}
-	res.WorkingSets = make([]StringSet, 0, len(r.Task.Actions))
-	for _, action := range r.Task.Actions {
-		res.WorkingSets = append(res.WorkingSets, MakeStringSet(action.Resource))
-	}
-	res.Condition = res.preEvaluatedExpression(r.Task.Condition, res.CondWorkingSet)
-	res.Actions = res.preEvaluatedActions(r.Task.Actions)
-	return res
-}

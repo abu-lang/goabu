@@ -1,9 +1,10 @@
-package datastructure
+package semantics
 
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"steel-lang/datastructure"
 	"strings"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -12,9 +13,9 @@ import (
 
 type ExternalAction struct {
 	Condition      *ast.Expression
-	Actions        []ParsedAction
-	CondWorkingSet StringSet
-	WorkingSets    []StringSet
+	Actions        []datastructure.ParsedAction
+	CondWorkingSet datastructure.StringSet
+	WorkingSets    []datastructure.StringSet
 	Constants      map[string]interface{}
 	IntConstants   map[string]int64
 	dataContext    ast.IDataContext
@@ -22,11 +23,11 @@ type ExternalAction struct {
 }
 
 func (a ExternalAction) String() string {
-	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), ActionsToStr(a.Actions))
+	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), datastructure.ActionsToStr(a.Actions))
 }
 
-func (a ExternalAction) CullActions(localResources StringSet) []ParsedAction {
-	var res []ParsedAction
+func (a ExternalAction) CullActions(localResources datastructure.StringSet) []datastructure.ParsedAction {
+	var res []datastructure.ParsedAction
 	for i, action := range a.Actions {
 		if localResources.ContainsSet(a.WorkingSets[i]) {
 			res = append(res, action)
@@ -35,13 +36,13 @@ func (a ExternalAction) CullActions(localResources StringSet) []ParsedAction {
 	return res
 }
 
-func (a ExternalAction) preEvaluatedActions(actions []ParsedAction) []ParsedAction {
+func (a ExternalAction) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
 	if actions == nil {
 		return nil
 	}
-	res := make([]ParsedAction, 0, len(actions))
+	res := make([]datastructure.ParsedAction, 0, len(actions))
 	for i, action := range actions {
-		res = append(res, ParsedAction{
+		res = append(res, datastructure.ParsedAction{
 			Resource:   action.Resource,
 			Expression: a.preEvaluatedAssignment(action.Expression, a.WorkingSets[i]),
 		})
@@ -49,20 +50,20 @@ func (a ExternalAction) preEvaluatedActions(actions []ParsedAction) []ParsedActi
 	return res
 }
 
-func (a ExternalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet StringSet) *ast.Assignment {
+func (a ExternalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet datastructure.StringSet) *ast.Assignment {
 	res := assign.Clone(pkg.NewCloneTable())
-	a.partiallyEvalVariable(res.Variable, MakeStringSet(""), false)
+	a.partiallyEvalVariable(res.Variable, datastructure.MakeStringSet(""), false)
 	a.partiallyEvalExpression(res.Expression, workingSet, true)
 	return res
 }
 
-func (a ExternalAction) preEvaluatedExpression(exp *ast.Expression, workingSet StringSet) *ast.Expression {
+func (a ExternalAction) preEvaluatedExpression(exp *ast.Expression, workingSet datastructure.StringSet) *ast.Expression {
 	res := exp.Clone(pkg.NewCloneTable())
 	a.partiallyEvalExpression(res, workingSet, true)
 	return res
 }
 
-func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet StringSet, eval bool) {
+func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -72,7 +73,7 @@ func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet St
 	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet, eval)
 }
 
-func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet StringSet, eval bool) {
+func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -132,7 +133,7 @@ func (a ExternalAction) detach(key string, val reflect.Value) {
 	}
 }
 
-func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet StringSet, eval bool) {
+func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -141,7 +142,7 @@ func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSe
 	}
 }
 
-func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet StringSet, eval bool) {
+func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -155,7 +156,7 @@ func (a ExternalAction) attachConstants() {
 	a.attachConstantsActions(a.Actions)
 }
 
-func (a ExternalAction) attachConstantsActions(actions []ParsedAction) {
+func (a ExternalAction) attachConstantsActions(actions []datastructure.ParsedAction) {
 	for _, action := range actions {
 		a.attachConstantsAssignment(action.Expression)
 	}

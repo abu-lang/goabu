@@ -163,7 +163,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			return
 		}
 		commandsCh := <-commandRequests
-		eActions, err := datastructure.UnmarshalExternalActions(<-actionsCh)
+		eActions, err := UnmarshalExternalActions(<-actionsCh)
 		if err != nil {
 			panic(err)
 		}
@@ -243,7 +243,7 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	m.pool = append(m.pool, sActions...)
 	m.lockPool.Unlock()
 	if len(eActions) > 0 {
-		payload, err := datastructure.MarshalExternalActions(eActions)
+		payload, err := MarshalExternalActions(eActions)
 		if err == nil {
 			err = m.agent.ForAll(payload)
 		}
@@ -257,9 +257,9 @@ func (m *MuSteelExecuter) removeActions(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []datastructure.ExternalAction) {
+func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []ExternalAction) {
 	var newpool [][]SemanticAction
-	var extActions []datastructure.ExternalAction
+	var extActions []ExternalAction
 	localRules, globalRules := m.activeRules(Xset)
 	for _, rule := range localRules {
 		if len(rule.DefaultActions) > 0 {
@@ -271,7 +271,7 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 		if len(rule.DefaultActions) > 0 {
 			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
-		ext := rule.PreEvaluated(m.dataContext, m.workingMemory)
+		ext := m.preEvaluated(rule)
 		extActions = append(extActions, ext)
 	}
 	return newpool, extActions
@@ -285,6 +285,24 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global data
 		global.Add(m.globalLibrary[act.Resource])
 	}
 	return local, global
+}
+
+// Precondition: rule.Task.Mode != "for"
+func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalAction {
+	res := ExternalAction{
+		CondWorkingSet: datastructure.MakeStringSet(""),
+		Constants:      make(map[string]interface{}),
+		IntConstants:   make(map[string]int64),
+		dataContext:    m.dataContext,
+		workingMemory:  m.workingMemory,
+	}
+	res.WorkingSets = make([]datastructure.StringSet, 0, len(rule.Task.Actions))
+	for _, action := range rule.Task.Actions {
+		res.WorkingSets = append(res.WorkingSets, datastructure.MakeStringSet(action.Resource))
+	}
+	res.Condition = res.preEvaluatedExpression(rule.Task.Condition, res.CondWorkingSet)
+	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
+	return res
 }
 
 func (m *MuSteelExecuter) updateWorkingMemory() {
