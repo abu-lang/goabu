@@ -11,7 +11,7 @@ import (
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
 )
 
-type ExternalAction struct {
+type externalAction struct {
 	Condition      *ast.Expression
 	Actions        []datastructure.ParsedAction
 	CondWorkingSet datastructure.StringSet
@@ -22,11 +22,11 @@ type ExternalAction struct {
 	workingMemory  *ast.WorkingMemory
 }
 
-func (a ExternalAction) String() string {
+func (a externalAction) String() string {
 	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), datastructure.ActionsToStr(a.Actions))
 }
 
-func (a ExternalAction) CullActions(localResources datastructure.StringSet) []datastructure.ParsedAction {
+func (a externalAction) cullActions(localResources datastructure.StringSet) []datastructure.ParsedAction {
 	var res []datastructure.ParsedAction
 	for i, action := range a.Actions {
 		if localResources.ContainsSet(a.WorkingSets[i]) {
@@ -36,7 +36,7 @@ func (a ExternalAction) CullActions(localResources datastructure.StringSet) []da
 	return res
 }
 
-func (a ExternalAction) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
+func (a externalAction) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
 	if actions == nil {
 		return nil
 	}
@@ -50,20 +50,20 @@ func (a ExternalAction) preEvaluatedActions(actions []datastructure.ParsedAction
 	return res
 }
 
-func (a ExternalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet datastructure.StringSet) *ast.Assignment {
+func (a externalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet datastructure.StringSet) *ast.Assignment {
 	res := assign.Clone(pkg.NewCloneTable())
 	a.partiallyEvalVariable(res.Variable, datastructure.MakeStringSet(""), false)
 	a.partiallyEvalExpression(res.Expression, workingSet, true)
 	return res
 }
 
-func (a ExternalAction) preEvaluatedExpression(exp *ast.Expression, workingSet datastructure.StringSet) *ast.Expression {
+func (a externalAction) preEvaluatedExpression(exp *ast.Expression, workingSet datastructure.StringSet) *ast.Expression {
 	res := exp.Clone(pkg.NewCloneTable())
 	a.partiallyEvalExpression(res, workingSet, true)
 	return res
 }
 
-func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -73,7 +73,7 @@ func (a ExternalAction) partiallyEvalExpression(e *ast.Expression, workingSet da
 	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet, eval)
 }
 
-func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -124,7 +124,7 @@ func (a ExternalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, worki
 	}
 }
 
-func (a ExternalAction) detach(key string, val reflect.Value) {
+func (a externalAction) detach(key string, val reflect.Value) {
 	switch val.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		a.IntConstants[key] = val.Int()
@@ -133,7 +133,7 @@ func (a ExternalAction) detach(key string, val reflect.Value) {
 	}
 }
 
-func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -142,7 +142,7 @@ func (a ExternalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSe
 	}
 }
 
-func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalVariable(e *ast.Variable, workingSet datastructure.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -151,23 +151,23 @@ func (a ExternalAction) partiallyEvalVariable(e *ast.Variable, workingSet datast
 	}
 }
 
-func (a ExternalAction) attachConstants() {
+func (a externalAction) attachConstants() {
 	a.attachConstantsExpression(a.Condition)
 	a.attachConstantsActions(a.Actions)
 }
 
-func (a ExternalAction) attachConstantsActions(actions []datastructure.ParsedAction) {
+func (a externalAction) attachConstantsActions(actions []datastructure.ParsedAction) {
 	for _, action := range actions {
 		a.attachConstantsAssignment(action.Expression)
 	}
 }
 
-func (a ExternalAction) attachConstantsAssignment(e *ast.Assignment) {
+func (a externalAction) attachConstantsAssignment(e *ast.Assignment) {
 	a.attachConstantsVariable(e.Variable)
 	a.attachConstantsExpression(e.Expression)
 }
 
-func (a ExternalAction) attachConstantsExpression(e *ast.Expression) {
+func (a externalAction) attachConstantsExpression(e *ast.Expression) {
 	if e == nil {
 		return
 	}
@@ -177,7 +177,7 @@ func (a ExternalAction) attachConstantsExpression(e *ast.Expression) {
 	a.attachConstantsExpressionAtom(e.ExpressionAtom)
 }
 
-func (a ExternalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
+func (a externalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
 	if e == nil {
 		return
 	}
@@ -201,7 +201,7 @@ func (a ExternalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
 	a.attachConstantsVariable(e.Variable)
 }
 
-func (a ExternalAction) attachConstantsArgumentList(e *ast.ArgumentList) {
+func (a externalAction) attachConstantsArgumentList(e *ast.ArgumentList) {
 	if e == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func (a ExternalAction) attachConstantsArgumentList(e *ast.ArgumentList) {
 	}
 }
 
-func (a ExternalAction) attachConstantsVariable(e *ast.Variable) {
+func (a externalAction) attachConstantsVariable(e *ast.Variable) {
 	if e == nil {
 		return
 	}
@@ -219,12 +219,12 @@ func (a ExternalAction) attachConstantsVariable(e *ast.Variable) {
 	}
 }
 
-func MarshalExternalActions(actions []ExternalAction) ([]byte, error) {
+func marshalExternalActions(actions []externalAction) ([]byte, error) {
 	return json.Marshal(actions)
 }
 
-func UnmarshalExternalActions(b []byte) ([]ExternalAction, error) {
-	var eActions []ExternalAction
+func unmarshalExternalActions(b []byte) ([]externalAction, error) {
+	var eActions []externalAction
 	err := json.Unmarshal(b, &eActions)
 	if err != nil {
 		return nil, err

@@ -163,7 +163,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			return
 		}
 		commandsCh := <-commandRequests
-		eActions, err := UnmarshalExternalActions(<-actionsCh)
+		eActions, err := unmarshalExternalActions(<-actionsCh)
 		if err != nil {
 			panic(err)
 		}
@@ -173,7 +173,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 		context, workMem := m.NewEmptyGruleStructures("ext")
 		for _, eAction := range eActions {
 			if localResources.ContainsSet(eAction.CondWorkingSet) {
-				actions := eAction.CullActions(localResources)
+				actions := eAction.cullActions(localResources)
 				if len(actions) == 0 {
 					continue
 				}
@@ -243,7 +243,7 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	m.pool = append(m.pool, sActions...)
 	m.lockPool.Unlock()
 	if len(eActions) > 0 {
-		payload, err := MarshalExternalActions(eActions)
+		payload, err := marshalExternalActions(eActions)
 		if err == nil {
 			err = m.agent.ForAll(payload)
 		}
@@ -257,9 +257,9 @@ func (m *MuSteelExecuter) removeActions(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []ExternalAction) {
+func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []externalAction) {
 	var newpool [][]SemanticAction
-	var extActions []ExternalAction
+	var extActions []externalAction
 	localRules, globalRules := m.activeRules(Xset)
 	for _, rule := range localRules {
 		if len(rule.DefaultActions) > 0 {
@@ -288,8 +288,8 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global data
 }
 
 // Precondition: rule.Task.Mode != "for"
-func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) ExternalAction {
-	res := ExternalAction{
+func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) externalAction {
+	res := externalAction{
 		CondWorkingSet: datastructure.MakeStringSet(""),
 		Constants:      make(map[string]interface{}),
 		IntConstants:   make(map[string]int64),
