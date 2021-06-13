@@ -213,6 +213,7 @@ func (a *memberlistAgent) Stop() error {
 	a.registry = nil
 	a.terminated = nil
 	a.list = nil
+	a.config = nil
 	a.waitingForRegistry = nil
 	a.pendingUpdates = nil
 	a.transactionMessages = nil
