@@ -27,7 +27,7 @@ func MakeResources() Resources {
 }
 
 func (r Resources) IsValid() bool {
-	atts := MakeStringSet("")
+	atts := misc.MakeStringSet("")
 	for a := range r.Bool {
 		if atts.Contains(a) {
 			return false
@@ -90,8 +90,8 @@ func (r Resources) GetTypes() map[string]string {
 	return res
 }
 
-func (r Resources) ResourceNames() StringSet {
-	atts := MakeStringSet("")
+func (r Resources) ResourceNames() misc.StringSet {
+	atts := misc.MakeStringSet("")
 	for a := range r.Bool {
 		atts.Insert(a)
 	}

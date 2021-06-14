@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"steel-lang/datastructure"
+	"steel-lang/misc"
 	"strings"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -14,8 +15,8 @@ import (
 type externalAction struct {
 	Condition      *ast.Expression
 	Actions        []datastructure.ParsedAction
-	CondWorkingSet datastructure.StringSet
-	WorkingSets    []datastructure.StringSet
+	CondWorkingSet misc.StringSet
+	WorkingSets    []misc.StringSet
 	Constants      map[string]interface{}
 	IntConstants   map[string]int64
 	dataContext    ast.IDataContext
@@ -26,7 +27,7 @@ func (a externalAction) String() string {
 	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), datastructure.ActionsToStr(a.Actions))
 }
 
-func (a externalAction) cullActions(localResources datastructure.StringSet) []datastructure.ParsedAction {
+func (a externalAction) cullActions(localResources misc.StringSet) []datastructure.ParsedAction {
 	var res []datastructure.ParsedAction
 	for i, action := range a.Actions {
 		if localResources.ContainsSet(a.WorkingSets[i]) {
@@ -50,20 +51,20 @@ func (a externalAction) preEvaluatedActions(actions []datastructure.ParsedAction
 	return res
 }
 
-func (a externalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet datastructure.StringSet) *ast.Assignment {
+func (a externalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet misc.StringSet) *ast.Assignment {
 	res := assign.Clone(pkg.NewCloneTable())
-	a.partiallyEvalVariable(res.Variable, datastructure.MakeStringSet(""), false)
+	a.partiallyEvalVariable(res.Variable, misc.MakeStringSet(""), false)
 	a.partiallyEvalExpression(res.Expression, workingSet, true)
 	return res
 }
 
-func (a externalAction) preEvaluatedExpression(exp *ast.Expression, workingSet datastructure.StringSet) *ast.Expression {
+func (a externalAction) preEvaluatedExpression(exp *ast.Expression, workingSet misc.StringSet) *ast.Expression {
 	res := exp.Clone(pkg.NewCloneTable())
 	a.partiallyEvalExpression(res, workingSet, true)
 	return res
 }
 
-func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet misc.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -73,7 +74,7 @@ func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet da
 	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet, eval)
 }
 
-func (a externalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet misc.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -133,7 +134,7 @@ func (a externalAction) detach(key string, val reflect.Value) {
 	}
 }
 
-func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet misc.StringSet, eval bool) {
 	if e == nil {
 		return
 	}
@@ -142,7 +143,7 @@ func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSe
 	}
 }
 
-func (a externalAction) partiallyEvalVariable(e *ast.Variable, workingSet datastructure.StringSet, eval bool) {
+func (a externalAction) partiallyEvalVariable(e *ast.Variable, workingSet misc.StringSet, eval bool) {
 	if e == nil {
 		return
 	}

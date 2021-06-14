@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"steel-lang/datastructure"
+	"steel-lang/misc"
 	"sync"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -290,15 +291,15 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global data
 // Precondition: rule.Task.Mode != "for"
 func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) externalAction {
 	res := externalAction{
-		CondWorkingSet: datastructure.MakeStringSet(""),
+		CondWorkingSet: misc.MakeStringSet(""),
 		Constants:      make(map[string]interface{}),
 		IntConstants:   make(map[string]int64),
 		dataContext:    m.dataContext,
 		workingMemory:  m.workingMemory,
 	}
-	res.WorkingSets = make([]datastructure.StringSet, 0, len(rule.Task.Actions))
+	res.WorkingSets = make([]misc.StringSet, 0, len(rule.Task.Actions))
 	for _, action := range rule.Task.Actions {
-		res.WorkingSets = append(res.WorkingSets, datastructure.MakeStringSet(action.Resource))
+		res.WorkingSets = append(res.WorkingSets, misc.MakeStringSet(action.Resource))
 	}
 	res.Condition = res.preEvaluatedExpression(rule.Task.Condition, res.CondWorkingSet)
 	res.Actions = res.preEvaluatedActions(rule.Task.Actions)

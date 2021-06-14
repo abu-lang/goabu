@@ -1,4 +1,4 @@
-package datastructure
+package misc
 
 import (
 	"regexp"

@@ -2,7 +2,7 @@ package communication
 
 import (
 	"fmt"
-	"steel-lang/datastructure"
+	"steel-lang/misc"
 	"testing"
 
 	"github.com/google/uuid"
@@ -23,7 +23,7 @@ func TestMakeMemberlistAgent(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestMakeMemberlistAgent#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(datastructure.MakeStringSet(test.set), test.port, test.nodes)
+			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, test.nodes)
 			if agt.IsRunning() {
 				t.Error("agent should not be running")
 			}
@@ -62,7 +62,7 @@ func TestStart(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestStart#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(datastructure.MakeStringSet(test.set), test.port, test.nodes)
+			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, test.nodes)
 			start(t, agt, test.port)
 			err := agt.Start()
 			if err == nil {
@@ -89,12 +89,12 @@ func TestJoin(t *testing.T) {
 		{6, 10103, []string{"127.0.0.1:10101", "127.0.0.1:10102"}, true, true},
 		{7, 10104, []string{"exercitation,ullamco"}, true, false},
 		{8, 10105, []string{"! #\"($/(,.123456nostrud"}, true, false},
-		{9, 10101, []string{"127.0.0.1:10150"}, false, false},
-		{10, 10103, []string{"127.0.0.1:10101", "127.0.0.1:10102"}, false, false},
-		{11, 10105, []string{".,>Z><<-@#00asdfg"}, false, false},
+		{9, 10106, []string{"127.0.0.1:10150"}, false, false},
+		{10, 10107, []string{"127.0.0.1:10101", "127.0.0.1:10102"}, false, false},
+		{11, 10108, []string{".,>Z><<-@#00asdfg"}, false, false},
 	}
 	dummy := make([]*memberlistAgent, 0, len(tests))
-	resources := datastructure.MakeStringSet("laboris,nisi,ut,aliquip,ex")
+	resources := misc.MakeStringSet("laboris,nisi,ut,aliquip,ex")
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestJoin#%d", test.index), func(t *testing.T) {
 			dummy = append(dummy, MakeMemberlistAgent(resources, test.port, test.nodes))
@@ -127,7 +127,7 @@ func TestJoin(t *testing.T) {
 
 func TestForAll(t *testing.T) {
 	const port = 0
-	a := MakeMemberlistAgent(datastructure.MakeStringSet("a______789,B___,C_1_qwerty"), port, nil)
+	a := MakeMemberlistAgent(misc.MakeStringSet("a______789,B___,C_1_qwerty"), port, nil)
 	checkCorrectStop(t, a)
 	err := a.ForAll([]byte(`lorem`))
 	if err == nil {
@@ -148,7 +148,7 @@ func TestForAll(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	const port = 11100
-	a := MakeMemberlistAgent(datastructure.MakeStringSet("amet_456"), port, nil)
+	a := MakeMemberlistAgent(misc.MakeStringSet("amet_456"), port, nil)
 	if a.Stop() == nil {
 		t.Error("should return error when agent is not running")
 	}

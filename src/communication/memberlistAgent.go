@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"steel-lang/datastructure"
+	"steel-lang/misc"
 	"sync"
 	"time"
 
@@ -21,7 +21,7 @@ const (
 
 type registryInventory struct {
 	Sender    *memberlist.Node
-	Inventory datastructure.StringSet
+	Inventory misc.StringSet
 }
 
 type messageUnion struct {
@@ -34,7 +34,7 @@ type messageUnion struct {
 
 type memberlistAgent struct {
 	// real time access from delegate
-	localResources datastructure.StringSet
+	localResources misc.StringSet
 	initialNodes   []string
 	registry       resourceRegistry
 	lockRegistry   *sync.RWMutex
@@ -64,7 +64,7 @@ type memberlistAgent struct {
 	operationCommands chan chan string
 }
 
-func MakeMemberlistAgent(names datastructure.StringSet, port int, nodes []string) *memberlistAgent {
+func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string) *memberlistAgent {
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,

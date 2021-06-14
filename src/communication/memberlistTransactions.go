@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"steel-lang/datastructure"
+	"steel-lang/misc"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -31,7 +31,7 @@ func (t *transactionInfo) id() string {
 }
 
 func (t *transactionInfo) buryPartecipants(members []*memberlist.Node) {
-	alives := datastructure.MakeStringSet("")
+	alives := misc.MakeStringSet("")
 	for _, member := range members {
 		alives.Insert(member.Name)
 	}
@@ -109,7 +109,7 @@ func (a *memberlistAgent) interested(tran transactionInfo) []string {
 }
 
 func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
-	waitFor := datastructure.MakeStringSet("")
+	waitFor := misc.MakeStringSet("")
 	for _, member := range a.list.Members() {
 		waitFor.Insert(member.Name)
 	}
@@ -117,7 +117,7 @@ func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan datastructure.StringSet)
+		receiversCh := make(chan misc.StringSet)
 		go a.phaseSend(waitForCopy, msg, true, receiversCh)
 	INTERESTED:
 		for !waitFor.Empty() {
@@ -148,7 +148,7 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	if err != nil {
 		return err
 	}
-	receivers := datastructure.MakeStringSet("")
+	receivers := misc.MakeStringSet("")
 	for _, nodeName := range tran.Partecipants {
 		receivers.Insert(nodeName)
 	}
@@ -187,12 +187,12 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	return res
 }
 
-func (a *memberlistAgent) firstPhase(partecipants datastructure.StringSet, msg []byte, channels transactionChannels) error {
+func (a *memberlistAgent) firstPhase(partecipants misc.StringSet, msg []byte, channels transactionChannels) error {
 	waitFor := partecipants.Clone()
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan datastructure.StringSet)
+		receiversCh := make(chan misc.StringSet)
 		go a.phaseSend(waitForCopy, msg, true, receiversCh)
 	GET_RESPONSES_1:
 		for !waitFor.Empty() {
@@ -214,11 +214,11 @@ func (a *memberlistAgent) firstPhase(partecipants datastructure.StringSet, msg [
 	return nil
 }
 
-func (a *memberlistAgent) secondPhase(waitFor datastructure.StringSet, msg []byte, responses <-chan string) {
+func (a *memberlistAgent) secondPhase(waitFor misc.StringSet, msg []byte, responses <-chan string) {
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan datastructure.StringSet)
+		receiversCh := make(chan misc.StringSet)
 		go a.phaseSend(waitForCopy, msg, false, receiversCh)
 	GET_RESPONSES_2:
 		for !waitFor.Empty() {
@@ -235,8 +235,8 @@ func (a *memberlistAgent) secondPhase(waitFor datastructure.StringSet, msg []byt
 	}
 }
 
-func (a *memberlistAgent) phaseSend(receivers datastructure.StringSet, msg []byte, reliableSend bool, done chan<- datastructure.StringSet) {
-	newReceivers := datastructure.MakeStringSet("")
+func (a *memberlistAgent) phaseSend(receivers misc.StringSet, msg []byte, reliableSend bool, done chan<- misc.StringSet) {
+	newReceivers := misc.MakeStringSet("")
 	for _, member := range a.list.Members() {
 		if receivers.Contains(member.Name) {
 			newReceivers.Insert(member.Name)
