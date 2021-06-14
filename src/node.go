@@ -83,7 +83,7 @@ func nodeBehaviour() {
 	if len(*nodes) > 0 {
 		initialNodes = strings.Split(*nodes, ",")
 	}
-	intp, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), *port, initialNodes))
+	intp, err := semantics.NewMuSteelExecuter(memory, nil, communication.MakeMemberlistAgent(memory.ResourceNames(), *port, initialNodes))
 	if err != nil {
 		panic(err)
 	}

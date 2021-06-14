@@ -12,7 +12,7 @@ func TestSingleNode(t *testing.T) {
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
-	e, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), 8000, nil))
+	e, err := semantics.NewMuSteelExecuter(memory, nil, communication.MakeMemberlistAgent(memory.ResourceNames(), 8000, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,8 +48,8 @@ func TestSingleNode(t *testing.T) {
 			},
 		},
 	}
-	e.AddRule(&r1)
-	e.AddRule(&r2)
+	e.AddRule(r1)
+	e.AddRule(r2)
 	e.Input([]datastructure.Action{{Resource: "start", Expression: "true"}})
 	for i := 0; i < 3; i++ {
 		e.Exec()
@@ -87,12 +87,12 @@ func TestTwoNodes(t *testing.T) {
 			},
 		},
 	}
+	rules := []datastructure.Rule{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
-		e1, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), 9001, nil))
+		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9001, nil))
 		if err != nil {
 			t.Fatal(err)
 		}
-		e1.AddRule(&r)
 		t.Parallel()
 		for e1.IsStable() {
 		}
@@ -107,11 +107,10 @@ func TestTwoNodes(t *testing.T) {
 	})
 	t.Run("TestTwoNodes#2", func(t *testing.T) {
 		t.Parallel()
-		e2, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), 9002, []string{"127.0.0.1:9001"}))
+		e2, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9002, []string{"127.0.0.1:9001"}))
 		if err != nil {
 			t.Fatal(err)
 		}
-		e2.AddRule(&r)
 		e2.Input([]datastructure.Action{{Resource: "lorem", Expression: "10"}})
 		if !e2.IsStable() {
 			t.Error("should be stable")
@@ -157,12 +156,12 @@ func TestThreeNodes(t *testing.T) {
 			},
 		},
 	}
+	rules := []datastructure.Rule{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
-		e1, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), 10001, nil))
+		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10001, nil))
 		if err != nil {
 			t.Fatal(err)
 		}
-		e1.AddRules([]datastructure.Rule{r1, r2})
 		t.Parallel()
 		for e1.GetState().Memory.Float["ipsum"] != 6.5 {
 			for e1.IsStable() {
@@ -176,11 +175,10 @@ func TestThreeNodes(t *testing.T) {
 	})
 	t.Run("TestThreeNodes#2", func(t *testing.T) {
 		memory.Float["ipsum"] = 6.5
-		e2, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), 10002, []string{"127.0.0.1:10001"}))
+		e2, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10002, []string{"127.0.0.1:10001"}))
 		if err != nil {
 			t.Fatal(err)
 		}
-		e2.AddRules([]datastructure.Rule{r1, r2})
 		t.Parallel()
 		for e2.IsStable() {
 		}
@@ -198,11 +196,10 @@ func TestThreeNodes(t *testing.T) {
 	t.Run("TestThreeNodes#3", func(t *testing.T) {
 		t.Parallel()
 		memory.Float["ipsum"] = 3.0
-		e3, err := semantics.NewMuSteelExecuter(memory, communication.MakeMemberlistAgent(memory.ResourceNames(), 10003, []string{"127.0.0.1:10001"}))
+		e3, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10003, []string{"127.0.0.1:10001"}))
 		if err != nil {
 			t.Fatal(err)
 		}
-		e3.AddRules([]datastructure.Rule{r1, r2})
 		e3.Input([]datastructure.Action{{Resource: "ipsum", Expression: "6.0"}})
 		e3.Exec()
 		for e3.IsStable() {

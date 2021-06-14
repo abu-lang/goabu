@@ -27,7 +27,7 @@ func appendNonempty(pool [][]SemanticAction, actions []SemanticAction) [][]Seman
 }
 
 func (m *MuSteelExecuter) parseAction(action datastructure.Action, name string) datastructure.ParsedAction {
-	parsed := datastructure.NewParsedAction(&action, name, m.knowledgeLibrary, m.types)
+	parsed := datastructure.NewParsedAction(action, name, m.knowledgeLibrary, m.types)
 	m.updateWorkingMemory()
 	return parsed
 }

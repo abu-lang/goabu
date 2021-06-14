@@ -33,7 +33,7 @@ type MuSteelExecuter struct {
 	agent ISteelAgent
 }
 
-func NewMuSteelExecuter(mem datastructure.Resources, agt ISteelAgent) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem datastructure.Resources, rules []datastructure.Rule, agt ISteelAgent) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
@@ -52,6 +52,7 @@ func NewMuSteelExecuter(mem datastructure.Resources, agt ISteelAgent) (*MuSteelE
 	if err != nil {
 		return nil, err
 	}
+	res.AddRules(rules)
 	err = res.StartAgent()
 	if err != nil {
 		return nil, err
@@ -103,7 +104,7 @@ func (m *MuSteelExecuter) IsStable() bool {
 	return len(m.pool) == 0
 }
 
-func (m *MuSteelExecuter) AddRule(rule *datastructure.Rule) {
+func (m *MuSteelExecuter) AddRule(rule datastructure.Rule) {
 	parsed := datastructure.NewParsedRule(rule, m.knowledgeLibrary, m.types)
 	m.updateWorkingMemory()
 	library := m.localLibrary
@@ -121,7 +122,7 @@ func (m *MuSteelExecuter) AddRule(rule *datastructure.Rule) {
 
 func (m *MuSteelExecuter) AddRules(rules []datastructure.Rule) {
 	for _, rule := range rules {
-		m.AddRule(&rule)
+		m.AddRule(rule)
 	}
 }
 
