@@ -19,6 +19,20 @@ const (
 	registrySize    = 0
 )
 
+const (
+	TestsNothing = iota
+	TestsAbort
+	TestsUnreliableSend
+	// Halting
+	TestsMidInterested
+	TestsAfterInterested
+	TestsMidFirst
+	TestsAfterFirst
+	TestsMidSecond
+)
+
+var TestsMidSends = 2
+
 type registryInventory struct {
 	Sender    *memberlist.Node
 	Inventory misc.StringSet
@@ -62,6 +76,10 @@ type memberlistAgent struct {
 	listeningPort     int
 	operations        chan chan []byte
 	operationCommands chan chan string
+	// testing
+	test       int
+	halted     bool
+	lockHalted *sync.Mutex
 }
 
 func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string) *memberlistAgent {
@@ -482,4 +500,32 @@ func (d memberlistAgent) NotifyLeave(node *memberlist.Node) {
 
 func (d memberlistAgent) NotifyUpdate(node *memberlist.Node) {
 	// do nothing
+}
+
+//----------------------------------TESTING-----------------------------------
+
+func TestsMakeMemberlistAgent(names misc.StringSet, port int, nodes []string, test int) *memberlistAgent {
+	res := MakeMemberlistAgent(names, port, nodes)
+	res.test = test
+	res.lockHalted = &sync.Mutex{}
+	return res
+}
+
+func (a *memberlistAgent) TestsHaltReturn() {
+	a.list.Shutdown()
+	a.lockHalted.Lock()
+	a.halted = true
+	a.lockHalted.Unlock()
+}
+
+func (a *memberlistAgent) testsHalt() {
+	a.TestsHaltReturn()
+	var block chan bool = nil
+	<-block
+}
+
+func (a *memberlistAgent) testsHaltIf(t int) {
+	if a.test == t {
+		a.testsHalt()
+	}
 }

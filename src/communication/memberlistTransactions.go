@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"steel-lang/misc"
 	"time"
 
@@ -97,6 +98,7 @@ func (a *memberlistAgent) interested(tran transactionInfo) []string {
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- channels
 	res := a.interestPhase(msg, channels)
+	a.testsHaltIf(TestsAfterInterested)
 	if len(res) == 0 {
 		channelsCh := make(chan transactionChannels)
 		a.coordinatedChannels <- channelsCh
@@ -118,7 +120,12 @@ func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
 		receiversCh := make(chan misc.StringSet)
-		go a.phaseSend(waitForCopy, msg, true, receiversCh)
+		if a.test == TestsMidInterested {
+			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
+		} else {
+			go a.phaseSend(waitForCopy, msg, true, receiversCh)
+		}
+		received := 0
 	INTERESTED:
 		for !waitFor.Empty() {
 			select {
@@ -126,12 +133,17 @@ func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
 				waitFor.Intersect(receivers)
 			case partecipant := <-channels.areInterested:
+				received++
 				interested = append(interested, partecipant)
 				delete(waitFor, partecipant)
 			case uninterested := <-channels.areUninterested:
+				received++
 				delete(waitFor, uninterested)
 			case <-timeout:
 				break INTERESTED
+			}
+			if a.test == TestsMidInterested && received >= TestsMidSends {
+				a.testsHalt()
 			}
 		}
 	}
@@ -158,6 +170,7 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	channelsCh <- channels
 	fmt.Printf("started transaction with %d partecipants\n", receivers.Size())
 	res := a.firstPhase(receivers, msg, channels)
+	a.testsHaltIf(TestsAfterFirst)
 	responses := channels.haveCommitted
 	action := "do_commit"
 	if res != nil {
@@ -193,7 +206,12 @@ func (a *memberlistAgent) firstPhase(partecipants misc.StringSet, msg []byte, ch
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
 		receiversCh := make(chan misc.StringSet)
-		go a.phaseSend(waitForCopy, msg, true, receiversCh)
+		if a.test == TestsMidFirst {
+			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
+		} else {
+			go a.phaseSend(waitForCopy, msg, true, receiversCh)
+		}
+		received := 0
 	GET_RESPONSES_1:
 		for !waitFor.Empty() {
 			select {
@@ -201,13 +219,25 @@ func (a *memberlistAgent) firstPhase(partecipants misc.StringSet, msg []byte, ch
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
 				waitFor.Intersect(receivers)
 			case prepared := <-channels.arePrepared:
+				received++
 				delete(waitFor, prepared)
 			case <-channels.haveCommitted: // I am substituting initiator
+				received++
+				if a.test == TestsMidFirst {
+					break
+				}
 				return nil
 			case aborted := <-channels.haveAborted:
+				received++
+				if a.test == TestsMidFirst {
+					break
+				}
 				return fmt.Errorf("%s has aborted", aborted)
 			case <-timeout:
 				break GET_RESPONSES_1
+			}
+			if a.test == TestsMidFirst && received >= TestsMidSends {
+				a.testsHalt()
 			}
 		}
 	}
@@ -219,7 +249,12 @@ func (a *memberlistAgent) secondPhase(waitFor misc.StringSet, msg []byte, respon
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
 		receiversCh := make(chan misc.StringSet)
-		go a.phaseSend(waitForCopy, msg, false, receiversCh)
+		if a.test == TestsMidSecond {
+			go a.testsPhaseSend(waitForCopy, msg, false, receiversCh, TestsMidSends)
+		} else {
+			go a.phaseSend(waitForCopy, msg, false, receiversCh)
+		}
+		received := 0
 	GET_RESPONSES_2:
 		for !waitFor.Empty() {
 			select {
@@ -227,9 +262,13 @@ func (a *memberlistAgent) secondPhase(waitFor misc.StringSet, msg []byte, respon
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
 				waitFor.Intersect(receivers)
 			case responded := <-responses:
+				received++
 				waitFor.Remove(responded)
 			case <-timeout:
 				break GET_RESPONSES_2
+			}
+			if a.test == TestsMidSecond && received >= TestsMidSends {
+				a.testsHalt()
 			}
 		}
 	}
@@ -240,6 +279,9 @@ func (a *memberlistAgent) phaseSend(receivers misc.StringSet, msg []byte, reliab
 	for _, member := range a.list.Members() {
 		if receivers.Contains(member.Name) {
 			newReceivers.Insert(member.Name)
+			if a.test == TestsUnreliableSend && rand.Float32() < 0.1 {
+				continue
+			}
 			if reliableSend {
 				a.list.SendReliable(member, msg)
 			} else {
@@ -248,6 +290,35 @@ func (a *memberlistAgent) phaseSend(receivers misc.StringSet, msg []byte, reliab
 		}
 	}
 	done <- newReceivers
+}
+
+func (a *memberlistAgent) testsPhaseSend(receivers misc.StringSet, msg []byte, reliableSend bool, done chan<- misc.StringSet, haltAfter int) {
+	selected := make([]*memberlist.Node, 0, haltAfter)
+	sent := 0
+	for _, member := range a.list.Members() {
+		if sent == haltAfter {
+			break
+		}
+		if receivers.Contains(member.Name) {
+			selected = append(selected, member)
+			if reliableSend {
+				a.list.SendReliable(member, msg)
+			} else {
+				a.list.SendBestEffort(member, msg)
+			}
+			sent++
+		}
+	}
+	for {
+		time.Sleep(time.Millisecond * timeoutPhaseResend)
+		for _, member := range selected {
+			if reliableSend {
+				a.list.SendReliable(member, msg)
+			} else {
+				a.list.SendBestEffort(member, msg)
+			}
+		}
+	}
 }
 
 func demuxResponses(coordinated <-chan chan transactionChannels, responses <-chan messageUnion, quit <-chan chan bool) {
@@ -381,8 +452,17 @@ func (a *memberlistAgent) handleTransactions() {
 					panic(errors.New("received can_commit? but I wasn't interested"))
 				}
 				if status == "interested" {
-					a.transaction.Partecipants = message.Transaction.Partecipants
-					status = "prepared"
+					if a.test == TestsAbort {
+						a.transaction.stopMonitor <- true
+						a.transaction.commands <- "do_abort"
+						<-a.transaction.commands
+						a.terminated[message.Transaction.id()] = "aborted"
+						a.transaction = transactionInfo{Initiator: ""}
+						status = "aborted"
+					} else {
+						a.transaction.Partecipants = message.Transaction.Partecipants
+						status = "prepared"
+					}
 				}
 				response := messageUnion{
 					Type:   status,
@@ -398,6 +478,9 @@ func (a *memberlistAgent) handleTransactions() {
 					break
 				}
 				a.list.SendBestEffort(message.Sender, responseMsg)
+				if stopping && a.transaction.Initiator == "" {
+					return
+				}
 			case "do_abort":
 				status := a.getStatus(message.Transaction)
 				if status == "commited" || status == "new" {

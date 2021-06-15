@@ -1,11 +1,19 @@
 package communication
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"steel-lang/misc"
 	"testing"
 
 	"github.com/google/uuid"
+)
+
+const (
+	TestResAgree = iota
+	TestResCommit
+	TestResAbort
 )
 
 func TestMakeMemberlistAgent(t *testing.T) {
@@ -41,6 +49,15 @@ func TestMakeMemberlistAgent(t *testing.T) {
 			}
 			if agt.listPtr != &agt.list {
 				t.Error("listPtr should be pointing to list")
+			}
+			if agt.test != TestsNothing {
+				t.Error("test should be TestNothing")
+			}
+			if agt.halted {
+				t.Error("halted should be false")
+			}
+			if agt.lockHalted != nil {
+				t.Error("lockHalted should be nil")
 			}
 			checkCorrectStop(t, agt)
 		})
@@ -134,12 +151,12 @@ func TestForAll(t *testing.T) {
 		t.Error("ForAll should return error when agent is not running")
 	}
 	start(t, a, port)
-	statusCh := localForAll(t, a, `incididunt ut labore et`, false)
+	statusCh := localForAll(t, a, []byte(`incididunt ut labore et`), false)
 	a.operations <- nil
 	if !<-statusCh {
 		t.Error("received wrong payload")
 	}
-	statusCh = localForAll(t, a, `dolore magna aliqua. Ut`, true)
+	statusCh = localForAll(t, a, []byte(`dolore magna aliqua. Ut`), true)
 	a.operations <- nil
 	if !<-statusCh {
 		t.Error("received wrong payload")
@@ -154,20 +171,158 @@ func TestStop(t *testing.T) {
 	}
 	start(t, a, port)
 	uuid1 := a.list.LocalNode().Name
-	startMockInterested("", a.operations, a.operationCommands)
+	startMockInterested(nil, a.operations, a.operationCommands)
 	restart(t, a, port)
 	uuid2 := a.list.LocalNode().Name
 	if uuid1 == uuid2 {
 		t.Error("uuid should be different after restart")
 	}
-	localForAll(t, a, `consectetur adipiscing elit`, false)
+	localForAll(t, a, []byte(`consectetur adipiscing elit`), false)
 	restart(t, a, port)
 	uuid3 := a.list.LocalNode().Name
 	if uuid1 == uuid3 || uuid2 == uuid3 {
 		t.Error("uuid should be different after restart")
 	}
-	localForAll(t, a, `, sed do eiusmod tempor`, true)
+	localForAll(t, a, []byte(`, sed do eiusmod tempor`), true)
 	stop(t, a)
+}
+
+func TestAborted(t *testing.T) {
+	resources := misc.MakeStringSet("nisi,ut,aliquip")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 12100},
+		{port: 12101, join: []int{12100}},
+		{port: 12102, join: []int{12101}, test: TestsAbort},
+		{port: 12103, join: []int{12101}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte("commodo"), TestResAbort)
+}
+
+func TestUnreliable(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("consequat")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 13100, test: TestsUnreliableSend},
+		{port: 13101, join: []int{13100}},
+		{port: 13102},
+		{port: 13103, join: []int{13100, 13102}},
+		{port: 13104, join: []int{13102}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte(". Duis aute123"), TestResCommit)
+}
+
+func TestInterestedMid(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("irure_dolor,in")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 14100, join: []int{14103}, test: TestsMidInterested},
+		{port: 14101},
+		{port: 14102},
+		{port: 14103, join: []int{14101, 14102}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte("456reprehenderit in"), TestResAbort)
+}
+
+func TestInterestedAfter(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("voluptate_")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 15100, join: []int{15102}, test: TestsAfterInterested},
+		{port: 15101, join: []int{15100}},
+		{port: 15102},
+		{port: 15103, join: []int{15101}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte("velit esse.....@#"), TestResAbort)
+}
+
+func TestFirstMid(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("dolore,eu,fugiat")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 16100, test: TestsMidFirst},
+		{port: 16101, join: []int{16103}},
+		{port: 16102},
+		{port: 16103, join: []int{16100, 16102}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte("nulla pariatur. +-+-"), TestResAgree)
+}
+
+func TestFirstAfter(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("E111111Excepteur")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 17100, test: TestsAfterFirst},
+		{port: 17101, join: []int{17102}},
+		{port: 17102, join: []int{17100}},
+		{port: 17103, join: []int{17100}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte("**!sint occaecat"), TestResCommit)
+}
+
+func TestSecondMid(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("cupidatat,non")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 18100, test: TestsMidSecond},
+		{port: 18101, join: []int{18103}},
+		{port: 18102, join: []int{18100}},
+		{port: 18103, join: []int{18102}},
+	}
+
+	transactionHelper(t, makeAgents(resources, argsList), []byte("proident, sunt in"), TestResCommit)
 }
 
 func start(t *testing.T, a *memberlistAgent, p int) {
@@ -194,7 +349,7 @@ func restart(t *testing.T, a *memberlistAgent, p int) {
 	start(t, a, p)
 }
 
-func localForAll(t *testing.T, a *memberlistAgent, payload string, interested bool) <-chan bool {
+func localForAll(t *testing.T, a *memberlistAgent, payload []byte, interested bool) <-chan bool {
 	t.Helper()
 	ops, cmds := a.ReceivedActions()
 	var res <-chan bool
@@ -203,7 +358,7 @@ func localForAll(t *testing.T, a *memberlistAgent, payload string, interested bo
 	} else {
 		res = startMockUninterested(payload, ops, cmds)
 	}
-	err := a.ForAll([]byte(payload))
+	err := a.ForAll(payload)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -290,9 +445,150 @@ func checkCorrectStop(t *testing.T, a *memberlistAgent) {
 	}
 }
 
-func startMockInterested(payload string, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan bool {
+func makeAgents(resources misc.StringSet, argsList []struct {
+	port int
+	join []int
+	test int
+}) []*memberlistAgent {
+	res := make([]*memberlistAgent, 0, len(argsList))
+	for _, args := range argsList {
+		nodes := make([]string, 0, len(args.join))
+		for _, p := range args.join {
+			nodes = append(nodes, fmt.Sprintf("127.0.0.1:%d", p))
+		}
+		res = append(res, TestsMakeMemberlistAgent(resources, args.port, nodes, args.test))
+	}
+	return res
+}
+
+func transactionHelper(t *testing.T, agents []*memberlistAgent, payload []byte, outcome int) {
+	t.Helper()
+	if len(agents) == 0 {
+		return
+	}
+	results := make([]<-chan int, 0, len(agents))
+	detectors := make([]<-chan bool, 0, len(agents))
+	agentIds := make(map[<-chan int]int)
+	for i, agt := range agents {
+		t.Run(fmt.Sprintf("PartecipantStart#%d", i+1), func(t *testing.T) {
+			start(t, agt, agt.listeningPort)
+		})
+		if agt.test < TestsMidInterested {
+			ops, cmds := agt.ReceivedActions()
+			r := startMockCommit(payload, ops, cmds)
+			agentIds[r] = i
+			results = append(results, r)
+		} else {
+			d := startPartecipantDetector(payload, agt)
+			detectors = append(detectors, d)
+		}
+	}
+	for i, agt := range agents {
+		t.Run(fmt.Sprintf("PartecipantJoin#%d", i+1), func(t *testing.T) {
+			err := agt.Join()
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+		})
+	}
+	for _, agt := range agents {
+		for agt.list.NumMembers() != len(agents) {
+		}
+	}
+	go agents[0].ForAll(payload)
+	detected := 0
+	for _, detector := range detectors {
+		if <-detector {
+			detected++
+		}
+	}
+	terminating := len(results)
+	if agents[0].test == TestsMidInterested {
+		terminating = TestsMidSends - detected
+	}
+	for terminating != 0 {
+		for i := 0; i < len(results); i++ {
+			select {
+			case result := <-results[i]:
+				if outcome == TestResAgree {
+					outcome = result
+				}
+				if result != outcome {
+					idx := agentIds[results[i]]
+					if outcome == TestResCommit {
+						t.Errorf("(%s) agent #%d should have committed", agents[idx].list.LocalNode().Name, idx+1)
+					} else {
+						t.Errorf("(%s) agent #%d should have aborted", agents[idx].list.LocalNode().Name, idx+1)
+					}
+				}
+				l := len(results) - 1
+				if i < l {
+					results[i] = results[l]
+				}
+				results = results[:l]
+				terminating--
+			default:
+			}
+		}
+	}
+}
+
+func startPartecipantDetector(payload []byte, a *memberlistAgent) <-chan bool {
 	res := make(chan bool)
-	go func(status chan<- bool, payload string, requests <-chan chan []byte, commandRequests <-chan chan string) {
+	go func(status chan<- bool, payload []byte, a *memberlistAgent) {
+		halted := make(chan bool)
+		requests, commandRequests := a.ReceivedActions()
+		go func() {
+			for {
+				a.lockHalted.Lock()
+				if a.halted {
+					a.lockHalted.Unlock()
+					break
+				}
+				a.lockHalted.Unlock()
+			}
+			halted <- true
+		}()
+		select {
+		case actionsCh := <-requests:
+			commandsCh := <-commandRequests
+			if !bytes.Equal(<-actionsCh, payload) {
+				panic(errors.New("received wrong payload"))
+			}
+			commandsCh <- "interested"
+			status <- true
+		case <-halted:
+			status <- false
+		}
+	}(res, payload, a)
+	return res
+}
+
+func startMockCommit(payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan int {
+	res := make(chan int)
+	go func(status chan<- int, payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) {
+		actionsCh := <-requests
+		commandsCh := <-commandRequests
+		if !bytes.Equal(<-actionsCh, payload) {
+			panic(errors.New("received wrong payload"))
+		}
+		commandsCh <- "interested"
+		switch <-commandsCh {
+		case "do_commit":
+			defer func() { status <- TestResCommit }()
+		case "do_abort":
+			defer func() { status <- TestResAbort }()
+		default:
+			panic(errors.New("illegal command"))
+		}
+		commandsCh <- "done"
+	}(res, payload, requests, commandRequests)
+	return res
+}
+
+func startMockInterested(payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan bool {
+	res := make(chan bool)
+	go func(status chan<- bool, payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) {
 		good := true
 		for {
 			actionsCh := <-requests
@@ -301,7 +597,7 @@ func startMockInterested(payload string, requests <-chan chan []byte, commandReq
 				return
 			}
 			commandsCh := <-commandRequests
-			if payload != string(<-actionsCh) {
+			if !bytes.Equal(<-actionsCh, payload) {
 				good = false
 			}
 			commandsCh <- "interested"
@@ -312,9 +608,9 @@ func startMockInterested(payload string, requests <-chan chan []byte, commandReq
 	return res
 }
 
-func startMockUninterested(payload string, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan bool {
+func startMockUninterested(payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan bool {
 	res := make(chan bool)
-	go func(status chan<- bool, payload string, requests <-chan chan []byte, commandRequests <-chan chan string) {
+	go func(status chan<- bool, payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) {
 		good := true
 		for {
 			actionsCh := <-requests
@@ -323,7 +619,7 @@ func startMockUninterested(payload string, requests <-chan chan []byte, commandR
 				return
 			}
 			commandsCh := <-commandRequests
-			if payload != string(<-actionsCh) {
+			if !bytes.Equal(<-actionsCh, payload) {
 				good = false
 			}
 			commandsCh <- "not_interested"
