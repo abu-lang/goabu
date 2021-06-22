@@ -26,6 +26,18 @@ func MakeResources() Resources {
 	}
 }
 
+func (r Resources) Start() error {
+	return nil
+}
+
+func (r Resources) Inputs() <-chan Action {
+	return nil
+}
+
+func (r Resources) Modified(resource string) error {
+	return nil
+}
+
 func (r Resources) IsValid() bool {
 	atts := misc.MakeStringSet("")
 	for a := range r.Bool {
@@ -67,6 +79,10 @@ func (r Resources) IsValid() bool {
 	return atts.AllMatch(`\A[a-zA-Z]+[a-zA-Z0-9_]*\z`)
 }
 
+func (r Resources) Has(resource string) bool {
+	return r.ResourceNames().Contains(resource)
+}
+
 func (r Resources) GetTypes() map[string]string {
 	res := make(map[string]string)
 	for a := range r.Bool {
@@ -88,6 +104,10 @@ func (r Resources) GetTypes() map[string]string {
 		res[a] = "Other"
 	}
 	return res
+}
+
+func (r Resources) GetResources() Resources {
+	return r
 }
 
 func (r Resources) ResourceNames() misc.StringSet {
@@ -136,7 +156,7 @@ func (r Resources) String() string {
 	return str + "]"
 }
 
-func (r Resources) Clone() Resources {
+func (r Resources) Clone() ResourceController {
 	res := MakeResources()
 	for k, v := range r.Bool {
 		res.Bool[k] = v

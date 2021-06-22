@@ -128,16 +128,17 @@ func TestAddPool(t *testing.T) {
 	if !e.IsStable() {
 		t.Error("should be stable")
 	}
-	if e.memory.Float["elit"] != 2.71828 {
+	mem := e.memory.GetResources()
+	if mem.Float["elit"] != 2.71828 {
 		t.Error("elit should be 2.71828")
 	}
-	if e.memory.Integer["consectetur"] != 35 {
+	if mem.Integer["consectetur"] != 35 {
 		t.Error("consectetur should be 35")
 	}
-	if e.memory.Text["adipiscing"] != "" {
+	if mem.Text["adipiscing"] != "" {
 		t.Error("adipiscing should be \"\"")
 	}
-	if e.memory.Time["tempor"] != time.Date(2021, 6, 5, 0, 0, 0, 0, time.Local) {
+	if mem.Time["tempor"] != time.Date(2021, 6, 5, 0, 0, 0, 0, time.Local) {
 		t.Error("tempor should be 2021-06-05 00:00:00")
 	}
 }
@@ -216,13 +217,14 @@ func TestLocal(t *testing.T) {
 	if execs != 5 {
 		t.Error("should be stable after 5 calls to Exec")
 	}
-	if e.memory.Bool["cooling"] {
+	mem := e.memory.GetResources()
+	if mem.Bool["cooling"] {
 		t.Error("cooling should be false")
 	}
-	if e.memory.Integer["counter"] != 0 {
+	if mem.Integer["counter"] != 0 {
 		t.Error("counter should be 0")
 	}
-	if e.memory.Text["temperature"] != "normal" {
+	if mem.Text["temperature"] != "normal" {
 		t.Error("temperature should be \"normal\"")
 	}
 }
@@ -284,8 +286,9 @@ func TestReceiveExternalActions(t *testing.T) {
 	e.AddRule(r2)
 
 	// remove some resources
-	delete(e.memory.Bool, "labore")
-	delete(e.memory.Text, "incididunt")
+	mem := e.memory.GetResources()
+	delete(mem.Bool, "labore")
+	delete(mem.Text, "incididunt")
 	e.types = e.memory.GetTypes()
 
 	e.AddActions([]datastructure.Action{{Resource: "elit", Expression: `100.0`}})
@@ -294,20 +297,20 @@ func TestReceiveExternalActions(t *testing.T) {
 	for !e.IsStable() {
 		e.Exec()
 		execs++
-		if e.memory.Text["adipiscing"] != "sed" {
+		if mem.Text["adipiscing"] != "sed" {
 			t.Error("adipiscing should be \"sed\"")
 		}
 	}
 	if execs != 3 {
 		t.Error("should be stable after 3 calls to Exec")
 	}
-	if e.memory.Float["elit"] != 203.14 {
+	if mem.Float["elit"] != 203.14 {
 		t.Error("elit should be 203.14")
 	}
-	if e.memory.Integer["consectetur"] != -2 {
+	if mem.Integer["consectetur"] != -2 {
 		t.Error("counter should be 0")
 	}
-	if e.memory.Time["tempor"] != time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local) {
+	if mem.Time["tempor"] != time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local) {
 		t.Error("tempor should be 2000-01-01 00:00:00")
 	}
 }
@@ -357,18 +360,19 @@ func TestForall(t *testing.T) {
 	e.AddRule(r2)
 	e.Input([]datastructure.Action{{Resource: "start", Expression: "true"}})
 	magnas := []int64{123, 369, 1107}
+	mem := e.memory.GetResources()
 	for i := 0; i < 3; i++ {
 		e.Exec()
 		if len(e.pool) != 1 {
 			t.Error("pool should have length 1")
 		}
-		if e.memory.Bool["aliqua"] {
+		if mem.Bool["aliqua"] {
 			t.Error("aliqua should be false")
 		}
-		if !e.memory.Bool["start"] {
+		if !mem.Bool["start"] {
 			t.Error("start should be true")
 		}
-		if e.memory.Integer["magna"] != magnas[i] {
+		if mem.Integer["magna"] != magnas[i] {
 			t.Errorf("magna should be %d", magnas[i])
 		}
 	}

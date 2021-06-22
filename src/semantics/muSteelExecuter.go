@@ -18,7 +18,7 @@ type State struct {
 }
 
 type MuSteelExecuter struct {
-	memory        datastructure.Resources
+	memory        datastructure.ResourceController
 	types         map[string]string
 	pool          [][]SemanticAction
 	lockPool      sync.Mutex
@@ -33,7 +33,7 @@ type MuSteelExecuter struct {
 	agent ISteelAgent
 }
 
-func NewMuSteelExecuter(mem datastructure.Resources, rules []datastructure.Rule, agt ISteelAgent) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem datastructure.ResourceController, rules []datastructure.Rule, agt ISteelAgent) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:           mem.Clone(),
 		pool:             make([][]SemanticAction, 0),
@@ -48,11 +48,17 @@ func NewMuSteelExecuter(mem datastructure.Resources, rules []datastructure.Rule,
 		return nil, errors.New("invalid Resources argument")
 	}
 	res.types = res.memory.GetTypes()
-	err := res.dataContext.Add("this", &(res.memory))
+	resources := res.memory.GetResources()
+	err := res.dataContext.Add("this", &(resources))
 	if err != nil {
 		return nil, err
 	}
 	res.AddRules(rules)
+	err = mem.Start()
+	if err != nil {
+		return nil, err
+	}
+	go res.receiveInputs()
 	err = res.StartAgent()
 	if err != nil {
 		return nil, err
@@ -86,7 +92,7 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 }
 
 func (m *MuSteelExecuter) GetState() State {
-	memCopy := m.memory.Clone()
+	memCopy := m.memory.Clone().GetResources()
 	m.lockPool.Lock()
 	poolCopy := make([][]SemanticAction, 0, len(m.pool))
 	for _, acts := range m.pool {
@@ -155,6 +161,14 @@ func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
 	sActions := evalActions(m.parseActions(actions), m.dataContext, m.workingMemory)
 	fmt.Print("Input: ")
 	m.execActions(sActions)
+}
+
+func (m *MuSteelExecuter) receiveInputs() {
+	inputs := m.memory.Inputs()
+	for {
+		action := <-inputs
+		m.Input([]datastructure.Action{action})
+	}
 }
 
 func (m *MuSteelExecuter) receiveExternalActions() {
@@ -236,6 +250,7 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 			if err != nil {
 				panic(err)
 			}
+			m.memory.Modified(action.Resource)
 			Xset = append(Xset, action)
 			fmt.Print(action)
 		}
@@ -324,7 +339,8 @@ func (m *MuSteelExecuter) updateWorkingMemory() {
 
 func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory) {
 	dataContext := ast.NewDataContext()
-	err := dataContext.Add(name, &(m.memory))
+	resources := m.memory.GetResources()
+	err := dataContext.Add(name, &(resources))
 	if err != nil {
 		panic(err)
 	}
