@@ -7,4 +7,5 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/memberlist v0.2.4
 	github.com/hyperjumptech/grule-rule-engine v1.8.5
+	gobot.io/x/gobot v1.15.0
 )
