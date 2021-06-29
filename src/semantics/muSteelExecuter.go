@@ -250,7 +250,10 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 			if err != nil {
 				panic(err)
 			}
-			m.memory.Modified(action.Resource)
+			err = m.memory.Modified(action.Resource)
+			if err != nil {
+				panic(err)
+			}
 			Xset = append(Xset, action)
 			fmt.Print(action)
 		}

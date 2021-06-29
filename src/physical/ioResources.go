@@ -17,7 +17,7 @@ type IOResources struct {
 	adaptor IOAdaptor
 	inputs  chan datastructure.Action
 	devices map[string]int
-	leds    map[string]*gpio.LedDriver
+	ledPins map[string]string
 	buttons map[string]*gpio.ButtonDriver
 }
 
@@ -27,7 +27,7 @@ func MakeIOResources(a IOAdaptor) IOResources {
 		adaptor:   a,
 		inputs:    make(chan datastructure.Action),
 		devices:   make(map[string]int),
-		leds:      make(map[string]*gpio.LedDriver),
+		ledPins:   make(map[string]string),
 		buttons:   make(map[string]*gpio.ButtonDriver),
 	}
 }
@@ -36,12 +36,6 @@ func (i IOResources) Start() error {
 	err := i.adaptor.Connect()
 	if err != nil {
 		return err
-	}
-	for _, l := range i.leds {
-		err = l.Start()
-		if err != nil {
-			return err
-		}
 	}
 	for k, b := range i.buttons {
 		err = b.Start()
@@ -67,10 +61,19 @@ func (i IOResources) Modified(r string) error {
 	}
 	switch t {
 	case devLed:
+		pin := i.ledPins[r]
 		if i.Resources.Bool[r] {
-			i.leds[r].On()
+			err := i.adaptor.DigitalWrite(pin, 1)
+			if err != nil {
+				i.Resources.Bool[r] = false
+				return err
+			}
 		} else {
-			i.leds[r].Off()
+			err := i.adaptor.DigitalWrite(pin, 0)
+			if err != nil {
+				i.Resources.Bool[r] = true
+				return err
+			}
 		}
 	}
 	return nil
@@ -82,7 +85,7 @@ func (i IOResources) Clone() datastructure.ResourceController {
 		adaptor:   i.adaptor,
 		inputs:    i.inputs,
 		devices:   i.devices,
-		leds:      i.leds,
+		ledPins:   i.ledPins,
 		buttons:   i.buttons,
 	}
 }
@@ -93,7 +96,7 @@ func (i IOResources) AddLed(r string, pin string) error {
 	}
 	i.Bool[r] = false
 	i.devices[r] = devLed
-	i.leds[r] = gpio.NewLedDriver(i.adaptor, pin)
+	i.ledPins[r] = pin
 	return nil
 }
 
