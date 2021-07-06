@@ -26,7 +26,7 @@ func TestSingleNode(t *testing.T) {
 		},
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `ext.Bool["aliqua"]`,
+			Condition: `ext.Void["aliqua"]`,
 			Actions: []datastructure.Action{
 				{Resource: "magna",
 					Expression: `-123`,
@@ -40,10 +40,10 @@ func TestSingleNode(t *testing.T) {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `this.Integer["magna"] >= ext.Integer["magna"]`,
+			Condition: `this.Integer["magna"] >= ext.Void["magna"]`,
 			Actions: []datastructure.Action{
 				{Resource: "magna",
-					Expression: `2 * this.Integer["magna"] + ext.Integer["magna"]`,
+					Expression: `2 * this.Integer["magna"] + ext.Void["magna"]`,
 				},
 			},
 		},
@@ -79,7 +79,7 @@ func TestTwoNodes(t *testing.T) {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `this.Integer["lorem"] > ext.Integer["lorem"]`,
+			Condition: `this.Integer["lorem"] > ext.Void["lorem"]`,
 			Actions: []datastructure.Action{
 				{Resource: "lorem",
 					Expression: `this.Integer["lorem"]`,
@@ -134,7 +134,7 @@ func TestThreeNodes(t *testing.T) {
 		},
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `this.Float["ipsum"] != ext.Float["ipsum"]`,
+			Condition: `this.Float["ipsum"] != ext.Void["ipsum"]`,
 			Actions: []datastructure.Action{
 				{Resource: "involved",
 					Expression: `true`,
@@ -148,7 +148,7 @@ func TestThreeNodes(t *testing.T) {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `ext.Bool["involved"] && this.Float["ipsum"] > ext.Float["ipsum"]`,
+			Condition: `ext.Void["involved"] && this.Float["ipsum"] > ext.Void["ipsum"]`,
 			Actions: []datastructure.Action{
 				{Resource: "ipsum",
 					Expression: `this.Float["ipsum"]`,

@@ -179,7 +179,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			return
 		}
 		commandsCh := <-commandRequests
-		eActions, err := unmarshalExternalActions(<-actionsCh)
+		eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
 		if err != nil {
 			panic(err)
 		}

@@ -236,7 +236,7 @@ func TestReceiveExternalActions(t *testing.T) {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `ext.Float["elit"] > 0 || ext.Bool["labore"]`,
+			Condition: `ext.Void["elit"] > 0 || ext.Void["labore"]`,
 			Actions: []datastructure.Action{
 				{Resource: "elit",
 					Expression: `0`,
@@ -253,13 +253,13 @@ func TestReceiveExternalActions(t *testing.T) {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `ext.Integer["consectetur"] < 0`,
+			Condition: `ext.Void["consectetur"] < 0`,
 			Actions: []datastructure.Action{
 				{Resource: "elit",
-					Expression: `ext.Float["elit"] * 2 + 3.14`,
+					Expression: `ext.Void["elit"] * 2 + 3.14`,
 				},
 				{Resource: "adipiscing",
-					Expression: `ext.Text["incididunt"]`,
+					Expression: `ext.Void["incididunt"]`,
 				},
 				{Resource: "tempor",
 					Expression: `MakeTime(2000, 1, 1, 0, 0, 0)`,
@@ -334,7 +334,7 @@ func TestForall(t *testing.T) {
 		},
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `ext.Bool["aliqua"]`,
+			Condition: `ext.Void["aliqua"]`,
 			Actions: []datastructure.Action{
 				{Resource: "magna",
 					Expression: `-123`,
@@ -348,10 +348,10 @@ func TestForall(t *testing.T) {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `this.Integer["magna"] >= ext.Integer["magna"]`,
+			Condition: `this.Integer["magna"] >= ext.Void["magna"]`,
 			Actions: []datastructure.Action{
 				{Resource: "magna",
-					Expression: `2 * this.Integer["magna"] + ext.Integer["magna"]`,
+					Expression: `2 * this.Integer["magna"] + ext.Void["magna"]`,
 				},
 			},
 		},

@@ -59,10 +59,10 @@ func nodeBehaviour() {
 		DefaultActions: nil,
 		Task: datastructure.Task{
 			Mode:      "for all",
-			Condition: `this.Integer["x"] > ext.Integer["x"] - 1`,
+			Condition: `this.Integer["x"] > ext.Void["x"] - 1`,
 			Actions: []datastructure.Action{
 				{Resource: "s",
-					Expression: `ext.Other[this.Text["y"].ToUpper()]`,
+					Expression: `ext.Void[this.Text["y"].ToUpper()]`,
 				},
 			},
 		},

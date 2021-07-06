@@ -152,33 +152,44 @@ func (a externalAction) partiallyEvalVariable(e *ast.Variable, workingSet misc.S
 	}
 }
 
-func (a externalAction) attachConstants() {
-	a.attachConstantsExpression(a.Condition)
-	a.attachConstantsActions(a.Actions)
+func (a externalAction) attachTypesConsts(types map[string]string) {
+	a.attachTypesConstsExpression(a.Condition, types)
+	a.attachTypesConstsActions(a.Actions, types)
 }
 
-func (a externalAction) attachConstantsActions(actions []datastructure.ParsedAction) {
+func (a externalAction) attachTypesConstsActions(actions []datastructure.ParsedAction, types map[string]string) {
 	for _, action := range actions {
-		a.attachConstantsAssignment(action.Expression)
+		a.attachTypesConstsAssignment(action.Expression, types)
 	}
 }
 
-func (a externalAction) attachConstantsAssignment(e *ast.Assignment) {
-	a.attachConstantsVariable(e.Variable)
-	a.attachConstantsExpression(e.Expression)
+func (a externalAction) attachTypesConstsAssignment(e *ast.Assignment, types map[string]string) {
+	a.attachTypesConstsVariable(e.Variable, types)
+	a.attachTypesConstsExpression(e.Expression, types)
+	switch {
+	case e.Variable == nil:
+		return
+	case e.Variable.Variable == nil:
+		return
+	case e.Variable.Variable.Variable == nil:
+		return
+	}
+	if e.Variable.Variable.Variable.Name == "ext" {
+		e.Variable.Variable.Variable.Name = "this"
+	}
 }
 
-func (a externalAction) attachConstantsExpression(e *ast.Expression) {
+func (a externalAction) attachTypesConstsExpression(e *ast.Expression, types map[string]string) {
 	if e == nil {
 		return
 	}
-	a.attachConstantsExpression(e.LeftExpression)
-	a.attachConstantsExpression(e.RightExpression)
-	a.attachConstantsExpression(e.SingleExpression)
-	a.attachConstantsExpressionAtom(e.ExpressionAtom)
+	a.attachTypesConstsExpression(e.LeftExpression, types)
+	a.attachTypesConstsExpression(e.RightExpression, types)
+	a.attachTypesConstsExpression(e.SingleExpression, types)
+	a.attachTypesConstsExpressionAtom(e.ExpressionAtom, types)
 }
 
-func (a externalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
+func (a externalAction) attachTypesConstsExpressionAtom(e *ast.ExpressionAtom, types map[string]string) {
 	if e == nil {
 		return
 	}
@@ -193,30 +204,43 @@ func (a externalAction) attachConstantsExpressionAtom(e *ast.ExpressionAtom) {
 		}
 	}
 	if e.FunctionCall != nil {
-		a.attachConstantsArgumentList(e.FunctionCall.ArgumentList)
+		a.attachTypesConstsArgumentList(e.FunctionCall.ArgumentList, types)
 	}
-	a.attachConstantsExpressionAtom(e.ExpressionAtom)
+	a.attachTypesConstsExpressionAtom(e.ExpressionAtom, types)
 	if e.ArrayMapSelector != nil {
-		a.attachConstantsExpression(e.ArrayMapSelector.Expression)
+		a.attachTypesConstsExpression(e.ArrayMapSelector.Expression, types)
 	}
-	a.attachConstantsVariable(e.Variable)
+	a.attachTypesConstsVariable(e.Variable, types)
 }
 
-func (a externalAction) attachConstantsArgumentList(e *ast.ArgumentList) {
+func (a externalAction) attachTypesConstsArgumentList(e *ast.ArgumentList, types map[string]string) {
 	if e == nil {
 		return
 	}
 	for _, arg := range e.Arguments {
-		a.attachConstantsExpression(arg)
+		a.attachTypesConstsExpression(arg, types)
 	}
 }
 
-func (a externalAction) attachConstantsVariable(e *ast.Variable) {
+func (a externalAction) attachTypesConstsVariable(e *ast.Variable, types map[string]string) {
 	if e == nil {
 		return
 	}
 	if e.ArrayMapSelector != nil {
-		a.attachConstantsExpression(e.ArrayMapSelector.Expression)
+		a.attachTypesConstsExpression(e.ArrayMapSelector.Expression, types)
+		if strings.HasPrefix(e.GetGrlText(), "ext.") {
+			switch {
+			case e.ArrayMapSelector.Expression == nil:
+				return
+			case e.ArrayMapSelector.Expression.ExpressionAtom == nil:
+				return
+			case e.ArrayMapSelector.Expression.ExpressionAtom.Constant == nil:
+				return
+			}
+			text := e.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText()
+			res := strings.Split(text, `"`)[1]
+			e.Variable.Name = types[res]
+		}
 	}
 }
 
@@ -224,14 +248,14 @@ func marshalExternalActions(actions []externalAction) ([]byte, error) {
 	return json.Marshal(actions)
 }
 
-func unmarshalExternalActions(b []byte) ([]externalAction, error) {
+func unmarshalExternalActions(b []byte, types map[string]string) ([]externalAction, error) {
 	var eActions []externalAction
 	err := json.Unmarshal(b, &eActions)
 	if err != nil {
 		return nil, err
 	}
 	for _, action := range eActions {
-		action.attachConstants()
+		action.attachTypesConsts(types)
 	}
 	return eActions, nil
 }

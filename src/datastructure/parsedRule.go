@@ -3,6 +3,7 @@
 package datastructure
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -44,7 +45,7 @@ func NewParsedRule(rule Rule, kl *ast.KnowledgeLibrary, types map[string]string)
 	res := &ParsedRule{
 		Name:           rule.Name,
 		Events:         make([]string, len(rule.Events)),
-		DefaultActions: NewParsedActionList(rule.DefaultActions, rule.Name+"default", kl, types),
+		DefaultActions: NewParsedActionList(rule.DefaultActions, rule.Name+"default", kl, types, false),
 		Task:           NewParsedTask(rule.Task, rule.Name+"task", kl, types),
 	}
 	copy(res.Events, rule.Events)
@@ -52,24 +53,31 @@ func NewParsedRule(rule Rule, kl *ast.KnowledgeLibrary, types map[string]string)
 }
 
 func NewParsedTask(t Task, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedTask {
+	external := t.Mode == "for all"
 	return ParsedTask{
 		Mode:      t.Mode,
 		Condition: NewParsedExpression(t.Condition, name+"cnd", kl),
-		Actions:   NewParsedActionList(t.Actions, name+"actions", kl, types),
+		Actions:   NewParsedActionList(t.Actions, name+"actions", kl, types, external),
 	}
 }
 
-func NewParsedActionList(acts []Action, name string, kl *ast.KnowledgeLibrary, types map[string]string) []ParsedAction {
+func NewParsedActionList(acts []Action, name string, kl *ast.KnowledgeLibrary, types map[string]string, external bool) []ParsedAction {
 	var res []ParsedAction
 	for i, a := range acts {
-		res = append(res, NewParsedAction(a, name+strconv.Itoa(i), kl, types))
+		res = append(res, NewParsedAction(a, name+strconv.Itoa(i), kl, types, external))
 	}
 	return res
 }
 
-func NewParsedAction(a Action, name string, kl *ast.KnowledgeLibrary, types map[string]string) ParsedAction {
+func NewParsedAction(a Action, name string, kl *ast.KnowledgeLibrary, types map[string]string, external bool) ParsedAction {
 	rb := builder.NewRuleBuilder(kl)
-	rule := "rule " + name + " { when true then this." + types[a.Resource] + "[\"" + a.Resource + "\"] = " + a.Expression + "; }"
+	resource := ""
+	if external {
+		resource = fmt.Sprintf(`ext.Void["%s"]`, a.Resource)
+	} else {
+		resource = fmt.Sprintf(`this.%s["%s"]`, types[a.Resource], a.Resource)
+	}
+	rule := fmt.Sprintf("rule %s { when true then %s = %s; }", name, resource, a.Expression)
 	bs := pkg.NewBytesResource([]byte(rule))
 	err := rb.BuildRuleFromResource("dummy", "0.0.0", bs)
 	if err != nil {
