@@ -3,6 +3,7 @@
 package main_test
 
 import (
+	"steel-lang/communication"
 	"steel-lang/datastructure"
 	"steel-lang/physical"
 	"steel-lang/semantics"
@@ -15,10 +16,11 @@ import (
 func TestLed2Buttons(t *testing.T) {
 	toggles := 6
 	var a physical.IOAdaptor = raspi.NewAdaptor()
-	memory := physical.MakeIOResources(a)
-	memory.AddLed("led", "12")
-	memory.AddButton("button1", "16")
-	memory.AddButton("button2", "18")
+	memLed := physical.MakeIOResources(a)
+	memButtons := physical.MakeIOResources(a)
+	memLed.AddLed("led", "12")
+	memButtons.AddButton("button1", "16")
+	memButtons.AddButton("button2", "18")
 	r1 := datastructure.Rule{
 		Name:           "R1",
 		Events:         []string{"button2"},
@@ -28,23 +30,28 @@ func TestLed2Buttons(t *testing.T) {
 			Condition: `this.Bool["button1"] && this.Bool["button2"]`,
 			Actions: []datastructure.Action{
 				{Resource: "led",
-					Expression: `!this.Bool["led"]`,
+					Expression: `!ext.Void["led"]`,
 				},
 			},
 		},
 	}
-	e, err := semantics.NewMuSteelExecuter(memory, []datastructure.Rule{r1}, semantics.MakeMockAgent())
+	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(memLed.ResourceNames(), 8100, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
-	ledStatus := e.GetState().Memory.Bool["led"]
+	dummy, err := semantics.NewMuSteelExecuter(memButtons, []datastructure.Rule{r1}, communication.MakeMemberlistAgent(memButtons.ResourceNames(), 8101, []string{"127.0.0.1:8100"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ledStatus := eLed.GetState().Memory.Bool["led"]
 	for toggles > 0 {
 		time.Sleep(time.Millisecond)
-		e.Exec()
-		status := e.GetState().Memory.Bool["led"]
+		eLed.Exec()
+		status := eLed.GetState().Memory.Bool["led"]
 		if ledStatus != status {
 			ledStatus = status
 			toggles--
 		}
 	}
+	dummy.IsStable()
 }
