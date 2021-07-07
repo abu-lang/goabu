@@ -146,7 +146,7 @@ func (m *MuSteelExecuter) AddPool(pl [][]datastructure.Action) {
 
 func (m *MuSteelExecuter) Exec() {
 	m.lockPool.Lock()
-	if len(m.pool) == 0 || m.workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
+	if len(m.pool) == 0 {
 		m.lockPool.Unlock()
 		return
 	}
@@ -220,11 +220,16 @@ func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
 
 func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	m.lockPool.Lock()
+	dataContext := m.dataContext
+	workingMemory := m.workingMemory
+	if workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
+		dataContext, workingMemory = m.NewEmptyGruleStructures("this")
+	}
 	var Xset []SemanticAction
 	for _, action := range actions {
 		variable := action.Variable
-		variable = m.workingMemory.AddVariable(variable)
-		currentVal, err := variable.Evaluate(m.dataContext, m.workingMemory)
+		variable = workingMemory.AddVariable(variable)
+		currentVal, err := variable.Evaluate(dataContext, workingMemory)
 		if err != nil {
 			panic(err)
 		}
@@ -246,7 +251,7 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 			}
 		}
 		if diff {
-			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
+			err := variable.Assign(action.Value, dataContext, workingMemory)
 			if err != nil {
 				panic(err)
 			}
