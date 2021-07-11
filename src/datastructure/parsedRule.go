@@ -3,6 +3,7 @@
 package datastructure
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -27,6 +28,14 @@ type ParsedTask struct {
 	Mode      string
 	Condition *ast.Expression
 	Actions   []ParsedAction
+}
+
+func (t *ParsedTask) AcceptExpression(exp *ast.Expression) error {
+	if t.Condition != nil {
+		return errors.New("task condition already assigned")
+	}
+	t.Condition = exp
+	return nil
 }
 
 func (a ParsedAction) String() string {
