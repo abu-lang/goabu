@@ -1,4 +1,6 @@
-// Code generated from EcaruleParser.g4 by ANTLR 4.9.2. DO NOT EDIT.
+// Code generated from EcaruleParser.g4 by ANTLR 4.9.2.
+// then MODIFIED by adding grulev3 import and by:
+// sed '/type GrlContext struct/,$s/listenerT\.\(Enter\|Exit\)\([A-Za-z]\+\)(s)/c := grulev3.New\2Context(s.parser, s.BaseParserRuleContext, -1)\n\t\tc.BaseParserRuleContext = s.BaseParserRuleContext\n\t\tlistenerT.\1\2(c)/'
 
 package antlr // EcaruleParser
 import (
@@ -7,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 )
 
 // Suppress unused import errors
@@ -1108,13 +1111,17 @@ func (s *GrlContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) st
 
 func (s *GrlContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterGrl(s)
+		c := grulev3.NewGrlContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterGrl(c)
 	}
 }
 
 func (s *GrlContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitGrl(s)
+		c := grulev3.NewGrlContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitGrl(c)
 	}
 }
 
@@ -1272,13 +1279,17 @@ func (s *RuleEntryContext) ToStringTree(ruleNames []string, recog antlr.Recogniz
 
 func (s *RuleEntryContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterRuleEntry(s)
+		c := grulev3.NewRuleEntryContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterRuleEntry(c)
 	}
 }
 
 func (s *RuleEntryContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitRuleEntry(s)
+		c := grulev3.NewRuleEntryContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitRuleEntry(c)
 	}
 }
 
@@ -1416,13 +1427,17 @@ func (s *SalienceContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *SalienceContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterSalience(s)
+		c := grulev3.NewSalienceContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterSalience(c)
 	}
 }
 
 func (s *SalienceContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitSalience(s)
+		c := grulev3.NewSalienceContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitSalience(c)
 	}
 }
 
@@ -1511,13 +1526,17 @@ func (s *RuleNameContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *RuleNameContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterRuleName(s)
+		c := grulev3.NewRuleNameContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterRuleName(c)
 	}
 }
 
 func (s *RuleNameContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitRuleName(s)
+		c := grulev3.NewRuleNameContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitRuleName(c)
 	}
 }
 
@@ -1606,13 +1625,17 @@ func (s *RuleDescriptionContext) ToStringTree(ruleNames []string, recog antlr.Re
 
 func (s *RuleDescriptionContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterRuleDescription(s)
+		c := grulev3.NewRuleDescriptionContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterRuleDescription(c)
 	}
 }
 
 func (s *RuleDescriptionContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitRuleDescription(s)
+		c := grulev3.NewRuleDescriptionContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitRuleDescription(c)
 	}
 }
 
@@ -1715,13 +1738,17 @@ func (s *WhenScopeContext) ToStringTree(ruleNames []string, recog antlr.Recogniz
 
 func (s *WhenScopeContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterWhenScope(s)
+		c := grulev3.NewWhenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterWhenScope(c)
 	}
 }
 
 func (s *WhenScopeContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitWhenScope(s)
+		c := grulev3.NewWhenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitWhenScope(c)
 	}
 }
 
@@ -1820,13 +1847,17 @@ func (s *ThenScopeContext) ToStringTree(ruleNames []string, recog antlr.Recogniz
 
 func (s *ThenScopeContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterThenScope(s)
+		c := grulev3.NewThenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterThenScope(c)
 	}
 }
 
 func (s *ThenScopeContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitThenScope(s)
+		c := grulev3.NewThenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitThenScope(c)
 	}
 }
 
@@ -1942,13 +1973,17 @@ func (s *ThenExpressionListContext) ToStringTree(ruleNames []string, recog antlr
 
 func (s *ThenExpressionListContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterThenExpressionList(s)
+		c := grulev3.NewThenExpressionListContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterThenExpressionList(c)
 	}
 }
 
 func (s *ThenExpressionListContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitThenExpressionList(s)
+		c := grulev3.NewThenExpressionListContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitThenExpressionList(c)
 	}
 }
 
@@ -2064,13 +2099,17 @@ func (s *ThenExpressionContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *ThenExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterThenExpression(s)
+		c := grulev3.NewThenExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterThenExpression(c)
 	}
 }
 
 func (s *ThenExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitThenExpression(s)
+		c := grulev3.NewThenExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitThenExpression(c)
 	}
 }
 
@@ -2204,13 +2243,17 @@ func (s *AssignmentContext) ToStringTree(ruleNames []string, recog antlr.Recogni
 
 func (s *AssignmentContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterAssignment(s)
+		c := grulev3.NewAssignmentContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterAssignment(c)
 	}
 }
 
 func (s *AssignmentContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitAssignment(s)
+		c := grulev3.NewAssignmentContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitAssignment(c)
 	}
 }
 
@@ -2402,13 +2445,17 @@ func (s *ExpressionContext) ToStringTree(ruleNames []string, recog antlr.Recogni
 
 func (s *ExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterExpression(s)
+		c := grulev3.NewExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterExpression(c)
 	}
 }
 
 func (s *ExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitExpression(s)
+		c := grulev3.NewExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitExpression(c)
 	}
 }
 
@@ -2650,13 +2697,17 @@ func (s *MulDivOperatorsContext) ToStringTree(ruleNames []string, recog antlr.Re
 
 func (s *MulDivOperatorsContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterMulDivOperators(s)
+		c := grulev3.NewMulDivOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterMulDivOperators(c)
 	}
 }
 
 func (s *MulDivOperatorsContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitMulDivOperators(s)
+		c := grulev3.NewMulDivOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitMulDivOperators(c)
 	}
 }
 
@@ -2761,13 +2812,17 @@ func (s *AddMinusOperatorsContext) ToStringTree(ruleNames []string, recog antlr.
 
 func (s *AddMinusOperatorsContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterAddMinusOperators(s)
+		c := grulev3.NewAddMinusOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterAddMinusOperators(c)
 	}
 }
 
 func (s *AddMinusOperatorsContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitAddMinusOperators(s)
+		c := grulev3.NewAddMinusOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitAddMinusOperators(c)
 	}
 }
 
@@ -2880,13 +2935,17 @@ func (s *ComparisonOperatorContext) ToStringTree(ruleNames []string, recog antlr
 
 func (s *ComparisonOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterComparisonOperator(s)
+		c := grulev3.NewComparisonOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterComparisonOperator(c)
 	}
 }
 
 func (s *ComparisonOperatorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitComparisonOperator(s)
+		c := grulev3.NewComparisonOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitComparisonOperator(c)
 	}
 }
 
@@ -2979,13 +3038,17 @@ func (s *AndLogicOperatorContext) ToStringTree(ruleNames []string, recog antlr.R
 
 func (s *AndLogicOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterAndLogicOperator(s)
+		c := grulev3.NewAndLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterAndLogicOperator(c)
 	}
 }
 
 func (s *AndLogicOperatorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitAndLogicOperator(s)
+		c := grulev3.NewAndLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitAndLogicOperator(c)
 	}
 }
 
@@ -3070,13 +3133,17 @@ func (s *OrLogicOperatorContext) ToStringTree(ruleNames []string, recog antlr.Re
 
 func (s *OrLogicOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterOrLogicOperator(s)
+		c := grulev3.NewOrLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterOrLogicOperator(c)
 	}
 }
 
 func (s *OrLogicOperatorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitOrLogicOperator(s)
+		c := grulev3.NewOrLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitOrLogicOperator(c)
 	}
 }
 
@@ -3231,13 +3298,17 @@ func (s *ExpressionAtomContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *ExpressionAtomContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterExpressionAtom(s)
+		c := grulev3.NewExpressionAtomContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterExpressionAtom(c)
 	}
 }
 
 func (s *ExpressionAtomContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitExpressionAtom(s)
+		c := grulev3.NewExpressionAtomContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitExpressionAtom(c)
 	}
 }
 
@@ -3461,13 +3532,17 @@ func (s *ConstantContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *ConstantContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterConstant(s)
+		c := grulev3.NewConstantContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterConstant(c)
 	}
 }
 
 func (s *ConstantContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitConstant(s)
+		c := grulev3.NewConstantContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitConstant(c)
 	}
 }
 
@@ -3616,13 +3691,17 @@ func (s *VariableContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *VariableContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterVariable(s)
+		c := grulev3.NewVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterVariable(c)
 	}
 }
 
 func (s *VariableContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitVariable(s)
+		c := grulev3.NewVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitVariable(c)
 	}
 }
 
@@ -3780,13 +3859,17 @@ func (s *ArrayMapSelectorContext) ToStringTree(ruleNames []string, recog antlr.R
 
 func (s *ArrayMapSelectorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterArrayMapSelector(s)
+		c := grulev3.NewArrayMapSelectorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterArrayMapSelector(c)
 	}
 }
 
 func (s *ArrayMapSelectorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitArrayMapSelector(s)
+		c := grulev3.NewArrayMapSelectorContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitArrayMapSelector(c)
 	}
 }
 
@@ -3883,13 +3966,17 @@ func (s *MemberVariableContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *MemberVariableContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterMemberVariable(s)
+		c := grulev3.NewMemberVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterMemberVariable(c)
 	}
 }
 
 func (s *MemberVariableContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitMemberVariable(s)
+		c := grulev3.NewMemberVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitMemberVariable(c)
 	}
 }
 
@@ -3996,13 +4083,17 @@ func (s *FunctionCallContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *FunctionCallContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterFunctionCall(s)
+		c := grulev3.NewFunctionCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterFunctionCall(c)
 	}
 }
 
 func (s *FunctionCallContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitFunctionCall(s)
+		c := grulev3.NewFunctionCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitFunctionCall(c)
 	}
 }
 
@@ -4117,13 +4208,17 @@ func (s *MethodCallContext) ToStringTree(ruleNames []string, recog antlr.Recogni
 
 func (s *MethodCallContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterMethodCall(s)
+		c := grulev3.NewMethodCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterMethodCall(c)
 	}
 }
 
 func (s *MethodCallContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitMethodCall(s)
+		c := grulev3.NewMethodCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitMethodCall(c)
 	}
 }
 
@@ -4231,13 +4326,17 @@ func (s *ArgumentListContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *ArgumentListContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterArgumentList(s)
+		c := grulev3.NewArgumentListContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterArgumentList(c)
 	}
 }
 
 func (s *ArgumentListContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitArgumentList(s)
+		c := grulev3.NewArgumentListContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitArgumentList(c)
 	}
 }
 
@@ -4357,13 +4456,17 @@ func (s *FloatLiteralContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *FloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterFloatLiteral(s)
+		c := grulev3.NewFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterFloatLiteral(c)
 	}
 }
 
 func (s *FloatLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitFloatLiteral(s)
+		c := grulev3.NewFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitFloatLiteral(c)
 	}
 }
 
@@ -4465,13 +4568,17 @@ func (s *DecimalFloatLiteralContext) ToStringTree(ruleNames []string, recog antl
 
 func (s *DecimalFloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterDecimalFloatLiteral(s)
+		c := grulev3.NewDecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterDecimalFloatLiteral(c)
 	}
 }
 
 func (s *DecimalFloatLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitDecimalFloatLiteral(s)
+		c := grulev3.NewDecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitDecimalFloatLiteral(c)
 	}
 }
 
@@ -4572,13 +4679,17 @@ func (s *HexadecimalFloatLiteralContext) ToStringTree(ruleNames []string, recog 
 
 func (s *HexadecimalFloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterHexadecimalFloatLiteral(s)
+		c := grulev3.NewHexadecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterHexadecimalFloatLiteral(c)
 	}
 }
 
 func (s *HexadecimalFloatLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitHexadecimalFloatLiteral(s)
+		c := grulev3.NewHexadecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitHexadecimalFloatLiteral(c)
 	}
 }
 
@@ -4701,13 +4812,17 @@ func (s *IntegerLiteralContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *IntegerLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterIntegerLiteral(s)
+		c := grulev3.NewIntegerLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterIntegerLiteral(c)
 	}
 }
 
 func (s *IntegerLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitIntegerLiteral(s)
+		c := grulev3.NewIntegerLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitIntegerLiteral(c)
 	}
 }
 
@@ -4816,13 +4931,17 @@ func (s *DecimalLiteralContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *DecimalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterDecimalLiteral(s)
+		c := grulev3.NewDecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterDecimalLiteral(c)
 	}
 }
 
 func (s *DecimalLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitDecimalLiteral(s)
+		c := grulev3.NewDecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitDecimalLiteral(c)
 	}
 }
 
@@ -4923,13 +5042,17 @@ func (s *HexadecimalLiteralContext) ToStringTree(ruleNames []string, recog antlr
 
 func (s *HexadecimalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterHexadecimalLiteral(s)
+		c := grulev3.NewHexadecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterHexadecimalLiteral(c)
 	}
 }
 
 func (s *HexadecimalLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitHexadecimalLiteral(s)
+		c := grulev3.NewHexadecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitHexadecimalLiteral(c)
 	}
 }
 
@@ -5030,13 +5153,17 @@ func (s *OctalLiteralContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *OctalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterOctalLiteral(s)
+		c := grulev3.NewOctalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterOctalLiteral(c)
 	}
 }
 
 func (s *OctalLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitOctalLiteral(s)
+		c := grulev3.NewOctalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitOctalLiteral(c)
 	}
 }
 
@@ -5137,13 +5264,17 @@ func (s *StringLiteralContext) ToStringTree(ruleNames []string, recog antlr.Reco
 
 func (s *StringLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterStringLiteral(s)
+		c := grulev3.NewStringLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterStringLiteral(c)
 	}
 }
 
 func (s *StringLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitStringLiteral(s)
+		c := grulev3.NewStringLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitStringLiteral(c)
 	}
 }
 
@@ -5240,13 +5371,17 @@ func (s *BooleanLiteralContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *BooleanLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.EnterBooleanLiteral(s)
+		c := grulev3.NewBooleanLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.EnterBooleanLiteral(c)
 	}
 }
 
 func (s *BooleanLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		listenerT.ExitBooleanLiteral(s)
+		c := grulev3.NewBooleanLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c.BaseParserRuleContext = s.BaseParserRuleContext
+		listenerT.ExitBooleanLiteral(c)
 	}
 }
 
