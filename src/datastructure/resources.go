@@ -38,6 +38,10 @@ func (r Resources) Modified(resource string) error {
 	return nil
 }
 
+func (r Resources) InputsNumber() int {
+	return 0
+}
+
 func (r Resources) IsValid() bool {
 	atts := misc.MakeStringSet("")
 	for a := range r.Bool {

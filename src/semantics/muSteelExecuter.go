@@ -3,6 +3,7 @@ package semantics
 import (
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"steel-lang/datastructure"
 	"steel-lang/misc"
@@ -10,11 +11,17 @@ import (
 	antlr_parser "steel-lang/parser/antlr"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
 )
+
+const inputsRate float64 = 5.0
+
+// milliseconds
+const inputsFlush = 100
 
 type State struct {
 	Memory datastructure.Resources
@@ -194,9 +201,31 @@ func (m *MuSteelExecuter) Input(actions string) error {
 
 func (m *MuSteelExecuter) receiveInputs() {
 	inputs := m.memory.Inputs()
+	queueSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
+
+	var queue string = ""
+	var l int = 0
+	var timeout <-chan time.Time = nil
 	for {
-		action := <-inputs
-		m.Input(action)
+		select {
+		case action := <-inputs:
+			queue += action
+			l++
+			if l == 1 {
+				timeout = time.After(inputsFlush * time.Millisecond)
+			}
+			if l < queueSize {
+				continue
+			}
+		case <-timeout:
+		}
+		err := m.Input(queue)
+		if err != nil {
+			panic(err)
+		}
+		queue = ""
+		l = 0
+		timeout = nil
 	}
 }
 

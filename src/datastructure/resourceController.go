@@ -11,6 +11,7 @@ type ResourceController interface {
 	GetTypes() map[string]string
 	GetResources() Resources
 	ResourceNames() misc.StringSet
+	InputsNumber() int
 	String() string
 	Clone() ResourceController
 }

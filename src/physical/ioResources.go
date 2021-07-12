@@ -51,6 +51,10 @@ func (i IOResources) Inputs() <-chan string {
 	return i.inputs
 }
 
+func (i IOResources) InputsNumber() int {
+	return len(i.buttons)
+}
+
 func (i IOResources) Modified(r string) error {
 	if !i.Has(r) {
 		return fmt.Errorf("no resource is named: %s", r)
