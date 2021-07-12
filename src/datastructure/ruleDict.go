@@ -1,9 +1,9 @@
 package datastructure
 
-type RuleDict map[string]*ParsedRule
+type RuleDict map[string]*Rule
 
 func MakeRuleDict() RuleDict {
-	return make(map[string]*ParsedRule)
+	return make(map[string]*Rule)
 }
 
 func (rules RuleDict) Contains(name string) bool {
@@ -12,7 +12,7 @@ func (rules RuleDict) Contains(name string) bool {
 }
 
 // Precondition: rules != nil
-func (rules RuleDict) Insert(rule *ParsedRule) {
+func (rules RuleDict) Insert(rule *Rule) {
 	rules[rule.Name] = rule
 }
 

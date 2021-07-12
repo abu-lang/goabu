@@ -25,7 +25,7 @@ func appendNonempty(pool [][]SemanticAction, actions []SemanticAction) [][]Seman
 	return append(pool, actions)
 }
 
-func evalActions(actions []datastructure.ParsedAction, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
+func evalActions(actions []datastructure.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
 	res := make([]SemanticAction, 0)
 	for _, action := range actions {
 		assignment := action.Expression
@@ -45,7 +45,7 @@ func evalActions(actions []datastructure.ParsedAction, dataContext ast.IDataCont
 	return res
 }
 
-func condEvalActions(exp *ast.Expression, actions []datastructure.ParsedAction, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
+func condEvalActions(exp *ast.Expression, actions []datastructure.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
 	exp = workingMemory.AddExpression(exp)
 	val, err := exp.Evaluate(dataContext, workingMemory)
 	if err != nil {

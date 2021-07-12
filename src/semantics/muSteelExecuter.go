@@ -340,7 +340,7 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global data
 }
 
 // Precondition: rule.Task.Mode != "for"
-func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) externalAction {
+func (m *MuSteelExecuter) preEvaluated(rule *datastructure.Rule) externalAction {
 	res := externalAction{
 		CondWorkingSet: misc.MakeStringSet(""),
 		Constants:      make(map[string]interface{}),
@@ -357,7 +357,7 @@ func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) externalA
 	return res
 }
 
-func (m *MuSteelExecuter) parseRule(r string) (*datastructure.ParsedRule, error) {
+func (m *MuSteelExecuter) parseRule(r string) (*datastructure.Rule, error) {
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
@@ -377,7 +377,7 @@ func (m *MuSteelExecuter) parseRule(r string) (*datastructure.ParsedRule, error)
 	return listener.Rule, nil
 }
 
-func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.ParsedAction, error) {
+func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.Action, error) {
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e

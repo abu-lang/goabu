@@ -15,7 +15,7 @@ import (
 type ecaruleParserListener struct {
 	*antlr.GruleV3ParserListener
 	types map[string]string
-	Rule  *datastructure.ParsedRule
+	Rule  *datastructure.Rule
 }
 
 func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, ecb func(e error)) *ecaruleParserListener {
@@ -28,7 +28,7 @@ func NewEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 	return &ecaruleParserListener{
 		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, ecb),
 		types:                 types,
-		Rule:                  &datastructure.ParsedRule{},
+		Rule:                  &datastructure.Rule{},
 	}
 }
 
@@ -98,7 +98,7 @@ func (l *ecaruleParserListener) ExitAct(ctx *antlr_parser.ActContext) {
 		}
 		assign.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(l.NewThisAssignVariable(dest, t))
 	}
-	action := datastructure.ParsedAction{
+	action := datastructure.Action{
 		Resource:   dest,
 		Expression: assign,
 	}

@@ -1,7 +1,9 @@
 package datastructure
 
 import (
-	"fmt"
+	"errors"
+
+	"github.com/hyperjumptech/grule-rule-engine/ast"
 )
 
 type Rule struct {
@@ -11,36 +13,33 @@ type Rule struct {
 	Task           Task
 }
 
+type Action struct {
+	Resource   string
+	Expression *ast.Assignment
+}
+
 type Task struct {
 	Mode      string
-	Condition string
+	Condition *ast.Expression
 	Actions   []Action
 }
 
-type Action struct {
-	Resource   string
-	Expression string
-}
-
-func (r Rule) String() string {
-	str := fmt.Sprintf("%s on %v\n", r.Name, r.Events)
-	if len(r.DefaultActions) > 0 {
-		str = str + "Default:\n"
-		for _, act := range r.DefaultActions {
-			str = str + act.String() + "\n"
-		}
+func (t *Task) AcceptExpression(exp *ast.Expression) error {
+	if t.Condition != nil {
+		return errors.New("task condition already assigned")
 	}
-	return str + r.Task.String()
-}
-
-func (t Task) String() string {
-	str := fmt.Sprintln(t.Mode + " " + t.Condition + " do:")
-	for _, act := range t.Actions {
-		str = str + act.String() + "\n"
-	}
-	return str
+	t.Condition = exp
+	return nil
 }
 
 func (a Action) String() string {
-	return "(" + a.Resource + "," + a.Expression + ")"
+	return a.Expression.GetGrlText()
+}
+
+func ActionsToStr(actions []Action) string {
+	res := ""
+	for _, action := range actions {
+		res += action.String() + "; "
+	}
+	return res
 }

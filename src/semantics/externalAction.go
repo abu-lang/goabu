@@ -14,7 +14,7 @@ import (
 
 type externalAction struct {
 	Condition      *ast.Expression
-	Actions        []datastructure.ParsedAction
+	Actions        []datastructure.Action
 	CondWorkingSet misc.StringSet
 	WorkingSets    []misc.StringSet
 	Constants      map[string]interface{}
@@ -27,8 +27,8 @@ func (a externalAction) String() string {
 	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), datastructure.ActionsToStr(a.Actions))
 }
 
-func (a externalAction) cullActions(localResources misc.StringSet) []datastructure.ParsedAction {
-	var res []datastructure.ParsedAction
+func (a externalAction) cullActions(localResources misc.StringSet) []datastructure.Action {
+	var res []datastructure.Action
 	for i, action := range a.Actions {
 		if localResources.ContainsSet(a.WorkingSets[i]) {
 			res = append(res, action)
@@ -37,13 +37,13 @@ func (a externalAction) cullActions(localResources misc.StringSet) []datastructu
 	return res
 }
 
-func (a externalAction) preEvaluatedActions(actions []datastructure.ParsedAction) []datastructure.ParsedAction {
+func (a externalAction) preEvaluatedActions(actions []datastructure.Action) []datastructure.Action {
 	if actions == nil {
 		return nil
 	}
-	res := make([]datastructure.ParsedAction, 0, len(actions))
+	res := make([]datastructure.Action, 0, len(actions))
 	for i, action := range actions {
-		res = append(res, datastructure.ParsedAction{
+		res = append(res, datastructure.Action{
 			Resource:   action.Resource,
 			Expression: a.preEvaluatedAssignment(action.Expression, a.WorkingSets[i]),
 		})
@@ -157,7 +157,7 @@ func (a externalAction) attachTypesConsts(types map[string]string) {
 	a.attachTypesConstsActions(a.Actions, types)
 }
 
-func (a externalAction) attachTypesConstsActions(actions []datastructure.ParsedAction, types map[string]string) {
+func (a externalAction) attachTypesConstsActions(actions []datastructure.Action, types map[string]string) {
 	for _, action := range actions {
 		a.attachTypesConstsAssignment(action.Expression, types)
 	}
