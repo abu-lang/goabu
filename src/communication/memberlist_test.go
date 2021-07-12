@@ -3,6 +3,7 @@ package communication
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"steel-lang/misc"
 	"testing"
@@ -15,6 +16,8 @@ const (
 	TestResCommit
 	TestResAbort
 )
+
+var deadlock = flag.Bool("deadlock", false, "execute TestDeadlockExample (probably blocking)")
 
 func TestMakeMemberlistAgent(t *testing.T) {
 	tests := []struct {
@@ -325,6 +328,75 @@ func TestSecondMid(t *testing.T) {
 	transactionHelper(t, makeAgents(resources, argsList), []byte("proident, sunt in"), TestResCommit)
 }
 
+func TestDeadlockExample(t *testing.T) {
+	if !*deadlock {
+		t.SkipNow()
+	}
+	resources := misc.MakeStringSet("pRoIdEnT789_")
+	payload := []byte("deadlock_example")
+
+	argsList := []struct {
+		port int
+		join []int
+		test int
+	}{
+		{port: 19100},
+		{port: 19101, join: []int{19100}},
+	}
+	agents := makeAgents(resources, argsList)
+	detectors := make([]<-chan bool, 0, len(agents))
+	for i, agt := range agents {
+		t.Run(fmt.Sprintf("ClusterMemberStart#%d", i+1), func(t *testing.T) {
+			start(t, agt, agt.listeningPort)
+		})
+		d := startPartecipantDetector(payload, agt)
+		detectors = append(detectors, d)
+	}
+	for i, agt := range agents {
+		t.Run(fmt.Sprintf("ClusterMemberJoin#%d", i+1), func(t *testing.T) {
+			err := agt.Join()
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+		})
+	}
+	for _, agt := range agents {
+		for agt.list.NumMembers() != len(agents) {
+		}
+	}
+	t.Log("Cluster is up, starting 2 transactions")
+	waitTran := func(agt *memberlistAgent) <-chan bool {
+		res := make(chan bool)
+		go func() {
+			err := agt.ForAll(payload)
+			res <- err == nil
+		}()
+		return res
+	}
+	t1 := waitTran(agents[0])
+	t2 := waitTran(agents[1])
+	for _, d := range detectors {
+		<-d
+	}
+	t.Log("deadlock probably reached: all members are partecipating in a transaction")
+	select {
+	case <-t1:
+		t1 = nil
+	case <-t2:
+		t2 = nil
+	}
+	// first transaction terminated: replace dead detectors
+	for _, agt := range agents {
+		ops, cmds := agt.ReceivedActions()
+		startMockCommit(payload, ops, cmds)
+	}
+	select {
+	case <-t1:
+	case <-t2:
+	}
+	fmt.Printf("%d agents: no deadlock happened\n", len(agents)) // gc
+}
+
 func start(t *testing.T, a *memberlistAgent, p int) {
 	t.Helper()
 	err := a.Start()
@@ -557,6 +629,8 @@ func startPartecipantDetector(payload []byte, a *memberlistAgent) <-chan bool {
 			}
 			commandsCh <- "interested"
 			status <- true
+			<-commandsCh
+			commandsCh <- "done"
 		case <-halted:
 			status <- false
 		}
