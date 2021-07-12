@@ -4,7 +4,6 @@ package main_test
 
 import (
 	"steel-lang/communication"
-	"steel-lang/datastructure"
 	"steel-lang/physical"
 	"steel-lang/semantics"
 	"testing"
@@ -21,25 +20,12 @@ func TestLed2Buttons(t *testing.T) {
 	memLed.AddLed("led", "12")
 	memButtons.AddButton("button1", "16")
 	memButtons.AddButton("button2", "18")
-	r1 := datastructure.Rule{
-		Name:           "R1",
-		Events:         []string{"button2"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `this.Bool["button1"] && this.Bool["button2"]`,
-			Actions: []datastructure.Action{
-				{Resource: "led",
-					Expression: `!ext.Void["led"]`,
-				},
-			},
-		},
-	}
+	r1 := "rule R1 on button2; for all this.button1 && this.button2 do led = !ext.led;"
 	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(memLed.ResourceNames(), 8100, nil))
 	if err != nil {
 		t.Fatal(err)
 	}
-	dummy, err := semantics.NewMuSteelExecuter(memButtons, []datastructure.Rule{r1}, communication.MakeMemberlistAgent(memButtons.ResourceNames(), 8101, []string{"127.0.0.1:8100"}))
+	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.MakeMemberlistAgent(memButtons.ResourceNames(), 8101, []string{"127.0.0.1:8100"}))
 	if err != nil {
 		t.Fatal(err)
 	}

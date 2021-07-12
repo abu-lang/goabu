@@ -30,7 +30,7 @@ func (r Resources) Start() error {
 	return nil
 }
 
-func (r Resources) Inputs() <-chan Action {
+func (r Resources) Inputs() <-chan string {
 	return nil
 }
 

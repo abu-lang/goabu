@@ -6,8 +6,12 @@ import (
 	"reflect"
 	"steel-lang/datastructure"
 	"steel-lang/misc"
+	"steel-lang/parser"
+	antlr_parser "steel-lang/parser/antlr"
+	"strconv"
 	"sync"
 
+	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
 )
@@ -22,38 +26,36 @@ type MuSteelExecuter struct {
 	types         map[string]string
 	pool          [][]SemanticAction
 	lockPool      sync.Mutex
-	parsedActions int
 	localLibrary  map[string]datastructure.RuleDict
 	globalLibrary map[string]datastructure.RuleDict
 
-	knowledgeLibrary *ast.KnowledgeLibrary
-	workingMemory    *ast.WorkingMemory
-	dataContext      ast.IDataContext
+	workingMemory *ast.WorkingMemory
+	dataContext   ast.IDataContext
 
 	agent ISteelAgent
 }
 
-func NewMuSteelExecuter(mem datastructure.ResourceController, rules []datastructure.Rule, agt ISteelAgent) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
-		memory:           mem.Clone(),
-		pool:             make([][]SemanticAction, 0),
-		parsedActions:    0,
-		localLibrary:     make(map[string]datastructure.RuleDict),
-		globalLibrary:    make(map[string]datastructure.RuleDict),
-		knowledgeLibrary: ast.NewKnowledgeLibrary(),
-		dataContext:      ast.NewDataContext(),
-		agent:            agt,
+		memory:        mem.Clone(),
+		pool:          make([][]SemanticAction, 0),
+		localLibrary:  make(map[string]datastructure.RuleDict),
+		globalLibrary: make(map[string]datastructure.RuleDict),
+		agent:         agt,
 	}
 	if !res.memory.IsValid() {
 		return nil, errors.New("invalid Resources argument")
 	}
 	res.types = res.memory.GetTypes()
-	resources := res.memory.GetResources()
-	err := res.dataContext.Add("this", &(resources))
+	var err error
+	res.dataContext, res.workingMemory, err = res.NewEmptyGruleStructures("this")
 	if err != nil {
 		return nil, err
 	}
-	res.AddRules(rules)
+	err = res.AddRules(rules)
+	if err != nil {
+		return nil, err
+	}
 	err = mem.Start()
 	if err != nil {
 		return nil, err
@@ -110,38 +112,60 @@ func (m *MuSteelExecuter) IsStable() bool {
 	return len(m.pool) == 0
 }
 
-func (m *MuSteelExecuter) AddRule(rule datastructure.Rule) {
-	parsed := datastructure.NewParsedRule(rule, m.knowledgeLibrary, m.types)
-	m.updateWorkingMemory()
+func (m *MuSteelExecuter) HasRule(name string) bool {
+	for _, d := range m.localLibrary {
+		if d.Contains(name) {
+			return true
+		}
+	}
+	for _, d := range m.globalLibrary {
+		if d.Contains(name) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *MuSteelExecuter) AddRule(r string) error {
+	rule, err := m.parseRule(r)
+	if err != nil {
+		return err
+	}
+	if m.HasRule(rule.Name) {
+		return fmt.Errorf("there is already a rule named %s", rule.Name)
+	}
+
 	library := m.localLibrary
-	if parsed.Task.Mode != "for" {
+	if rule.Task.Mode != "for" {
 		library = m.globalLibrary
 	}
-	for _, evt := range parsed.Events {
+	for _, evt := range rule.Events {
 		if library[evt] == nil {
 			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
 			library[evt] = dict
 		}
-		library[evt].Insert(parsed)
+		library[evt].Insert(rule)
 	}
+	return nil
 }
 
-func (m *MuSteelExecuter) AddRules(rules []datastructure.Rule) {
-	for _, rule := range rules {
-		m.AddRule(rule)
-	}
+func (m *MuSteelExecuter) AddRules(rules []string) error {
+	return addList(rules, m.AddRule)
 }
 
-func (m *MuSteelExecuter) AddActions(actions []datastructure.Action) {
+func (m *MuSteelExecuter) AddActions(actions string) error {
+	parsed, err := m.parseActions(actions)
+	if err != nil {
+		return err
+	}
 	m.lockPool.Lock()
-	m.pool = append(m.pool, evalActions(m.parseActions(actions), m.dataContext, m.workingMemory))
+	m.pool = append(m.pool, evalActions(parsed, m.dataContext, m.workingMemory))
 	m.lockPool.Unlock()
+	return nil
 }
 
-func (m *MuSteelExecuter) AddPool(pl [][]datastructure.Action) {
-	for _, actions := range pl {
-		m.AddActions(actions)
-	}
+func (m *MuSteelExecuter) AddPool(pl []string) error {
+	return addList(pl, m.AddActions)
 }
 
 func (m *MuSteelExecuter) Exec() {
@@ -157,17 +181,22 @@ func (m *MuSteelExecuter) Exec() {
 	m.execActions(actions)
 }
 
-func (m *MuSteelExecuter) Input(actions []datastructure.Action) {
-	sActions := evalActions(m.parseActions(actions), m.dataContext, m.workingMemory)
+func (m *MuSteelExecuter) Input(actions string) error {
+	parsed, err := m.parseActions(actions)
+	if err != nil {
+		return err
+	}
+	sActions := evalActions(parsed, m.dataContext, m.workingMemory)
 	fmt.Print("Input: ")
 	m.execActions(sActions)
+	return nil
 }
 
 func (m *MuSteelExecuter) receiveInputs() {
 	inputs := m.memory.Inputs()
 	for {
 		action := <-inputs
-		m.Input([]datastructure.Action{action})
+		m.Input(action)
 	}
 }
 
@@ -186,7 +215,10 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 		var sActions [][]SemanticAction
 		m.lockPool.Lock()
 		localResources := m.memory.ResourceNames()
-		context, workMem := m.NewEmptyGruleStructures("ext")
+		context, workMem, err := m.NewEmptyGruleStructures("ext")
+		if err != nil {
+			panic(err)
+		}
 		for _, eAction := range eActions {
 			if localResources.ContainsSet(eAction.CondWorkingSet) {
 				actions := eAction.cullActions(localResources)
@@ -220,16 +252,11 @@ func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
 
 func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	m.lockPool.Lock()
-	dataContext := m.dataContext
-	workingMemory := m.workingMemory
-	if workingMemory == nil { // nil workingMemory => m does not have rules nor parsed actions
-		dataContext, workingMemory = m.NewEmptyGruleStructures("this")
-	}
 	var Xset []SemanticAction
 	for _, action := range actions {
 		variable := action.Variable
-		variable = workingMemory.AddVariable(variable)
-		currentVal, err := variable.Evaluate(dataContext, workingMemory)
+		variable = m.workingMemory.AddVariable(variable)
+		currentVal, err := variable.Evaluate(m.dataContext, m.workingMemory)
 		if err != nil {
 			panic(err)
 		}
@@ -251,7 +278,7 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 			}
 		}
 		if diff {
-			err := variable.Assign(action.Value, dataContext, workingMemory)
+			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
 			if err != nil {
 				panic(err)
 			}
@@ -330,27 +357,53 @@ func (m *MuSteelExecuter) preEvaluated(rule *datastructure.ParsedRule) externalA
 	return res
 }
 
-func (m *MuSteelExecuter) updateWorkingMemory() {
-	knowledgeBase := m.knowledgeLibrary.NewKnowledgeBaseInstance("dummy", "0.0.0")
-	if knowledgeBase == nil {
-		return
+func (m *MuSteelExecuter) parseRule(r string) (*datastructure.ParsedRule, error) {
+	var err error
+	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
+		err = e
+	})
+
+	ts := parser.TokenStream(r)
+	p := antlr_parser.NewEcaruleParser(ts)
+	p.BuildParseTrees = true
+	antlr.ParseTreeWalkerDefault.Walk(listener, p.Prule())
+
+	// update WorkingMemory
+	m.workingMemory.IndexVariables()
+
+	if err != nil {
+		return nil, err
 	}
-	defunc := &ast.BuiltInFunctions{
-		Knowledge:     knowledgeBase,
-		WorkingMemory: knowledgeBase.WorkingMemory,
-		DataContext:   m.dataContext,
-	}
-	m.dataContext.Add("DEFUNC", defunc)
-	knowledgeBase.InitializeContext(m.dataContext)
-	m.workingMemory = knowledgeBase.WorkingMemory
+	return listener.Rule, nil
 }
 
-func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory) {
+func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.ParsedAction, error) {
+	var err error
+	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
+		err = e
+	})
+
+	ts := parser.TokenStream(actions)
+	p := antlr_parser.NewEcaruleParser(ts)
+	p.BuildParseTrees = true
+
+	antlr.ParseTreeWalkerDefault.Walk(listener, p.Actslist())
+
+	// update WorkingMemory
+	m.workingMemory.IndexVariables()
+
+	if err != nil {
+		return nil, err
+	}
+	return listener.Rule.DefaultActions, nil
+}
+
+func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
 	dataContext := ast.NewDataContext()
 	resources := m.memory.GetResources()
 	err := dataContext.Add(name, &(resources))
 	if err != nil {
-		panic(err)
+		return dataContext, nil, err
 	}
 	kbName := "dummy_" + name
 	version := "0.0.0"
@@ -365,9 +418,12 @@ func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext
 		WorkingMemory: knowledgeBase.WorkingMemory,
 		DataContext:   dataContext,
 	}
-	dataContext.Add("DEFUNC", defunc)
+	err = dataContext.Add("DEFUNC", defunc)
+	if err != nil {
+		return dataContext, nil, err
+	}
 	knowledgeBase.InitializeContext(dataContext)
-	return dataContext, knowledgeBase.WorkingMemory
+	return dataContext, knowledgeBase.WorkingMemory, nil
 }
 
 func (m *MuSteelExecuter) PrintState() string {
@@ -389,4 +445,22 @@ func (m *MuSteelExecuter) printPool() string {
 		}
 		return str + "\n}"
 	}
+}
+
+func addList(strs []string, add func(string) error) error {
+	var fstErr error
+	failed := ""
+	for i, s := range strs {
+		err := add(s)
+		if err != nil {
+			failed += strconv.Itoa(i) + ", "
+			if fstErr == nil {
+				fstErr = err
+			}
+		}
+	}
+	if fstErr != nil {
+		return fmt.Errorf("could not add elements with indexes %s as %s", failed[:len(failed)-2], fstErr.Error())
+	}
+	return nil
 }

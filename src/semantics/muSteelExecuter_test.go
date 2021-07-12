@@ -36,38 +36,15 @@ func TestNewMuSteelExecuter(t *testing.T) {
 }
 
 func TestAddRules(t *testing.T) {
-	local := datastructure.Rule{
-		Name:           "local",
-		Events:         []string{"trigger", "executed"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for",
-			Condition: `!this.Bool["executed"]`,
-			Actions: []datastructure.Action{
-				{Resource: "trigger",
-					Expression: `"activated"`,
-				},
-			},
-		},
-	}
-	global := datastructure.Rule{
-		Name:   "global",
-		Events: []string{"trigger"},
-		DefaultActions: []datastructure.Action{
-			{Resource: "executed",
-				Expression: `this.Bool["executed"] && false`,
-			},
-		},
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `this.Text["trigger"] != ext.Text["trigger"] && this.Text["trigger"] == "activated"`,
-			Actions: []datastructure.Action{
-				{Resource: "trigger",
-					Expression: `this.Text["trigger"]`,
-				},
-			},
-		},
-	}
+	local := `rule local on trigger; executed;
+		for !this.executed do
+		trigger = "activated";`
+
+	global := `rule global on trigger;
+		default executed = this.executed && false;
+		for all this.trigger != ext.trigger && this.trigger == "activated"
+		do trigger = this.trigger;`
+
 	memory := datastructure.MakeResources()
 	memory.Bool["executed"] = false
 	memory.Text["trigger"] = "activable"
@@ -75,7 +52,7 @@ func TestAddRules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.AddRules([]datastructure.Rule{local, global})
+	e.AddRules([]string{local, global})
 	if len(e.localLibrary) != 2 {
 		t.Error("localLibrary should have 2 dicts")
 	}
@@ -112,10 +89,10 @@ func TestAddPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.AddPool([][]datastructure.Action{
-		{{Resource: "elit", Expression: `2.71828`}},
-		{{Resource: "consectetur", Expression: `this.Integer["consectetur"]*7`}, {Resource: "adipiscing", Expression: `""`}},
-		{{Resource: "tempor", Expression: `MakeTime(2021, 6, 5, 0, 0, 0)`}},
+	e.AddPool([]string{
+		"elit = 2.71828;",
+		`consectetur = this.consectetur * 7; adipiscing = "";`,
+		`tempor = MakeTime(2021, 6, 5, 0, 0, 0) ;`,
 	})
 	poolLength := len(e.pool)
 	for i := 0; i < 3; i++ {
@@ -144,54 +121,20 @@ func TestAddPool(t *testing.T) {
 }
 
 func TestLocal(t *testing.T) {
-	startCooling := datastructure.Rule{
-		Name:           "startCooling",
-		Events:         []string{"temperature"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for",
-			Condition: `"hihj".Replace("hj", "gh") == this.Text["temperature"]`,
-			Actions: []datastructure.Action{
-				{Resource: "cooling",
-					Expression: `true`,
-				},
-				{Resource: "counter",
-					Expression: `3 + 2 * 1 - 1 * 3`,
-				},
-			},
-		},
-	}
-	counter := datastructure.Rule{
-		Name:           "counter",
-		Events:         []string{"counter", "cooling"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for",
-			Condition: `this.Integer["counter"] > 0 && this.Bool["cooling"]`,
-			Actions: []datastructure.Action{
-				{Resource: "counter",
-					Expression: `this.Integer["counter"] - 1`,
-				},
-			},
-		},
-	}
-	stopCooling := datastructure.Rule{
-		Name:           "stopCooling",
-		Events:         []string{"counter"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for",
-			Condition: `this.Integer["counter"] == 0 && this.Bool["cooling"]`,
-			Actions: []datastructure.Action{
-				{Resource: "cooling",
-					Expression: `!this.Bool["cooling"]`,
-				},
-				{Resource: "temperature",
-					Expression: `"NORMAL".ToLower()`,
-				},
-			},
-		},
-	}
+	startCooling := `rule startCooling on temperature;
+		for "hihj".Replace("hj", "gh") == this.temperature
+		do  cooling = true;
+			counter = 3 + 2 * 1 - 1 * 3;`
+
+	counter := `rule counter on counter; cooling;
+		for this.counter > 0 && this.cooling
+		do counter = this.counter - 1;`
+
+	stopCooling := `rule stopCooling on counter;
+		for this.counter == 0 && this.cooling
+		do  cooling = !this.cooling;
+			temperature = "NORMAL".ToLower();`
+
 	memory := datastructure.MakeResources()
 	memory.Integer["counter"] = 42
 	memory.Bool["cooling"] = false
@@ -204,8 +147,8 @@ func TestLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.AddRules([]datastructure.Rule{startCooling, counter, stopCooling})
-	e.AddActions([]datastructure.Action{{Resource: "temperature", Expression: `"high"`}})
+	e.AddRules([]string{startCooling, counter, stopCooling})
+	e.AddActions(`temperature = "high";`)
 	execs := 0
 	for !e.IsStable() {
 		if len(e.pool) != 1 {
@@ -230,46 +173,18 @@ func TestLocal(t *testing.T) {
 }
 
 func TestReceiveExternalActions(t *testing.T) {
-	r1 := datastructure.Rule{
-		Name:           "r1",
-		Events:         []string{"elit"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `ext.Void["elit"] > 0 || ext.Void["labore"]`,
-			Actions: []datastructure.Action{
-				{Resource: "elit",
-					Expression: `0`,
-				},
-				{Resource: "consectetur",
-					Expression: `"-10"`,
-				},
-			},
-		},
-	}
-	r2 := datastructure.Rule{
-		Name:           "r2",
-		Events:         []string{"consectetur"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `ext.Void["consectetur"] < 0`,
-			Actions: []datastructure.Action{
-				{Resource: "elit",
-					Expression: `ext.Void["elit"] * 2 + 3.14`,
-				},
-				{Resource: "adipiscing",
-					Expression: `ext.Void["incididunt"]`,
-				},
-				{Resource: "tempor",
-					Expression: `MakeTime(2000, 1, 1, 0, 0, 0)`,
-				},
-				{Resource: "labore",
-					Expression: `false`,
-				},
-			},
-		},
-	}
+	r1 := `rule r1 on elit;
+		for all ext.elit > 0 || ext.labore
+		do  elit = 0;
+			consectetur = "-10";`
+
+	r2 := `rule r2 on consectetur;
+		for all ext.consectetur < 0
+		do  elit = ext.elit * 2 + 3.14;
+			adipiscing = ext.incididunt;
+			tempor = MakeTime(2000, 1, 1, 0, 0, 0);
+			labore = false ;`
+
 	memory := datastructure.MakeResources()
 	memory.Float["elit"] = -100.0
 	memory.Integer["consectetur"] = 30
@@ -291,8 +206,8 @@ func TestReceiveExternalActions(t *testing.T) {
 	delete(mem.Text, "incididunt")
 	e.types = e.memory.GetTypes()
 
-	e.AddActions([]datastructure.Action{{Resource: "elit", Expression: `100.0`}})
-	e.AddActions([]datastructure.Action{{Resource: "consectetur", Expression: `-2`}})
+	e.AddActions("elit = 100.0;")
+	e.AddActions("consectetur = -2;")
 	execs := 0
 	for !e.IsStable() {
 		e.Exec()
@@ -324,41 +239,11 @@ func TestForall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := datastructure.Rule{
-		Name:   "r1",
-		Events: []string{"start"},
-		DefaultActions: []datastructure.Action{
-			{Resource: "magna",
-				Expression: `123 + this.Integer["magna"]`,
-			},
-		},
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `ext.Void["aliqua"]`,
-			Actions: []datastructure.Action{
-				{Resource: "magna",
-					Expression: `-123`,
-				},
-			},
-		},
-	}
-	r2 := datastructure.Rule{
-		Name:           "r2",
-		Events:         []string{"magna"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `this.Integer["magna"] >= ext.Void["magna"]`,
-			Actions: []datastructure.Action{
-				{Resource: "magna",
-					Expression: `2 * this.Integer["magna"] + ext.Void["magna"]`,
-				},
-			},
-		},
-	}
+	r1 := "rule r1 on start; default magna = 123 + this.magna; for all ext.aliqua do magna = -123;"
+	r2 := "rule r2 on magna; for all this.magna >= ext.magna do magna = 2 * this.magna + ext.magna;"
 	e.AddRule(r1)
 	e.AddRule(r2)
-	e.Input([]datastructure.Action{{Resource: "start", Expression: "true"}})
+	e.Input("start = true;")
 	magnas := []int64{123, 369, 1107}
 	mem := e.memory.GetResources()
 	for i := 0; i < 3; i++ {

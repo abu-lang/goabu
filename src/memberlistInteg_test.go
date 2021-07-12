@@ -16,41 +16,11 @@ func TestSingleNode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := datastructure.Rule{
-		Name:   "r1",
-		Events: []string{"start"},
-		DefaultActions: []datastructure.Action{
-			{Resource: "magna",
-				Expression: `123 + this.Integer["magna"]`,
-			},
-		},
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `ext.Void["aliqua"]`,
-			Actions: []datastructure.Action{
-				{Resource: "magna",
-					Expression: `-123`,
-				},
-			},
-		},
-	}
-	r2 := datastructure.Rule{
-		Name:           "r2",
-		Events:         []string{"magna"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `this.Integer["magna"] >= ext.Void["magna"]`,
-			Actions: []datastructure.Action{
-				{Resource: "magna",
-					Expression: `2 * this.Integer["magna"] + ext.Void["magna"]`,
-				},
-			},
-		},
-	}
+	r1 := "rule r1 on start; default magna = 123 + this.magna; for all ext.aliqua do magna = -123;"
+	r2 := "rule r2 on magna; for all this.magna >= ext.magna do magna = 2 * this.magna + ext.magna;"
 	e.AddRule(r1)
 	e.AddRule(r2)
-	e.Input([]datastructure.Action{{Resource: "start", Expression: "true"}})
+	e.Input("start = true;")
 	for i := 0; i < 3; i++ {
 		e.Exec()
 	}
@@ -73,21 +43,8 @@ func TestSingleNode(t *testing.T) {
 func TestTwoNodes(t *testing.T) {
 	memory := datastructure.MakeResources()
 	memory.Integer["lorem"] = 5
-	r := datastructure.Rule{
-		Name:           "r",
-		Events:         []string{"lorem"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `this.Integer["lorem"] > ext.Void["lorem"]`,
-			Actions: []datastructure.Action{
-				{Resource: "lorem",
-					Expression: `this.Integer["lorem"]`,
-				},
-			},
-		},
-	}
-	rules := []datastructure.Rule{r}
+	r := "rule r on lorem; for all this.lorem > ext.lorem do lorem = this.lorem; "
+	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
 		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9001, nil))
 		if err != nil {
@@ -111,7 +68,7 @@ func TestTwoNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		e2.Input([]datastructure.Action{{Resource: "lorem", Expression: "10"}})
+		e2.Input("lorem = 10; ")
 		if !e2.IsStable() {
 			t.Error("should be stable")
 		}
@@ -126,37 +83,9 @@ func TestThreeNodes(t *testing.T) {
 	memory := datastructure.MakeResources()
 	memory.Float["ipsum"] = 3.0
 	memory.Bool["involved"] = false
-	r1 := datastructure.Rule{
-		Name:   "r1",
-		Events: []string{"ipsum"},
-		DefaultActions: []datastructure.Action{
-			{Resource: "involved", Expression: "false"},
-		},
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `this.Float["ipsum"] != ext.Void["ipsum"]`,
-			Actions: []datastructure.Action{
-				{Resource: "involved",
-					Expression: `true`,
-				},
-			},
-		},
-	}
-	r2 := datastructure.Rule{
-		Name:           "r2",
-		Events:         []string{"involved"},
-		DefaultActions: nil,
-		Task: datastructure.Task{
-			Mode:      "for all",
-			Condition: `ext.Void["involved"] && this.Float["ipsum"] > ext.Void["ipsum"]`,
-			Actions: []datastructure.Action{
-				{Resource: "ipsum",
-					Expression: `this.Float["ipsum"]`,
-				},
-			},
-		},
-	}
-	rules := []datastructure.Rule{r1, r2}
+	r1 := "rule r1 on ipsum; default involved = false; for all this.ipsum != ext.ipsum do involved = true ; "
+	r2 := "rule r2 on involved; for all ext.involved && this.ipsum > ext.ipsum do ipsum = this.ipsum;"
+	rules := []string{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
 		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10001, nil))
 		if err != nil {
@@ -200,7 +129,7 @@ func TestThreeNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		e3.Input([]datastructure.Action{{Resource: "ipsum", Expression: "6.0"}})
+		e3.Input("ipsum = 6.0;")
 		e3.Exec()
 		for e3.IsStable() {
 		}

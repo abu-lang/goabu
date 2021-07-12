@@ -4,7 +4,7 @@ import "steel-lang/misc"
 
 type ResourceController interface {
 	Start() error
-	Inputs() <-chan Action
+	Inputs() <-chan string
 	Modified(string) error
 	IsValid() bool
 	Has(string) bool

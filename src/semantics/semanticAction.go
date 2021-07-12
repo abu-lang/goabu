@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"steel-lang/datastructure"
-	"strconv"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 )
@@ -24,21 +23,6 @@ func appendNonempty(pool [][]SemanticAction, actions []SemanticAction) [][]Seman
 		return pool
 	}
 	return append(pool, actions)
-}
-
-func (m *MuSteelExecuter) parseAction(action datastructure.Action, name string) datastructure.ParsedAction {
-	parsed := datastructure.NewParsedAction(action, name, m.knowledgeLibrary, m.types, false)
-	m.updateWorkingMemory()
-	return parsed
-}
-
-func (m *MuSteelExecuter) parseActions(actions []datastructure.Action) []datastructure.ParsedAction {
-	res := make([]datastructure.ParsedAction, 0)
-	for _, act := range actions {
-		res = append(res, m.parseAction(act, "semaction"+strconv.Itoa(m.parsedActions)))
-		m.parsedActions++
-	}
-	return res
 }
 
 func evalActions(actions []datastructure.ParsedAction, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {

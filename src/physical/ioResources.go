@@ -15,7 +15,7 @@ const (
 type IOResources struct {
 	datastructure.Resources
 	adaptor IOAdaptor
-	inputs  chan datastructure.Action
+	inputs  chan string
 	devices map[string]int
 	ledPins map[string]string
 	buttons map[string]*gpio.ButtonDriver
@@ -25,7 +25,7 @@ func MakeIOResources(a IOAdaptor) IOResources {
 	return IOResources{
 		Resources: datastructure.MakeResources(),
 		adaptor:   a,
-		inputs:    make(chan datastructure.Action),
+		inputs:    make(chan string),
 		devices:   make(map[string]int),
 		ledPins:   make(map[string]string),
 		buttons:   make(map[string]*gpio.ButtonDriver),
@@ -47,7 +47,7 @@ func (i IOResources) Start() error {
 	return nil
 }
 
-func (i IOResources) Inputs() <-chan datastructure.Action {
+func (i IOResources) Inputs() <-chan string {
 	return i.inputs
 }
 
@@ -110,21 +110,23 @@ func (i IOResources) AddButton(r string, pin string) error {
 	return nil
 }
 
-func getButtonInput(name string, button *gpio.ButtonDriver, in chan<- datastructure.Action) {
+func getButtonInput(name string, button *gpio.ButtonDriver, in chan<- string) {
 	events := button.Subscribe()
 	status := false
+	push := name + " = true;"
+	release := name + " = false;"
 	event := <-events
 	for {
-		var inputs chan<- datastructure.Action = nil
-		var action datastructure.Action
+		var inputs chan<- string = nil
+		var action string
 		switch event.Name {
 		case gpio.ButtonPush:
-			action = datastructure.Action{Resource: name, Expression: "true"}
+			action = push
 			if !status {
 				inputs = in
 			}
 		case gpio.ButtonRelease:
-			action = datastructure.Action{Resource: name, Expression: "false"}
+			action = release
 			if status {
 				inputs = in
 			}
