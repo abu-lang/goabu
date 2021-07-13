@@ -46,6 +46,49 @@ func TestAddLed(t *testing.T) {
 	}
 }
 
+func TestAddMotor(t *testing.T) {
+	resources := MakeIOResources(raspi.NewAdaptor())
+	tests := []struct {
+		index int
+		motor string
+		pin1  string
+		pin2  string
+		good  bool
+	}{
+		//  {_, led, pin, good},
+		{1, "_sint", "13", "23", true},
+		{2, "123occaecat_", "11", "3", true},
+		{3, "_sint", "29", "15", false},
+		{4, "_amet_", "22", "26", true},
+		{5, "123occaecat_", "24", "31", false},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("TestAddMotor#%d", test.index), func(t *testing.T) {
+			err := resources.AddMotor(test.motor, test.pin1, test.pin2)
+			if err != nil {
+				if test.good {
+					t.Error(err.Error())
+				}
+				return
+			}
+			if !test.good {
+				t.Error("AddMotor should return an error")
+			}
+			checkAdded(t, resources, test.motor, devMotor)
+			m, present := resources.motors[test.motor]
+			if !present {
+				t.Errorf("%s: missing motor struct", test.motor)
+			}
+			if m.forwardPin != test.pin1 {
+				t.Errorf("%s: forwardPin should be %s", test.motor, test.pin1)
+			}
+			if m.backwardPin != test.pin2 {
+				t.Errorf("%s: backwardPin should be %s", test.motor, test.pin2)
+			}
+		})
+	}
+}
+
 func TestAddButton(t *testing.T) {
 	resources := MakeIOResources(raspi.NewAdaptor())
 	tests := []struct {
@@ -91,6 +134,8 @@ func checkAdded(t *testing.T, resources IOResources, r string, tp int) {
 	switch tp {
 	case devLed:
 		devStr = "devLed"
+	case devMotor:
+		devStr = "devMotor"
 	case devButton:
 		devStr = "devButton"
 	}

@@ -9,8 +9,15 @@ import (
 
 const (
 	devLed = iota
+	devMotor
 	devButton
 )
+
+type motor struct {
+	writer      gpio.PwmWriter
+	forwardPin  string
+	backwardPin string
+}
 
 type IOResources struct {
 	datastructure.Resources
@@ -19,6 +26,7 @@ type IOResources struct {
 	devices map[string]int
 	ledPins map[string]string
 	buttons map[string]*gpio.ButtonDriver
+	motors  map[string]motor
 }
 
 func MakeIOResources(a IOAdaptor) IOResources {
@@ -29,6 +37,7 @@ func MakeIOResources(a IOAdaptor) IOResources {
 		devices:   make(map[string]int),
 		ledPins:   make(map[string]string),
 		buttons:   make(map[string]*gpio.ButtonDriver),
+		motors:    make(map[string]motor),
 	}
 }
 
@@ -79,6 +88,16 @@ func (i IOResources) Modified(r string) error {
 				return err
 			}
 		}
+	case devMotor:
+		speed := i.Integer[r]
+		forward := speed >= 0
+		if !forward {
+			speed = speed * -1
+		}
+		if speed > 255 {
+			speed = 255
+		}
+		return i.motors[r].set(byte(speed), forward)
 	}
 	return nil
 }
@@ -91,6 +110,7 @@ func (i IOResources) Clone() datastructure.ResourceController {
 		devices:   i.devices,
 		ledPins:   i.ledPins,
 		buttons:   i.buttons,
+		motors:    i.motors,
 	}
 }
 
@@ -101,6 +121,20 @@ func (i IOResources) AddLed(r string, pin string) error {
 	i.Bool[r] = false
 	i.devices[r] = devLed
 	i.ledPins[r] = pin
+	return nil
+}
+
+func (i IOResources) AddMotor(r string, forwardPin string, backwardPin string) error {
+	if i.Has(r) {
+		return fmt.Errorf("there is already a resource named: %s", r)
+	}
+	i.Integer[r] = 0
+	i.devices[r] = devMotor
+	i.motors[r] = motor{
+		writer:      i.adaptor,
+		forwardPin:  forwardPin,
+		backwardPin: backwardPin,
+	}
 	return nil
 }
 
@@ -142,5 +176,21 @@ func getButtonInput(name string, button *gpio.ButtonDriver, in chan<- string) {
 			status = !status
 		case event = <-events:
 		}
+	}
+}
+
+func (m motor) set(speed byte, forward bool) error {
+	err := m.writer.PwmWrite(m.forwardPin, 0)
+	if err != nil {
+		return err
+	}
+	err = m.writer.PwmWrite(m.backwardPin, 0)
+	if err != nil || speed == 0 {
+		return err
+	}
+	if forward {
+		return m.writer.PwmWrite(m.forwardPin, speed)
+	} else {
+		return m.writer.PwmWrite(m.backwardPin, speed)
 	}
 }

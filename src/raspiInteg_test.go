@@ -41,3 +41,24 @@ func TestLed2Buttons(t *testing.T) {
 	}
 	dummy.IsStable()
 }
+
+func TestMotor(t *testing.T) {
+	var a physical.IOAdaptor = raspi.NewAdaptor()
+	mem := physical.MakeIOResources(a)
+	mem.AddMotor("motor", "13", "11")
+	r1 := "rule R1 on motor; for this.motor > 0 && this.motor < 255 do motor = this.motor + 60;"
+	r2 := "rule R2 on motor; for this.motor >= 255 do motor = 0;"
+	e, err := semantics.NewMuSteelExecuter(mem, []string{r1, r2}, semantics.MakeMockAgent())
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.AddActions("motor = -150;")
+	e.AddActions("motor = 150;")
+	for {
+		e.Exec()
+		if e.GetState().Memory.Integer["motor"] == 0 {
+			break
+		}
+		time.Sleep(8 * time.Second)
+	}
+}

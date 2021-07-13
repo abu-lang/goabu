@@ -9,4 +9,5 @@ type IOAdaptor interface {
 	gobot.Adaptor
 	gpio.DigitalReader
 	gpio.DigitalWriter
+	gpio.PwmWriter
 }
