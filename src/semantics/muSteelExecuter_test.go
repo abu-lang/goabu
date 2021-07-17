@@ -89,7 +89,7 @@ func TestAddPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.AddPool([]string{
+	e.addPool([]string{
 		"elit = 2.71828;",
 		`consectetur = this.consectetur * 7; adipiscing = "";`,
 		`tempor = MakeTime(2021, 6, 5, 0, 0, 0) ;`,
@@ -148,7 +148,7 @@ func TestLocal(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	e.AddRules([]string{startCooling, counter, stopCooling})
-	e.AddActions(`temperature = "high";`)
+	e.addActions(`temperature = "high";`)
 	execs := 0
 	for !e.IsStable() {
 		if len(e.pool) != 1 {
@@ -206,8 +206,8 @@ func TestReceiveExternalActions(t *testing.T) {
 	delete(mem.Text, "incididunt")
 	e.types = e.memory.GetTypes()
 
-	e.AddActions("elit = 100.0;")
-	e.AddActions("consectetur = -2;")
+	e.addActions("elit = 100.0;")
+	e.addActions("consectetur = -2;")
 	execs := 0
 	for !e.IsStable() {
 		e.Exec()

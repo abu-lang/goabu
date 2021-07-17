@@ -52,13 +52,14 @@ func TestMotor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.AddActions("motor = -150;")
-	e.AddActions("motor = 150;")
+	e.Input("motor = -150;")
+	time.Sleep(8 * time.Second)
+	e.Input("motor = 150;")
 	for {
+		time.Sleep(8 * time.Second)
 		e.Exec()
 		if e.GetState().Memory.Integer["motor"] == 0 {
 			break
 		}
-		time.Sleep(8 * time.Second)
 	}
 }

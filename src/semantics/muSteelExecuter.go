@@ -160,21 +160,6 @@ func (m *MuSteelExecuter) AddRules(rules []string) error {
 	return addList(rules, m.AddRule)
 }
 
-func (m *MuSteelExecuter) AddActions(actions string) error {
-	parsed, err := m.parseActions(actions)
-	if err != nil {
-		return err
-	}
-	m.lockPool.Lock()
-	m.pool = append(m.pool, evalActions(parsed, m.dataContext, m.workingMemory))
-	m.lockPool.Unlock()
-	return nil
-}
-
-func (m *MuSteelExecuter) AddPool(pl []string) error {
-	return addList(pl, m.AddActions)
-}
-
 func (m *MuSteelExecuter) Exec() {
 	m.lockPool.Lock()
 	if len(m.pool) == 0 {
@@ -272,6 +257,21 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 		}
 		m.lockPool.Unlock()
 	}
+}
+
+func (m *MuSteelExecuter) addActions(actions string) error {
+	parsed, err := m.parseActions(actions)
+	if err != nil {
+		return err
+	}
+	m.lockPool.Lock()
+	m.pool = append(m.pool, evalActions(parsed, m.dataContext, m.workingMemory))
+	m.lockPool.Unlock()
+	return nil
+}
+
+func (m *MuSteelExecuter) addPool(pl []string) error {
+	return addList(pl, m.addActions)
 }
 
 func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
