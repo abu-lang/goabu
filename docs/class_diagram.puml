@@ -1,0 +1,109 @@
+@startuml
+hide empty members
+
+package physical {
+    class IOResources {
+        adaptor : IOAdaptor
+    }
+    hide IOResources attributes
+    interface IOAdaptor
+    IOResources o-- "1" IOAdaptor
+}
+
+package datastructure {
+    class Rule
+    class RuleDict
+    interface ResourceController {
+        Start() error
+	    Inputs() <-chan string
+	    Modified(string) error
+	    IsValid() bool
+	    Has(string) bool
+	    GetTypes() map[string]string
+	    GetResources() Resources
+	    ResourceNames() StringSet
+	    InputsNumber() int
+	    String() string
+	    Clone() ResourceController
+    }
+    class Resources {
+        Bool : string->bool
+	    Integer : string->int64
+	    Float : string->float64
+	    Text : string->string
+	    Time : string->time.Time
+	    Other : string->interface{}
+    }
+    RuleDict o-- "*" Rule
+    Resources ..|> ResourceController
+    ResourceController -- Resources
+}
+
+package semantics {
+    class State {
+        Memory : Resources
+	    Pool : [][]SemanticAction
+    }
+    class MuSteelExecuter {
+        memory : ResourceController
+        pool : [][]SemanticAction
+        agent : ISteelAgent
+        localLibrary : string->RuleDict
+        globalLibrary : string->RuleDict
+
+        StartAgent() error
+        StopAgent() error
+        SetAgent(ISteelAgent) error
+        GetState() State
+        IsStable() bool
+        HasRule(string) bool
+        AddRule(string) error
+        AddRules([]string) error
+        Exec()
+        Input(string) error
+    }
+    hide MuSteelExecuter attributes
+    interface ISteelAgent {
+        Start() error
+	    Join() error
+	    ForAll([]byte) error
+	    ReceivedActions() (<-chan chan []byte, <-chan chan string)
+	    Stop() error
+	    IsRunning() bool
+    }
+    class SemanticAction {
+        Resource : string
+        Variable : *Variable
+        Value : Value
+    }
+    class externalAction
+
+    MuSteelExecuter "1" o-- "1" ISteelAgent
+    MuSteelExecuter *-- "*" SemanticAction
+    MuSteelExecuter -- externalAction
+    MuSteelExecuter -- State
+}
+
+package communication {
+    class memberlistAgent
+    class transactionInfo {
+	    Initiator : string
+	    Number : int
+	    Payload : []byte
+	    Partecipants : []string
+	    stopMonitor : chan bool
+	    coordinated : bool
+	    commands : chan string
+    }
+    memberlistAgent o-- "1" transactionInfo
+}
+
+IOResources ..|> ResourceController
+IOResources --|> Resources
+
+MuSteelExecuter "1" o-- "1" ResourceController
+MuSteelExecuter "1" o-- "2" RuleDict
+MuSteelExecuter -- Rule
+
+memberlistAgent ..|> ISteelAgent
+@enduml
