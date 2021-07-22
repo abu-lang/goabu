@@ -10,6 +10,7 @@ import (
 	"steel-lang/parser"
 	antlr_parser "steel-lang/parser/antlr"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -187,15 +188,27 @@ func (m *MuSteelExecuter) Input(actions string) error {
 func (m *MuSteelExecuter) receiveInputs() {
 	inputs := m.memory.Inputs()
 	queueSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
-
 	var queue string = ""
 	var l int = 0
 	var timeout <-chan time.Time = nil
+	var queued misc.StringSet = misc.MakeStringSet("")
 	for {
 		select {
 		case action := <-inputs:
+			resource := strings.TrimSpace(strings.Split(action, "=")[0])
+			if queued.Contains(resource) {
+				err := m.Input(queue)
+				if err != nil {
+					panic(err)
+				}
+				queue = ""
+				l = 0
+				timeout = nil
+				queued = misc.MakeStringSet("")
+			}
 			queue += action
 			l++
+			queued.Insert(resource)
 			if l == 1 {
 				timeout = time.After(inputsFlush * time.Millisecond)
 			}
@@ -211,6 +224,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 		queue = ""
 		l = 0
 		timeout = nil
+		queued = misc.MakeStringSet("")
 	}
 }
 
