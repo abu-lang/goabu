@@ -5,6 +5,7 @@ package main_test
 import (
 	"steel-lang/communication"
 	"steel-lang/physical"
+	"steel-lang/physical/delegates"
 	"steel-lang/semantics"
 	"testing"
 	"time"
@@ -15,11 +16,11 @@ import (
 func TestLed2Buttons(t *testing.T) {
 	toggles := 6
 	var a physical.IOAdaptor = raspi.NewAdaptor()
-	memLed := physical.MakeIOResources(a)
-	memButtons := physical.MakeIOResources(a)
-	memLed.AddLed("led", "12")
-	memButtons.AddButton("button1", "16")
-	memButtons.AddButton("button2", "18")
+	memLed := delegates.MakeIOResources(a)
+	memButtons := delegates.MakeIOResources(a)
+	memLed.Add("DigitalPin", "led", "36")
+	memButtons.Add("Button", "button1", "38")
+	memButtons.Add("Button", "button2", "40")
 	r1 := "rule R1 on button2; for all this.button1 && this.button2 do led = !ext.led;"
 	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(memLed.ResourceNames(), 8100, nil))
 	if err != nil {
@@ -44,8 +45,8 @@ func TestLed2Buttons(t *testing.T) {
 
 func TestMotor(t *testing.T) {
 	var a physical.IOAdaptor = raspi.NewAdaptor()
-	mem := physical.MakeIOResources(a)
-	mem.AddMotor("motor", "13", "11")
+	mem := delegates.MakeIOResources(a)
+	mem.Add("Motor", "motor", "13", "11")
 	r1 := "rule R1 on motor; for this.motor > 0 && this.motor < 255 do motor = this.motor + 60;"
 	r2 := "rule R2 on motor; for this.motor >= 255 do motor = 0;"
 	e, err := semantics.NewMuSteelExecuter(mem, []string{r1, r2}, semantics.MakeMockAgent())

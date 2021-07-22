@@ -34,9 +34,7 @@ func (r Resources) Inputs() <-chan string {
 	return nil
 }
 
-func (r Resources) Modified(resource string) error {
-	return nil
-}
+func (r Resources) Modified(resource string) {}
 
 func (r Resources) InputsNumber() int {
 	return 0
@@ -135,6 +133,62 @@ func (r Resources) ResourceNames() misc.StringSet {
 		atts.Insert(a)
 	}
 	return atts
+}
+
+func (r Resources) Extract(s misc.StringSet) Resources {
+	res := MakeResources()
+	for k, v := range r.Bool {
+		if s.Contains(k) {
+			res.Bool[k] = v
+		}
+	}
+	for k, v := range r.Integer {
+		if s.Contains(k) {
+			res.Integer[k] = v
+		}
+	}
+	for k, v := range r.Float {
+		if s.Contains(k) {
+			res.Float[k] = v
+		}
+	}
+	for k, v := range r.Text {
+		if s.Contains(k) {
+			res.Text[k] = v
+		}
+	}
+	for k, v := range r.Time {
+		if s.Contains(k) {
+			res.Time[k] = v
+		}
+	}
+	for k, v := range r.Other {
+		if s.Contains(k) {
+			res.Other[k] = v
+		}
+	}
+	return res
+}
+
+func (r Resources) Enclose(i Resources) {
+	for k, v := range i.Bool {
+		r.Bool[k] = v
+	}
+	for k, v := range i.Integer {
+		r.Integer[k] = v
+	}
+	for k, v := range i.Float {
+		r.Float[k] = v
+	}
+	for k, v := range i.Text {
+		r.Text[k] = v
+	}
+	for k, v := range i.Time {
+		r.Time[k] = v
+	}
+	for k, v := range i.Other {
+		r.Other[k] = v
+	}
 }
 
 func (r Resources) String() string {
