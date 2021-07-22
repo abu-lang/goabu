@@ -1,13 +1,24 @@
 @startuml
 hide empty members
 
+package delegates {
+    class DigitalPin
+    class Button
+    class Motor
+}
+
 package physical {
     class IOResources {
         adaptor : IOAdaptor
     }
     hide IOResources attributes
     interface IOAdaptor
+    interface IOdelegate {
+        Start(IOAdaptor, chan<- string) error
+        Modified(IOAdaptor, string, Resources) *Resources
+    }
     IOResources o-- "1" IOAdaptor
+    IOdelegate "*" -* IOResources
 }
 
 package datastructure {
@@ -97,6 +108,10 @@ package communication {
     }
     memberlistAgent o-- "1" transactionInfo
 }
+
+DigitalPin ..|> IOdelegate
+Button ..|> IOdelegate
+Motor ..|> IOdelegate
 
 IOResources ..|> ResourceController
 IOResources --|> Resources
