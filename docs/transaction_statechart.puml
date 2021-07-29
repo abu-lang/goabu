@@ -1,0 +1,64 @@
+@startuml
+
+[*] --> unknown
+
+state choice_int <<choice>>
+unknown --> choice_int : interested?
+choice_int --> unknown : [in another transaction]/!"interested?" @me
+
+choice_int --> new : [not in another transaction]
+new : ask executer
+new : get executer response
+
+state choice_resp <<choice>>
+new --> choice_resp
+
+choice_resp --> not_interested : [response = not_interested]/!"not_interested"
+not_interested : interested?/!"not_interested"
+not_interested --> [*]
+
+state par_start <<fork>>
+choice_resp --> par_start : [response = interested]/!"interested"
+
+par_start --> interested
+interested : interested?/!"interested"
+
+state par_abort <<fork>>
+interested --> par_abort : do_abort/abort; !"aborted"
+
+state choice_get_decision <<choice>>
+interested --> choice_get_decision : get_decision
+choice_get_decision --> interested : [initiator alive]
+choice_get_decision --> par_abort : [initiator dead]/abort
+
+state choice_can_commit <<choice>>
+interested --> choice_can_commit : can_commit?
+choice_can_commit --> par_abort : [abort]/abort; !"aborted"
+
+choice_can_commit --> prepared : [continue]/add partecipants; !"prepared"
+prepared : can_commit?/!"prepared"
+prepared : get_decision/[me = 1° alive]coordinate
+prepared : get_decision/[me != 1° alive]!"get_decision" @1°
+prepared --> par_abort : do_abort/abort; !"aborted"
+
+state par_commit <<fork>>
+prepared --> par_commit : do_commit/commit; !"committed"
+
+par_abort --> aborted
+aborted : do_abort/!"aborted"
+aborted : can_commit?/!"aborted"
+aborted : get_decision/!"do_abort"
+aborted --> [*]
+
+par_commit --> committed
+committed : do_commit/!"committed"
+committed : can_commit?/!"committed"
+committed : get_decision/!"do_commit"
+committed --> [*]
+
+par_start --> monitored
+monitored : do/!"get_decision" @me
+monitored --> par_commit
+monitored --> par_abort
+
+@enduml
