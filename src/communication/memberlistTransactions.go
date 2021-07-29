@@ -483,8 +483,8 @@ func (a *memberlistAgent) handleTransactions() {
 				}
 			case "do_abort":
 				status := a.getStatus(message.Transaction)
-				if status == "commited" || status == "new" {
-					panic(errors.New("received do abort for a committed or a new transaction"))
+				if status == "commited" || status == "new" || status == "not_interested" {
+					panic(errors.New("received do_abort for a committed, new or uninteresting transaction"))
 				}
 				if status == "prepared" || status == "interested" {
 					a.transaction.stopMonitor <- true
@@ -541,8 +541,8 @@ func (a *memberlistAgent) handleTransactions() {
 				}
 			case "get_decision":
 				status := a.getStatus(message.Transaction)
-				if status == "new" {
-					panic(errors.New("received get_decision for a new transaction"))
+				if status == "new" || status == "not_interested" {
+					panic(errors.New("received get_decision for a new or uninteresting transaction"))
 				}
 				if status == "interested" {
 					abort := true
