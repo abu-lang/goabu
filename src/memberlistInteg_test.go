@@ -16,8 +16,8 @@ func TestSingleNode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := "rule r1 on start; default magna = 123 + this.magna; for all ext.aliqua do magna = -123;"
-	r2 := "rule r2 on magna; for all this.magna >= ext.magna do magna = 2 * this.magna + ext.magna;"
+	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
+	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
 	e.AddRule(r1)
 	e.AddRule(r2)
 	e.Input("start = true;")
@@ -43,7 +43,7 @@ func TestSingleNode(t *testing.T) {
 func TestTwoNodes(t *testing.T) {
 	memory := datastructure.MakeResources()
 	memory.Integer["lorem"] = 5
-	r := "rule r on lorem; for all this.lorem > ext.lorem do lorem = this.lorem; "
+	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
 	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
 		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9001, nil))
@@ -83,8 +83,8 @@ func TestThreeNodes(t *testing.T) {
 	memory := datastructure.MakeResources()
 	memory.Float["ipsum"] = 3.0
 	memory.Bool["involved"] = false
-	r1 := "rule r1 on ipsum; default involved = false; for all this.ipsum != ext.ipsum do involved = true ; "
-	r2 := "rule r2 on involved; for all ext.involved && this.ipsum > ext.ipsum do ipsum = this.ipsum;"
+	r1 := "rule r1 on ipsum default involved = false; for all this.ipsum != ext.ipsum do ext.involved = true ; "
+	r2 := "rule r2 on involved for all ext.involved && this.ipsum > ext.ipsum do ext.ipsum = this.ipsum;"
 	rules := []string{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
 		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10001, nil))

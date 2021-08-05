@@ -14,17 +14,20 @@ type EcaruleParserListener interface {
 	// EnterPrule is called when entering the prule production.
 	EnterPrule(c *PruleContext)
 
-	// EnterEvt is called when entering the evt production.
-	EnterEvt(c *EvtContext)
+	// EnterEvents is called when entering the events production.
+	EnterEvents(c *EventsContext)
 
 	// EnterTask is called when entering the task production.
 	EnterTask(c *TaskContext)
 
-	// EnterActslist is called when entering the actslist production.
-	EnterActslist(c *ActslistContext)
+	// EnterActions is called when entering the actions production.
+	EnterActions(c *ActionsContext)
 
-	// EnterAct is called when entering the act production.
-	EnterAct(c *ActContext)
+	// EnterTailActions is called when entering the tailActions production.
+	EnterTailActions(c *TailActionsContext)
+
+	// EnterMaybeActions is called when entering the maybeActions production.
+	EnterMaybeActions(c *MaybeActionsContext)
 
 	// EnterGrl is called when entering the grl production.
 	EnterGrl(c *grulev3.GrlContext)
@@ -128,17 +131,20 @@ type EcaruleParserListener interface {
 	// ExitPrule is called when exiting the prule production.
 	ExitPrule(c *PruleContext)
 
-	// ExitEvt is called when exiting the evt production.
-	ExitEvt(c *EvtContext)
+	// ExitEvents is called when exiting the events production.
+	ExitEvents(c *EventsContext)
 
 	// ExitTask is called when exiting the task production.
 	ExitTask(c *TaskContext)
 
-	// ExitActslist is called when exiting the actslist production.
-	ExitActslist(c *ActslistContext)
+	// ExitActions is called when exiting the actions production.
+	ExitActions(c *ActionsContext)
 
-	// ExitAct is called when exiting the act production.
-	ExitAct(c *ActContext)
+	// ExitTailActions is called when exiting the tailActions production.
+	ExitTailActions(c *TailActionsContext)
+
+	// ExitMaybeActions is called when exiting the maybeActions production.
+	ExitMaybeActions(c *MaybeActionsContext)
 
 	// ExitGrl is called when exiting the grl production.
 	ExitGrl(c *grulev3.GrlContext)

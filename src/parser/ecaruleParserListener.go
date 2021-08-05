@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"steel-lang/datastructure"
@@ -12,46 +13,78 @@ import (
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 )
 
-type ecaruleParserListener struct {
+type EcaruleParserListener struct {
 	*antlr.GruleV3ParserListener
-	types map[string]string
-	Rule  *datastructure.Rule
+	types    map[string]string
+	allowExt bool
+	Rule     *datastructure.Rule
 }
 
-func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, ecb func(e error)) *ecaruleParserListener {
+func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, ecb func(e error)) *EcaruleParserListener {
 	kb := &ast.KnowledgeBase{
 		Name:          "dummy1",
 		Version:       "0.0.1",
 		RuleEntries:   make(map[string]*ast.RuleEntry),
 		WorkingMemory: workingMemory,
 	}
-	return &ecaruleParserListener{
+	res := &EcaruleParserListener{
 		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, ecb),
 		types:                 types,
 		Rule:                  &datastructure.Rule{},
 	}
+	res.Stack.Push(res.Rule)
+	return res
+}
+
+func (l *EcaruleParserListener) parseError(err error) {
+	l.StopParse = true
+	l.ErrorCallback(err)
 }
 
 // EnterPrule is called when production prule is entered.
-func (l *ecaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
+func (l *EcaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
+	if l.StopParse {
+		return
+	}
 	l.Rule.Name = ctx.SIMPLENAME(0).GetText()
 }
 
 // ExitPrule is called when production prule is exited.
-func (l *ecaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {}
+func (l *EcaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {
+	if l.StopParse {
+		return
+	}
+	l.Stack.Pop()
+}
 
-// EnterEvt is called when production evt is entered.
-func (l *ecaruleParserListener) EnterEvt(ctx *antlr_parser.EvtContext) {
+// EnterEvents is called when production events is entered.
+func (l *EcaruleParserListener) EnterEvents(ctx *antlr_parser.EventsContext) {
+	if l.StopParse {
+		return
+	}
+	rule, ok := l.Stack.Peek().(*datastructure.Rule)
+	if !ok {
+		l.parseError(errors.New("syntax error"))
+		return
+	}
 	for i := 0; ctx.SIMPLENAME(i) != nil; i++ {
-		l.Rule.Events = append(l.Rule.Events, ctx.SIMPLENAME(i).GetText())
+		rule.Events = append(rule.Events, ctx.SIMPLENAME(i).GetText())
 	}
 }
 
-// ExitEvt is called when production evt is exited.
-func (l *ecaruleParserListener) ExitEvt(ctx *antlr_parser.EvtContext) {}
+// ExitEvents is called when production events is exited.
+func (l *EcaruleParserListener) ExitEvents(ctx *antlr_parser.EventsContext) {}
 
 // EnterTask is called when production task is entered.
-func (l *ecaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
+func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
+	if l.StopParse {
+		return
+	}
+	rule, ok := l.Stack.Peek().(*datastructure.Rule)
+	if !ok {
+		l.parseError(errors.New("syntax error"))
+		return
+	}
 	mode := "for"
 	if ctx.ALL() != nil {
 		mode = mode + " all"
@@ -59,113 +92,120 @@ func (l *ecaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 	if ctx.SOME() != nil {
 		mode = mode + " some"
 	}
-	l.Rule.Task.Mode = mode
-	l.Stack.Push(&l.Rule.Task)
+	l.allowExt = mode != "for"
+	rule.Task.Mode = mode
+	l.Stack.Push(&rule.Task)
 }
 
 // ExitTask is called when production task is exited.
-func (l *ecaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
+func (l *EcaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
+	if l.StopParse {
+		return
+	}
 	l.Stack.Pop()
-}
-
-// EnterActslist is called when production actslist is entered.
-func (l *ecaruleParserListener) EnterActslist(ctx *antlr_parser.ActslistContext) {}
-
-// ExitActslist is called when production actslist is exited.
-func (l *ecaruleParserListener) ExitActslist(ctx *antlr_parser.ActslistContext) {}
-
-// EnterAct is called when production act is entered.
-func (l *ecaruleParserListener) EnterAct(ctx *antlr_parser.ActContext) {
-	assign := ast.NewAssignment()
-	assign.IsAssign = true
-	assign.SetGrlText(ctx.GetText())
-	l.Stack.Push(assign)
-}
-
-// ExitAct is called when production act is exited.
-func (l *ecaruleParserListener) ExitAct(ctx *antlr_parser.ActContext) {
-	inDefault := l.Rule.Task.Mode == ""
-	local := inDefault || l.Rule.Task.Mode == "for"
-	assign := l.Stack.Pop().(*ast.Assignment)
-	dest := ctx.SIMPLENAME().GetText()
-	if !local {
-		assign.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(l.NewExtAssignVariable(dest))
+	t, ok := l.Stack.Peek().(*datastructure.Task)
+	if ok {
+		l.allowExt = t.Mode != "for"
 	} else {
-		t, present := l.types[dest]
-		if !present {
-			l.GruleV3ParserListener.StopParse = true
-			l.GruleV3ParserListener.ErrorCallback(fmt.Errorf("could not determine the type of %s", dest))
-		}
-		assign.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(l.NewThisAssignVariable(dest, t))
-	}
-	action := datastructure.Action{
-		Resource:   dest,
-		Expression: assign,
-	}
-	if inDefault {
-		l.Rule.DefaultActions = append(l.Rule.DefaultActions, action)
-	} else {
-		l.Rule.Task.Actions = append(l.Rule.Task.Actions, action)
+		l.allowExt = false
 	}
 }
 
-func (l *ecaruleParserListener) ExitExpressionAtom(ctx *grulev3.ExpressionAtomContext) {
-	e := l.Stack.Peek().(*ast.ExpressionAtom)
-	errFunc := func(err error) {
-		l.GruleV3ParserListener.StopParse = true
-		l.GruleV3ParserListener.ErrorCallback(err)
+// EnterActions is called when production actions is entered.
+func (l *EcaruleParserListener) EnterActions(ctx *antlr_parser.ActionsContext) {}
+
+// ExitActions is called when production actions is exited.
+func (l *EcaruleParserListener) ExitActions(ctx *antlr_parser.ActionsContext) {}
+
+// EnterTailActions is called when production tailActions is entered.
+func (l *EcaruleParserListener) EnterTailActions(ctx *antlr_parser.TailActionsContext) {}
+
+// ExitTailActions is called when production tailActions is exited.
+func (l *EcaruleParserListener) ExitTailActions(ctx *antlr_parser.TailActionsContext) {}
+
+// EnterMaybeActions is called when production maybeActions is entered.
+func (l *EcaruleParserListener) EnterMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
+
+// ExitMaybeActions is called when production maybeActions is exited.
+func (l *EcaruleParserListener) ExitMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
+
+func (l *EcaruleParserListener) ExitAssignment(ctx *grulev3.AssignmentContext) {
+	e, ok := l.Stack.Peek().(*ast.Assignment)
+	if ok {
+		e.Variable = l.newTypedVariable(e.GetGrlText(), e.Variable)
 	}
-	switch {
-	case strings.HasPrefix(e.GetGrlText(), "ext."):
-		if e.Variable == nil {
-			defer errFunc(fmt.Errorf("expected external resource got %s", e.GetGrlText()))
-			break
+
+	l.GruleV3ParserListener.ExitAssignment(ctx)
+}
+
+func (l *EcaruleParserListener) ExitExpressionAtom(ctx *grulev3.ExpressionAtomContext) {
+	e, ok := l.Stack.Peek().(*ast.ExpressionAtom)
+	if ok {
+		text := e.GetGrlText()
+		if strings.HasPrefix(text, "this.") || strings.HasPrefix(text, "ext.") {
+			e.Variable = l.newTypedVariable(text, e.Variable)
 		}
-		r := e.Variable.Name
-		e.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(l.NewExtAssignVariable(r))
-	case strings.HasPrefix(e.GetGrlText(), "this."):
-		if e.Variable == nil {
-			defer errFunc(fmt.Errorf("expected local resource got %s", e.GetGrlText()))
-			break
-		}
-		r := e.Variable.Name
-		t, present := l.types[r]
-		if !present {
-			defer errFunc(fmt.Errorf("could not determine the type of %s", r))
-			break
-		}
-		e.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(l.NewThisAssignVariable(r, t))
 	}
+
 	l.GruleV3ParserListener.ExitExpressionAtom(ctx)
 }
 
-func (l *ecaruleParserListener) NewThisAssignVariable(r string, t string) *ast.Variable {
+func (l *EcaruleParserListener) newTypedVariable(text string, v *ast.Variable) *ast.Variable {
+	switch {
+	case strings.HasPrefix(text, "ext."):
+		if v == nil {
+			l.parseError(fmt.Errorf("expected external resource got %s", text))
+			break
+		}
+		if !l.allowExt {
+			l.parseError(fmt.Errorf("external variable %s is not allowed in this context", v.GetGrlText()))
+			break
+		}
+		r := v.Name
+		return l.KnowledgeBase.WorkingMemory.AddVariable(l.newExtAssignVariable(r))
+	default:
+		if v == nil {
+			l.parseError(fmt.Errorf("expected local resource got %s", text))
+			break
+		}
+		r := v.Name
+		t, present := l.types[r]
+		if !present {
+			l.parseError(fmt.Errorf("could not determine the type of %s", r))
+			break
+		}
+		return l.KnowledgeBase.WorkingMemory.AddVariable(l.newThisAssignVariable(r, t))
+	}
+	return v
+}
+
+func (l *EcaruleParserListener) newThisAssignVariable(r string, t string) *ast.Variable {
 	this := ast.NewVariable()
 	this.Name = "this"
 	tv := ast.NewVariable()
 	tv.Name = t
-	tv.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(this)
+	tv.Variable = l.KnowledgeBase.WorkingMemory.AddVariable(this)
 	res := ast.NewVariable()
-	res.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(tv)
-	res.ArrayMapSelector = l.NewResourceArrayMapSelector(r)
+	res.Variable = l.KnowledgeBase.WorkingMemory.AddVariable(tv)
+	res.ArrayMapSelector = l.newResourceArrayMapSelector(r)
 	res.SetGrlText(fmt.Sprintf(`this.%s["%s"]`, t, r))
 	return res
 }
 
-func (l *ecaruleParserListener) NewExtAssignVariable(r string) *ast.Variable {
+func (l *EcaruleParserListener) newExtAssignVariable(r string) *ast.Variable {
 	ext := ast.NewVariable()
 	ext.Name = "ext"
 	t := ast.NewVariable()
 	t.Name = "Void"
-	t.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(ext)
+	t.Variable = l.KnowledgeBase.WorkingMemory.AddVariable(ext)
 	res := ast.NewVariable()
-	res.Variable = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddVariable(t)
-	res.ArrayMapSelector = l.NewResourceArrayMapSelector(r)
+	res.Variable = l.KnowledgeBase.WorkingMemory.AddVariable(t)
+	res.ArrayMapSelector = l.newResourceArrayMapSelector(r)
 	res.SetGrlText(fmt.Sprintf(`ext.Void["%s"]`, r))
 	return res
 }
 
-func (l *ecaruleParserListener) NewResourceArrayMapSelector(r string) *ast.ArrayMapSelector {
+func (l *EcaruleParserListener) newResourceArrayMapSelector(r string) *ast.ArrayMapSelector {
 	val := reflect.ValueOf(r)
 	c := ast.NewConstant()
 	c.Value = val
@@ -173,8 +213,8 @@ func (l *ecaruleParserListener) NewResourceArrayMapSelector(r string) *ast.Array
 	a := ast.NewExpressionAtom()
 	a.Constant = c
 	e := ast.NewExpression()
-	e.ExpressionAtom = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddExpressionAtom(a)
+	e.ExpressionAtom = l.KnowledgeBase.WorkingMemory.AddExpressionAtom(a)
 	res := ast.NewArrayMapSelector()
-	res.Expression = l.GruleV3ParserListener.KnowledgeBase.WorkingMemory.AddExpression(e)
+	res.Expression = l.KnowledgeBase.WorkingMemory.AddExpression(e)
 	return res
 }

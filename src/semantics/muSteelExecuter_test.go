@@ -36,14 +36,14 @@ func TestNewMuSteelExecuter(t *testing.T) {
 }
 
 func TestAddRules(t *testing.T) {
-	local := `rule local on trigger; executed;
+	local := `rule local on trigger executed
 		for !this.executed do
 		trigger = "activated";`
 
-	global := `rule global on trigger;
+	global := `rule global on trigger
 		default executed = this.executed && false;
 		for all this.trigger != ext.trigger && this.trigger == "activated"
-		do trigger = this.trigger;`
+		do ext.trigger = this.trigger;`
 
 	memory := datastructure.MakeResources()
 	memory.Bool["executed"] = false
@@ -121,19 +121,19 @@ func TestAddPool(t *testing.T) {
 }
 
 func TestLocal(t *testing.T) {
-	startCooling := `rule startCooling on temperature;
+	startCooling := `rule startCooling on temperature
 		for "hihj".Replace("hj", "gh") == this.temperature
 		do  cooling = true;
-			counter = 3 + 2 * 1 - 1 * 3;`
+			counter = 3 + 2 * 1 - 1 * 3`
 
-	counter := `rule counter on counter; cooling;
+	counter := `rule counter on counter cooling
 		for this.counter > 0 && this.cooling
-		do counter = this.counter - 1;`
+		do this.counter = this.counter - 1;`
 
-	stopCooling := `rule stopCooling on counter;
+	stopCooling := `rule stopCooling on counter
 		for this.counter == 0 && this.cooling
-		do  cooling = !this.cooling;
-			temperature = "NORMAL".ToLower();`
+		do  this.cooling = !this.cooling;
+			this.temperature = "NORMAL".ToLower()`
 
 	memory := datastructure.MakeResources()
 	memory.Integer["counter"] = 42
@@ -148,7 +148,7 @@ func TestLocal(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	e.AddRules([]string{startCooling, counter, stopCooling})
-	e.addActions(`temperature = "high";`)
+	e.addActions(`temperature = "high"`)
 	execs := 0
 	for !e.IsStable() {
 		if len(e.pool) != 1 {
@@ -173,17 +173,17 @@ func TestLocal(t *testing.T) {
 }
 
 func TestReceiveExternalActions(t *testing.T) {
-	r1 := `rule r1 on elit;
+	r1 := `rule r1 on elit
 		for all ext.elit > 0 || ext.labore
-		do  elit = 0;
-			consectetur = "-10";`
+		do  ext.elit = 0;
+			ext.consectetur = "-10";`
 
-	r2 := `rule r2 on consectetur;
+	r2 := `rule r2 on consectetur
 		for all ext.consectetur < 0
-		do  elit = ext.elit * 2 + 3.14;
-			adipiscing = ext.incididunt;
-			tempor = MakeTime(2000, 1, 1, 0, 0, 0);
-			labore = false ;`
+		do  ext.elit = ext.elit * 2 + 3.14;
+			ext.adipiscing = ext.incididunt;
+			ext.tempor = MakeTime(2000, 1, 1, 0, 0, 0);
+			ext.labore = false `
 
 	memory := datastructure.MakeResources()
 	memory.Float["elit"] = -100.0
@@ -239,8 +239,8 @@ func TestForall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := "rule r1 on start; default magna = 123 + this.magna; for all ext.aliqua do magna = -123;"
-	r2 := "rule r2 on magna; for all this.magna >= ext.magna do magna = 2 * this.magna + ext.magna;"
+	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
+	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
 	e.AddRule(r1)
 	e.AddRule(r2)
 	e.Input("start = true;")

@@ -115,13 +115,13 @@ BITAND                      : '&';
 BITOR                       : '|';
 
 // START EcaruleParser UNSHARED TOKENS
-DEFAULT     : 'default' ;
-IN          : 'in' ;
-ON          : 'on' ;
-DO          : 'do' ;
-ALL         : 'all' ;
-SOME        : 'some' ;
-FOR         : 'for' ;
+DEFAULT     : D E F A U L T ;
+IN          : I N ;
+ON          : O N ;
+DO          : D O ;
+ALL         : A L L ;
+SOME        : S O M E ;
+FOR         : F O R ;
 // END   EcaruleParser UNSHARED TOKENS
 
 SIMPLENAME                  : ISC IC*;

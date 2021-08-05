@@ -427,7 +427,7 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.Action, 
 	p := antlr_parser.NewEcaruleParser(ts)
 	p.BuildParseTrees = true
 
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Actslist())
+	antlr.ParseTreeWalkerDefault.Walk(listener, p.Actions())
 
 	// update WorkingMemory
 	m.workingMemory.IndexVariables()

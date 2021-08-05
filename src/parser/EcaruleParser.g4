@@ -5,16 +5,15 @@ import Grulev3Parser;
 options {tokenVocab=EcaruleLexer;}
 
 /* Rule. */
-prule : RULE SIMPLENAME (IN SIMPLENAME)? ON evt (DEFAULT actslist)? task ;
+prule : RULE SIMPLENAME (IN SIMPLENAME)? ON events (DEFAULT actions)? task ;
 
-/* Event. */
-evt : SIMPLENAME SEMICOLON (SIMPLENAME SEMICOLON)* ;
+/* Events. */
+events : SIMPLENAME+ ;
 
 /* Task. */
-task : FOR (SOME | ALL)? expression DO actslist ;
+task : FOR (SOME | ALL)? expression DO actions ;
 
 /* List of actions. */
-actslist : act SEMICOLON (act SEMICOLON)* ;
-
-/* Actions. */
-act : SIMPLENAME ASSIGN expression ;
+actions : assignment tailActions ;
+tailActions : SEMICOLON maybeActions | /* epsilon */ ;
+maybeActions : actions | /* epsilon */ ;
