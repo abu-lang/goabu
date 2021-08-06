@@ -544,24 +544,25 @@ func (a *memberlistAgent) handleTransactions() {
 				if status == "new" || status == "not_interested" {
 					panic(errors.New("received get_decision for a new or uninteresting transaction"))
 				}
-				if status == "interested" {
-					abort := true
-					for _, member := range a.list.Members() {
-						if member.Name == a.transaction.Initiator {
-							abort = false
-							break
-						}
+				initiatorAlive := false
+				for _, member := range a.list.Members() {
+					if member.Name == a.transaction.Initiator {
+						initiatorAlive = true
+						break
 					}
-					if abort {
-						fmt.Println("aborting: I was interested but initiator is dead")
-						a.transaction.stopMonitor <- true
-						a.transaction.commands <- "do_abort"
-						<-a.transaction.commands
-						a.terminated[message.Transaction.id()] = "aborted"
-						a.transaction = transactionInfo{Initiator: ""}
-						if stopping {
-							return
-						}
+				}
+				if initiatorAlive {
+					break
+				}
+				if status == "interested" {
+					fmt.Println("aborting: I was interested but initiator is dead")
+					a.transaction.stopMonitor <- true
+					a.transaction.commands <- "do_abort"
+					<-a.transaction.commands
+					a.terminated[message.Transaction.id()] = "aborted"
+					a.transaction = transactionInfo{Initiator: ""}
+					if stopping {
+						return
 					}
 					break
 				}
@@ -581,7 +582,7 @@ func (a *memberlistAgent) handleTransactions() {
 						panic(errors.New("empty partecipant list"))
 					}
 					head := a.transaction.Partecipants[0]
-					if head == a.list.LocalNode().Name && a.transaction.Initiator != a.list.LocalNode().Name {
+					if head == a.list.LocalNode().Name {
 						fmt.Println("initiator", a.transaction.Initiator, "is dead: becoming new coordinator")
 						go a.coordinateTransaction(a.transaction)
 						a.transaction.coordinated = true
