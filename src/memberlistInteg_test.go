@@ -16,8 +16,8 @@ func TestSingleNode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
-	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
+	r1 := "rule r1 on start default magna = 123 + this.magna; for all this.aliqua do this.magna = -123;"
+	r2 := "rule r2 on magna for all this.magna >= this.magna do this.magna = 2 * this.magna + this.magna;"
 	e.AddRule(r1)
 	e.AddRule(r2)
 	e.Input("start = true;")

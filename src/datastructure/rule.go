@@ -75,3 +75,17 @@ func ActionsToStr(actions []Action) string {
 	}
 	return res
 }
+
+func (r *Rule) LocalActions() []Action {
+	var res []Action
+	for _, a := range r.Task.Actions {
+		if a.IsLocal() {
+			res = append(res, a)
+		}
+	}
+	return res
+}
+
+func (a Action) IsLocal() bool {
+	return a.Expression.Variable.Variable.Variable.Name == "this"
+}

@@ -167,20 +167,11 @@ func (a *memberlistAgent) ForAll(payload []byte) error {
 		Payload:   payload,
 	}
 	a.initiatedTransactions++
-	partecipants := a.interested(info)
-	if len(partecipants) == 0 {
+	info.Partecipants = a.interested(info)
+	if len(info.Partecipants) == 0 {
 		fmt.Println("terminated transaction: none interested")
 		return nil
 	}
-	for i := 0; i < len(partecipants); i++ {
-		if partecipants[i] == a.list.LocalNode().Name {
-			if i > 0 {
-				partecipants[0], partecipants[i] = partecipants[i], partecipants[0]
-			}
-			break
-		}
-	}
-	info.Partecipants = partecipants
 	return a.coordinateTransaction(info)
 }
 

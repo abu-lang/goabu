@@ -243,6 +243,7 @@ func TestInterestedMid(t *testing.T) {
 		{port: 14101},
 		{port: 14102},
 		{port: 14103, join: []int{14101, 14102}},
+		{port: 14104, join: []int{14100}},
 	}
 
 	transactionHelper(t, makeAgents(resources, argsList), []byte("456reprehenderit in"), TestResAbort)
@@ -538,13 +539,16 @@ func transactionHelper(t *testing.T, agents []*memberlistAgent, payload []byte, 
 	if len(agents) == 0 {
 		return
 	}
-	results := make([]<-chan int, 0, len(agents))
-	detectors := make([]<-chan bool, 0, len(agents))
+	results := make([]<-chan int, 0, len(agents)-1)
+	detectors := make([]<-chan bool, 0, len(agents)-1)
 	agentIds := make(map[<-chan int]int)
 	for i, agt := range agents {
 		t.Run(fmt.Sprintf("PartecipantStart#%d", i+1), func(t *testing.T) {
 			start(t, agt, agt.listeningPort)
 		})
+		if i == 0 {
+			continue
+		}
 		if agt.test < TestsMidInterested {
 			ops, cmds := agt.ReceivedActions()
 			r := startMockCommit(payload, ops, cmds)

@@ -34,6 +34,7 @@ type MuSteelExecuter struct {
 	types         map[string]string
 	pool          [][]SemanticAction
 	lockPool      sync.Mutex
+	lockWrite     sync.Mutex
 	localLibrary  map[string]datastructure.RuleDict
 	globalLibrary map[string]datastructure.RuleDict
 
@@ -162,6 +163,8 @@ func (m *MuSteelExecuter) AddRules(rules []string) error {
 }
 
 func (m *MuSteelExecuter) Exec() {
+	m.lockWrite.Lock()
+	defer m.lockWrite.Unlock()
 	m.lockPool.Lock()
 	if len(m.pool) == 0 {
 		m.lockPool.Unlock()
@@ -169,7 +172,6 @@ func (m *MuSteelExecuter) Exec() {
 	}
 	actions, index := m.chooseActions()
 	m.removeActions(index)
-	m.lockPool.Unlock()
 	fmt.Print("Exec: ")
 	m.execActions(actions)
 }
@@ -179,6 +181,9 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	if err != nil {
 		return err
 	}
+	m.lockWrite.Lock()
+	defer m.lockWrite.Unlock()
+	m.lockPool.Lock()
 	sActions := evalActions(parsed, m.dataContext, m.workingMemory)
 	fmt.Print("Input: ")
 	m.execActions(sActions)
@@ -294,7 +299,6 @@ func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
 }
 
 func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
-	m.lockPool.Lock()
 	var Xset []SemanticAction
 	for _, action := range actions {
 		variable := action.Variable
@@ -363,8 +367,14 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 		if len(rule.DefaultActions) > 0 {
 			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
+		la := rule.LocalActions()
+		if len(la) > 0 {
+			newpool = appendNonempty(newpool, condEvalActions(rule.Task.Condition, la, m.dataContext, m.workingMemory))
+		}
 		ext := m.preEvaluated(rule)
-		extActions = append(extActions, ext)
+		if len(ext.Actions) > 0 {
+			extActions = append(extActions, ext)
+		}
 	}
 	return newpool, extActions
 }
@@ -389,11 +399,15 @@ func (m *MuSteelExecuter) preEvaluated(rule *datastructure.Rule) externalAction 
 		workingMemory:  m.workingMemory,
 	}
 	res.WorkingSets = make([]misc.StringSet, 0, len(rule.Task.Actions))
+	var exts []datastructure.Action
 	for _, action := range rule.Task.Actions {
-		res.WorkingSets = append(res.WorkingSets, misc.MakeStringSet(action.Resource))
+		if !action.IsLocal() {
+			res.WorkingSets = append(res.WorkingSets, misc.MakeStringSet(action.Resource))
+			exts = append(exts, action)
+		}
 	}
 	res.Condition = res.preEvaluatedExpression(rule.Task.Condition, res.CondWorkingSet)
-	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
+	res.Actions = res.preEvaluatedActions(exts)
 	return res
 }
 

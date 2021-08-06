@@ -113,7 +113,9 @@ func (a *memberlistAgent) interested(tran transactionInfo) []string {
 func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
 	waitFor := misc.MakeStringSet("")
 	for _, member := range a.list.Members() {
-		waitFor.Insert(member.Name)
+		if member.Name != a.list.LocalNode().Name {
+			waitFor.Insert(member.Name)
+		}
 	}
 	var interested []string
 	for !waitFor.Empty() {
