@@ -17,6 +17,8 @@ import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const inputsRate float64 = 5.0
@@ -50,6 +52,9 @@ type MuSteelExecuter struct {
 	dataContext   ast.IDataContext
 
 	agent ISteelAgent
+
+	logLevel zap.AtomicLevel
+	logger   *zap.Logger
 }
 
 type LogConfig struct {
@@ -82,14 +87,32 @@ func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, ag
 	if lc.Encoding == "" {
 		lc.Encoding = "console"
 	}
-	if lc.Level < LogDebug {
-		lc.Level = LogDebug
-	} else if lc.Level > LogFatal {
-		lc.Level = LogFatal
-	}
 	if lc.Encoding != "console" && lc.Encoding != "json" {
 		return nil, fmt.Errorf("unsupported log encoding: %s", lc.Encoding)
 	}
+	res.logLevel = zap.NewAtomicLevel()
+	zapEnc := zapcore.EncoderConfig{
+		LevelKey:       "level",
+		NameKey:        "logger",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+	}
+	zapCfg := zap.Config{
+		Level:            res.logLevel,
+		Development:      true,
+		Encoding:         lc.Encoding,
+		EncoderConfig:    zapEnc,
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+	res.logger, err = zapCfg.Build()
+	if err != nil {
+		return nil, err
+	}
+	res.SetLogLevel(lc.Level)
 	err = mem.Start()
 	if err != nil {
 		return nil, err
@@ -216,12 +239,40 @@ func (m *MuSteelExecuter) Input(actions string) error {
 }
 
 func (m *MuSteelExecuter) LogLevel() int {
-	// TODO
-	return 0
+	switch m.logLevel.Level() {
+	case zapcore.DebugLevel:
+		return LogDebug
+	case zapcore.InfoLevel:
+		return LogInfo
+	case zapcore.WarnLevel:
+		return LogWarning
+	case zapcore.ErrorLevel:
+		return LogError
+	case zapcore.DPanicLevel, zapcore.PanicLevel, zapcore.FatalLevel:
+		return LogFatal
+	}
+	// should not be reached
+	return -2
 }
 
 func (m *MuSteelExecuter) SetLogLevel(l int) {
-	// TODO
+	if l < LogDebug {
+		l = LogDebug
+	} else if l > LogFatal {
+		l = LogFatal
+	}
+	zapLevel := zapcore.InfoLevel
+	switch l {
+	case LogDebug:
+		zapLevel = zapcore.DebugLevel
+	case LogWarning:
+		zapLevel = zapcore.WarnLevel
+	case LogError:
+		zapLevel = zapcore.ErrorLevel
+	case LogFatal:
+		zapLevel = zapcore.DPanicLevel
+	}
+	m.logLevel.SetLevel(zapLevel)
 }
 
 func (m *MuSteelExecuter) receiveInputs() {
