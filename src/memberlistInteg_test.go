@@ -12,7 +12,7 @@ func TestSingleNode(t *testing.T) {
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
-	e, err := semantics.NewMuSteelExecuter(memory, nil, communication.MakeMemberlistAgent(memory.ResourceNames(), 8000, nil))
+	e, err := semantics.NewMuSteelExecuter(memory, nil, communication.MakeMemberlistAgent(memory.ResourceNames(), 8000, nil), semantics.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestTwoNodes(t *testing.T) {
 	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
 	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
-		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9001, nil))
+		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9001, nil), semantics.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -64,7 +64,7 @@ func TestTwoNodes(t *testing.T) {
 	})
 	t.Run("TestTwoNodes#2", func(t *testing.T) {
 		t.Parallel()
-		e2, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9002, []string{"127.0.0.1:9001"}))
+		e2, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 9002, []string{"127.0.0.1:9001"}), semantics.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,7 +87,7 @@ func TestThreeNodes(t *testing.T) {
 	r2 := "rule r2 on involved for all ext.involved && this.ipsum > ext.ipsum do ext.ipsum = this.ipsum;"
 	rules := []string{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
-		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10001, nil))
+		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10001, nil), semantics.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -104,7 +104,7 @@ func TestThreeNodes(t *testing.T) {
 	})
 	t.Run("TestThreeNodes#2", func(t *testing.T) {
 		memory.Float["ipsum"] = 6.5
-		e2, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10002, []string{"127.0.0.1:10001"}))
+		e2, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10002, []string{"127.0.0.1:10001"}), semantics.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -125,7 +125,7 @@ func TestThreeNodes(t *testing.T) {
 	t.Run("TestThreeNodes#3", func(t *testing.T) {
 		t.Parallel()
 		memory.Float["ipsum"] = 3.0
-		e3, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10003, []string{"127.0.0.1:10001"}))
+		e3, err := semantics.NewMuSteelExecuter(memory, rules, communication.MakeMemberlistAgent(memory.ResourceNames(), 10003, []string{"127.0.0.1:10001"}), semantics.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}

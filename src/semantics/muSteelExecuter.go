@@ -24,6 +24,14 @@ const inputsRate float64 = 5.0
 // milliseconds
 const inputsFlush = 100
 
+const (
+	LogDebug = iota - 1
+	LogInfo
+	LogWarning
+	LogError
+	LogFatal
+)
+
 type State struct {
 	Memory datastructure.Resources
 	Pool   [][]SemanticAction
@@ -44,7 +52,13 @@ type MuSteelExecuter struct {
 	agent ISteelAgent
 }
 
-func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent) (*MuSteelExecuter, error) {
+type LogConfig struct {
+	// "console" == "" or "json"
+	Encoding string
+	Level    int
+}
+
+func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent, lc LogConfig) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:        mem.Clone(),
 		pool:          make([][]SemanticAction, 0),
@@ -64,6 +78,17 @@ func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, ag
 	err = res.AddRules(rules)
 	if err != nil {
 		return nil, err
+	}
+	if lc.Encoding == "" {
+		lc.Encoding = "console"
+	}
+	if lc.Level < LogDebug {
+		lc.Level = LogDebug
+	} else if lc.Level > LogFatal {
+		lc.Level = LogFatal
+	}
+	if lc.Encoding != "console" && lc.Encoding != "json" {
+		return nil, fmt.Errorf("unsupported log encoding: %s", lc.Encoding)
 	}
 	err = mem.Start()
 	if err != nil {
@@ -188,6 +213,15 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	fmt.Print("Input: ")
 	m.execActions(sActions)
 	return nil
+}
+
+func (m *MuSteelExecuter) LogLevel() int {
+	// TODO
+	return 0
+}
+
+func (m *MuSteelExecuter) SetLogLevel(l int) {
+	// TODO
 }
 
 func (m *MuSteelExecuter) receiveInputs() {
@@ -517,4 +551,11 @@ func addList(strs []string, add func(string) error) error {
 		return fmt.Errorf("could not add elements with indexes %s as %s", failed[:len(failed)-2], fstErr.Error())
 	}
 	return nil
+}
+
+//----------------------------------TESTING-----------------------------------
+
+var TestsLogConfig = LogConfig{
+	Encoding: "console",
+	Level:    LogDebug,
 }
