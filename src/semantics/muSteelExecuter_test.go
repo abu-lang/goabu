@@ -1,6 +1,7 @@
 package semantics
 
 import (
+	"steel-lang/config"
 	"steel-lang/datastructure"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ func TestNewMuSteelExecuter(t *testing.T) {
 	invalid := datastructure.MakeResources()
 	invalid.Bool["lorem42"] = false
 	invalid.Float["lorem42"] = 3.14
-	_, err := NewMuSteelExecuter(invalid, nil, MakeMockAgent(), TestsLogConfig)
+	_, err := NewMuSteelExecuter(invalid, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err == nil {
 		t.Error("should return error with invalid memory")
 	}
@@ -19,11 +20,11 @@ func TestNewMuSteelExecuter(t *testing.T) {
 	memory.Text["sit"] = "amet"
 	started := MakeMockAgent()
 	started.Start()
-	_, err = NewMuSteelExecuter(invalid, nil, started, TestsLogConfig)
+	_, err = NewMuSteelExecuter(invalid, nil, started, config.TestsLogConfig)
 	if err == nil {
 		t.Error("should return error with started agent")
 	}
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), TestsLogConfig)
+	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -48,7 +49,7 @@ func TestAddRules(t *testing.T) {
 	memory := datastructure.MakeResources()
 	memory.Bool["executed"] = false
 	memory.Text["trigger"] = "activable"
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), TestsLogConfig)
+	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -85,7 +86,7 @@ func TestAddPool(t *testing.T) {
 	memory.Integer["consectetur"] = 5
 	memory.Text["adipiscing"] = "eiusmod"
 	memory.Time["tempor"] = time.Unix(0, 0)
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), TestsLogConfig)
+	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -139,7 +140,7 @@ func TestLocal(t *testing.T) {
 	memory.Integer["counter"] = 42
 	memory.Bool["cooling"] = false
 	memory.Text["temperature"] = "low"
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), TestsLogConfig)
+	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -193,7 +194,7 @@ func TestReceiveExternalActions(t *testing.T) {
 
 	memory.Text["incididunt"] = "ut"
 	memory.Bool["labore"] = true
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), TestsLogConfig)
+	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -235,7 +236,7 @@ func TestForall(t *testing.T) {
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), TestsLogConfig)
+	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

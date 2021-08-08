@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"steel-lang/config"
 	"steel-lang/datastructure"
 	"steel-lang/misc"
 	"steel-lang/parser"
@@ -25,14 +26,6 @@ const inputsRate float64 = 5.0
 
 // milliseconds
 const inputsFlush = 100
-
-const (
-	LogDebug = iota - 1
-	LogInfo
-	LogWarning
-	LogError
-	LogFatal
-)
 
 type State struct {
 	Memory datastructure.Resources
@@ -57,13 +50,7 @@ type MuSteelExecuter struct {
 	logger   *zap.Logger
 }
 
-type LogConfig struct {
-	// "console" == "" or "json"
-	Encoding string
-	Level    int
-}
-
-func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent, lc LogConfig) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:        mem.Clone(),
 		pool:          make([][]SemanticAction, 0),
@@ -90,24 +77,11 @@ func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, ag
 	if lc.Encoding != "console" && lc.Encoding != "json" {
 		return nil, fmt.Errorf("unsupported log encoding: %s", lc.Encoding)
 	}
-	res.logLevel = zap.NewAtomicLevel()
-	zapEnc := zapcore.EncoderConfig{
-		LevelKey:       "level",
-		NameKey:        "logger",
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
-		EncodeDuration: zapcore.SecondsDurationEncoder,
+	zapCfg, ok := config.LogPreset(lc.Encoding).(zap.Config)
+	if !ok {
+		return nil, errors.New("invalid logger preset")
 	}
-	zapCfg := zap.Config{
-		Level:            res.logLevel,
-		Development:      true,
-		Encoding:         lc.Encoding,
-		EncoderConfig:    zapEnc,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
+	res.logLevel = zapCfg.Level
 	res.logger, err = zapCfg.Build()
 	if err != nil {
 		return nil, err
@@ -241,35 +215,35 @@ func (m *MuSteelExecuter) Input(actions string) error {
 func (m *MuSteelExecuter) LogLevel() int {
 	switch m.logLevel.Level() {
 	case zapcore.DebugLevel:
-		return LogDebug
+		return config.LogDebug
 	case zapcore.InfoLevel:
-		return LogInfo
+		return config.LogInfo
 	case zapcore.WarnLevel:
-		return LogWarning
+		return config.LogWarning
 	case zapcore.ErrorLevel:
-		return LogError
+		return config.LogError
 	case zapcore.DPanicLevel, zapcore.PanicLevel, zapcore.FatalLevel:
-		return LogFatal
+		return config.LogFatal
 	}
 	// should not be reached
 	return -2
 }
 
 func (m *MuSteelExecuter) SetLogLevel(l int) {
-	if l < LogDebug {
-		l = LogDebug
-	} else if l > LogFatal {
-		l = LogFatal
+	if l < config.LogDebug {
+		l = config.LogDebug
+	} else if l > config.LogFatal {
+		l = config.LogFatal
 	}
 	zapLevel := zapcore.InfoLevel
 	switch l {
-	case LogDebug:
+	case config.LogDebug:
 		zapLevel = zapcore.DebugLevel
-	case LogWarning:
+	case config.LogWarning:
 		zapLevel = zapcore.WarnLevel
-	case LogError:
+	case config.LogError:
 		zapLevel = zapcore.ErrorLevel
-	case LogFatal:
+	case config.LogFatal:
 		zapLevel = zapcore.DPanicLevel
 	}
 	m.logLevel.SetLevel(zapLevel)
@@ -602,11 +576,4 @@ func addList(strs []string, add func(string) error) error {
 		return fmt.Errorf("could not add elements with indexes %s as %s", failed[:len(failed)-2], fstErr.Error())
 	}
 	return nil
-}
-
-//----------------------------------TESTING-----------------------------------
-
-var TestsLogConfig = LogConfig{
-	Encoding: "console",
-	Level:    LogDebug,
 }

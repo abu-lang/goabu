@@ -4,6 +4,7 @@ package main_test
 
 import (
 	"steel-lang/communication"
+	"steel-lang/config"
 	"steel-lang/physical"
 	"steel-lang/physical/delegates"
 	"steel-lang/semantics"
@@ -22,11 +23,11 @@ func TestLed2Buttons(t *testing.T) {
 	memButtons.Add("Button", "button1", "38")
 	memButtons.Add("Button", "button2", "40")
 	r1 := "rule R1 on button2 for all this.button1 && this.button2 do ext.led = !ext.led"
-	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(memLed.ResourceNames(), 8100, nil), semantics.TestsLogConfig)
+	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(memLed.ResourceNames(), 8100, nil), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.MakeMemberlistAgent(memButtons.ResourceNames(), 8101, []string{"127.0.0.1:8100"}), semantics.TestsLogConfig)
+	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.MakeMemberlistAgent(memButtons.ResourceNames(), 8101, []string{"127.0.0.1:8100"}), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +50,7 @@ func TestMotor(t *testing.T) {
 	mem.Add("Motor", "motor", "13", "11")
 	r1 := "rule R1 on motor for this.motor > 0 && this.motor < 255 do motor = this.motor + 60"
 	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0;"
-	e, err := semantics.NewMuSteelExecuter(mem, []string{r1, r2}, semantics.MakeMockAgent(), semantics.TestsLogConfig)
+	e, err := semantics.NewMuSteelExecuter(mem, []string{r1, r2}, semantics.MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
