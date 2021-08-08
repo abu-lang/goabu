@@ -7,4 +7,5 @@ type ISteelAgent interface {
 	ReceivedActions() (<-chan chan []byte, <-chan chan string)
 	Stop() error
 	IsRunning() bool
+	SetLogLevel(int)
 }

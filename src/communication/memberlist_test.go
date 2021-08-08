@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"steel-lang/config"
 	"steel-lang/misc"
 	"testing"
 
@@ -34,7 +35,7 @@ func TestMakeMemberlistAgent(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestMakeMemberlistAgent#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, test.nodes)
+			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, test.nodes, config.TestsLogConfig)
 			if agt.IsRunning() {
 				t.Error("agent should not be running")
 			}
@@ -82,7 +83,7 @@ func TestStart(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestStart#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, test.nodes)
+			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, test.nodes, config.TestsLogConfig)
 			start(t, agt, test.port)
 			err := agt.Start()
 			if err == nil {
@@ -117,7 +118,7 @@ func TestJoin(t *testing.T) {
 	resources := misc.MakeStringSet("laboris,nisi,ut,aliquip,ex")
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestJoin#%d", test.index), func(t *testing.T) {
-			dummy = append(dummy, MakeMemberlistAgent(resources, test.port, test.nodes))
+			dummy = append(dummy, MakeMemberlistAgent(resources, test.port, test.nodes, config.TestsLogConfig))
 			agt := dummy[i]
 			if test.start {
 				start(t, agt, test.port)
@@ -147,7 +148,7 @@ func TestJoin(t *testing.T) {
 
 func TestForAll(t *testing.T) {
 	const port = 0
-	a := MakeMemberlistAgent(misc.MakeStringSet("a______789,B___,C_1_qwerty"), port, nil)
+	a := MakeMemberlistAgent(misc.MakeStringSet("a______789,B___,C_1_qwerty"), port, nil, config.TestsLogConfig)
 	checkCorrectStop(t, a)
 	err := a.ForAll([]byte(`lorem`))
 	if err == nil {
@@ -168,7 +169,7 @@ func TestForAll(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	const port = 11100
-	a := MakeMemberlistAgent(misc.MakeStringSet("amet_456"), port, nil)
+	a := MakeMemberlistAgent(misc.MakeStringSet("amet_456"), port, nil, config.TestsLogConfig)
 	if a.Stop() == nil {
 		t.Error("should return error when agent is not running")
 	}

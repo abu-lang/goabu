@@ -230,6 +230,7 @@ func (m *MuSteelExecuter) LogLevel() int {
 }
 
 func (m *MuSteelExecuter) SetLogLevel(l int) {
+	m.agent.SetLogLevel(l)
 	if l < config.LogDebug {
 		l = config.LogDebug
 	} else if l > config.LogFatal {

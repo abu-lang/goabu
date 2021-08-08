@@ -68,3 +68,5 @@ func (a *MockAgent) Stop() error {
 	a.running = false
 	return nil
 }
+
+func (a *MockAgent) SetLogLevel(l int) {}

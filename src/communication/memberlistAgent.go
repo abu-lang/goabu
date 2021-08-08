@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"steel-lang/config"
 	"steel-lang/misc"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -54,6 +57,8 @@ type memberlistAgent struct {
 	lockRegistry   *sync.RWMutex
 	listPtr        **memberlist.Memberlist
 	terminated     map[string]string
+	logLevel       zap.AtomicLevel
+	logger         *zap.Logger
 
 	// delegate sees value set in Start()
 	running bool
@@ -82,7 +87,7 @@ type memberlistAgent struct {
 	lockHalted *sync.Mutex
 }
 
-func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string) *memberlistAgent {
+func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string, lc config.LogConfig) *memberlistAgent {
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,
@@ -97,6 +102,31 @@ func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string) *member
 		},
 	}
 	res.listPtr = &res.list
+	if lc.Encoding == "" {
+		lc.Encoding = "console"
+	}
+	zapCfg, ok := config.LogPreset(lc.Encoding).(zap.Config)
+	if !ok {
+		zapCfg = zap.NewProductionConfig()
+	}
+	res.logLevel = zapCfg.Level
+	var err error
+	res.logger, err = zapCfg.Build()
+	if err != nil {
+		if ok { // fallback to zap default
+			ok = false
+			zapCfg = zap.NewProductionConfig()
+			res.logLevel = zapCfg.Level
+			res.logger, err = zapCfg.Build()
+		}
+		if err != nil {
+			panic("could not create memberlistAgent logger")
+		}
+	}
+	res.SetLogLevel(lc.Level)
+	if !ok {
+		res.logger.Warn("could not load memberlistAgent logger config")
+	}
 	return res
 }
 
@@ -235,6 +265,26 @@ func (a *memberlistAgent) Stop() error {
 	a.trackGossip = nil
 	a.running = false
 	return nil
+}
+
+func (a *memberlistAgent) SetLogLevel(l int) {
+	if l < config.LogDebug {
+		l = config.LogDebug
+	} else if l > config.LogFatal {
+		l = config.LogFatal
+	}
+	zapLevel := zapcore.InfoLevel
+	switch l {
+	case config.LogDebug:
+		zapLevel = zapcore.DebugLevel
+	case config.LogWarning:
+		zapLevel = zapcore.WarnLevel
+	case config.LogError:
+		zapLevel = zapcore.ErrorLevel
+	case config.LogFatal:
+		zapLevel = zapcore.DPanicLevel
+	}
+	a.logLevel.SetLevel(zapLevel)
 }
 
 func (a *memberlistAgent) handleUpdates() {
@@ -496,7 +546,7 @@ func (d memberlistAgent) NotifyUpdate(node *memberlist.Node) {
 //----------------------------------TESTING-----------------------------------
 
 func TestsMakeMemberlistAgent(names misc.StringSet, port int, nodes []string, test int) *memberlistAgent {
-	res := MakeMemberlistAgent(names, port, nodes)
+	res := MakeMemberlistAgent(names, port, nodes, config.TestsLogConfig)
 	res.test = test
 	res.lockHalted = &sync.Mutex{}
 	return res
