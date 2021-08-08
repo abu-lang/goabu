@@ -157,6 +157,11 @@ func (a *memberlistAgent) Start() error {
 	a.trackGossip = make(chan chan *sync.WaitGroup)
 
 	a.config = memberlist.DefaultLocalConfig()
+	stdLog, err := zap.NewStdLogAt(a.logger, zapcore.DebugLevel)
+	if err != nil {
+		return err
+	}
+	a.config.Logger = stdLog
 	a.config.BindPort = a.listeningPort
 	a.config.Name = uuid.String()
 	a.config.Delegate = *a
