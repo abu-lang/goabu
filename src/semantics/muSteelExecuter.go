@@ -34,12 +34,14 @@ type State struct {
 
 type MuSteelExecuter struct {
 	memory        datastructure.ResourceController
+	lockMemory    sync.RWMutex
 	types         map[string]string
 	pool          [][]SemanticAction
+	coordinator   execCoordinator
 	lockPool      sync.Mutex
-	lockWrite     sync.Mutex
 	localLibrary  map[string]datastructure.RuleDict
 	globalLibrary map[string]datastructure.RuleDict
+	lockRules     sync.Mutex
 
 	workingMemory *ast.WorkingMemory
 	dataContext   ast.IDataContext
@@ -48,12 +50,17 @@ type MuSteelExecuter struct {
 
 	logLevel zap.AtomicLevel
 	logger   *zap.Logger
+
+	optimistExec   bool
+	optimistInput  bool
+	lockOptimistic sync.Mutex
 }
 
 func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:        mem.Clone(),
 		pool:          make([][]SemanticAction, 0),
+		coordinator:   newCoordinator(),
 		localLibrary:  make(map[string]datastructure.RuleDict),
 		globalLibrary: make(map[string]datastructure.RuleDict),
 		agent:         agt,
@@ -63,7 +70,7 @@ func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, ag
 	}
 	res.types = res.memory.GetTypes()
 	var err error
-	res.dataContext, res.workingMemory, err = res.NewEmptyGruleStructures("this")
+	res.dataContext, res.workingMemory, err = res.newEmptyGruleStructures("this")
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +132,14 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 }
 
 func (m *MuSteelExecuter) GetState() State {
+	all := misc.MakeStringSet("")
+	for r := range m.types {
+		all.Insert(r)
+	}
+	k := m.coordinator.requestRead(all)
+	m.lockMemory.RLock()
 	memCopy := m.memory.Clone().GetResources()
+	m.lockMemory.RUnlock()
 	m.lockPool.Lock()
 	poolCopy := make([][]SemanticAction, 0, len(m.pool))
 	for _, acts := range m.pool {
@@ -134,6 +148,8 @@ func (m *MuSteelExecuter) GetState() State {
 		poolCopy = append(poolCopy, actsCopy)
 	}
 	m.lockPool.Unlock()
+	m.coordinator.confirmRead(k)
+	m.coordinator.closeRead(k)
 	return State{Memory: memCopy, Pool: poolCopy}
 }
 
@@ -144,57 +160,42 @@ func (m *MuSteelExecuter) IsStable() bool {
 }
 
 func (m *MuSteelExecuter) HasRule(name string) bool {
-	for _, d := range m.localLibrary {
-		if d.Contains(name) {
-			return true
-		}
-	}
-	for _, d := range m.globalLibrary {
-		if d.Contains(name) {
-			return true
-		}
-	}
-	return false
+	m.lockRules.Lock()
+	defer m.lockRules.Unlock()
+	return m.hasRuleAux(name)
 }
 
 func (m *MuSteelExecuter) AddRule(r string) error {
-	rule, err := m.parseRule(r)
-	if err != nil {
-		return err
-	}
-	if m.HasRule(rule.Name) {
-		return fmt.Errorf("there is already a rule named %s", rule.Name)
-	}
-
-	library := m.localLibrary
-	if rule.Task.Mode != "for" {
-		library = m.globalLibrary
-	}
-	for _, evt := range rule.Events {
-		if library[evt] == nil {
-			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
-			library[evt] = dict
-		}
-		library[evt].Insert(rule)
-	}
-	return nil
+	m.lockRules.Lock()
+	defer m.lockRules.Unlock()
+	return m.addRuleAux(r)
 }
 
 func (m *MuSteelExecuter) AddRules(rules []string) error {
-	return addList(rules, m.AddRule)
+	m.lockRules.Lock()
+	defer m.lockRules.Unlock()
+	return addList(rules, m.addRuleAux)
 }
 
 func (m *MuSteelExecuter) Exec() {
-	m.lockWrite.Lock()
-	defer m.lockWrite.Unlock()
+	m.coordinator.requestWrite(m.HasOptimisticExec())
+	defer m.coordinator.closeWrite()
 	m.lockPool.Lock()
 	if len(m.pool) == 0 {
 		m.lockPool.Unlock()
 		return
 	}
 	actions, index := m.chooseActions()
-	m.removeActions(index)
+	m.lockPool.Unlock()
+	workingSet := misc.MakeStringSet("")
+	for _, action := range actions {
+		workingSet.Insert(action.Resource)
+	}
+	m.coordinator.fixWorkingSetWrite(workingSet)
 	fmt.Print("Exec: ")
+	m.lockPool.Lock()
+	m.removeActions(index)
+	m.lockPool.Unlock()
 	m.execActions(actions)
 }
 
@@ -203,10 +204,16 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	if err != nil {
 		return err
 	}
-	m.lockWrite.Lock()
-	defer m.lockWrite.Unlock()
-	m.lockPool.Lock()
+	workingSet := misc.MakeStringSet("")
+	for _, p := range parsed {
+		workingSet.Insert(p.Resource)
+	}
+	m.coordinator.requestWrite(m.HasOptimisticInput())
+	defer m.coordinator.closeWrite()
+	m.coordinator.fixWorkingSetWrite(workingSet)
+	m.lockMemory.RLock()
 	sActions := evalActions(parsed, m.dataContext, m.workingMemory)
+	m.lockMemory.RUnlock()
 	fmt.Print("Input: ")
 	m.execActions(sActions)
 	return nil
@@ -248,6 +255,37 @@ func (m *MuSteelExecuter) SetLogLevel(l int) {
 		zapLevel = zapcore.DPanicLevel
 	}
 	m.logLevel.SetLevel(zapLevel)
+}
+
+func (m *MuSteelExecuter) SetOptimisticExec(b bool) {
+	m.lockOptimistic.Lock()
+	m.optimistExec = b
+	m.lockOptimistic.Unlock()
+}
+
+func (m *MuSteelExecuter) SetOptimisticInput(b bool) {
+	m.lockOptimistic.Lock()
+	m.optimistInput = b
+	m.lockOptimistic.Unlock()
+}
+
+func (m *MuSteelExecuter) HasOptimisticExec() bool {
+	m.lockOptimistic.Lock()
+	defer m.lockOptimistic.Unlock()
+	return m.optimistExec
+}
+
+func (m *MuSteelExecuter) HasOptimisticInput() bool {
+	m.lockOptimistic.Lock()
+	defer m.lockOptimistic.Unlock()
+	return m.optimistInput
+}
+
+func (m *MuSteelExecuter) PrintState() string {
+	m.lockMemory.RLock()
+	mem := m.memory.String()
+	m.lockMemory.RUnlock()
+	return fmt.Sprintf("Memory: %s\nPool: %v\n", mem, m.printPool())
 }
 
 func (m *MuSteelExecuter) receiveInputs() {
@@ -306,11 +344,27 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			panic(err)
 		}
 		var sActions [][]SemanticAction
-		m.lockPool.Lock()
-		localResources := m.memory.ResourceNames()
-		context, workMem, err := m.NewEmptyGruleStructures("ext")
+		localResources := misc.MakeStringSet("")
+		for r := range m.types {
+			localResources.Insert(r)
+		}
+		workingSet := misc.MakeStringSet("")
+		for _, eAction := range eActions {
+			if localResources.ContainsSet(eAction.CondWorkingSet) {
+				workingSet.Add(eAction.CondWorkingSet)
+				for _, ws := range eAction.WorkingSets {
+					if localResources.ContainsSet(ws) {
+						workingSet.Add(ws)
+					}
+				}
+			}
+		}
+		k := m.coordinator.requestRead(workingSet)
+		m.lockMemory.RLock()
+		context, workMem, err := m.newEmptyGruleStructures("ext")
+		m.lockMemory.RUnlock()
 		if err != nil {
-			panic(err)
+			m.logger.Panic(err.Error())
 		}
 		for _, eAction := range eActions {
 			if localResources.ContainsSet(eAction.CondWorkingSet) {
@@ -318,39 +372,47 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 				if len(actions) == 0 {
 					continue
 				}
+				m.lockMemory.RLock()
 				sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, actions, context, workMem))
+				m.lockMemory.RUnlock()
 			}
 		}
 		if len(sActions) == 0 {
-			commandsCh <- "not_interested"
-			m.lockPool.Unlock()
+			if m.coordinator.confirmRead(k) {
+				commandsCh <- "not_interested"
+			} else {
+				commandsCh <- "aborted"
+			}
+			m.coordinator.closeRead(k)
 			continue
 		}
 		commandsCh <- "interested"
 		switch <-commandsCh {
+		case "can_commit?":
+			if m.coordinator.confirmRead(k) {
+				commandsCh <- "prepared"
+			} else {
+				commandsCh <- "aborted"
+				m.coordinator.closeRead(k)
+				continue
+			}
+		case "do_abort":
+			commandsCh <- "done"
+			m.coordinator.confirmRead(k)
+			m.coordinator.closeRead(k)
+			continue
+		}
+		switch <-commandsCh {
 		case "do_commit":
+			m.lockPool.Lock()
 			m.pool = append(m.pool, sActions...)
+			m.lockPool.Unlock()
 			fallthrough
 		case "do_abort":
 			commandsCh <- "done"
+			m.coordinator.closeRead(k)
 		}
-		m.lockPool.Unlock()
 	}
-}
-
-func (m *MuSteelExecuter) addActions(actions string) error {
-	parsed, err := m.parseActions(actions)
-	if err != nil {
-		return err
-	}
-	m.lockPool.Lock()
-	m.pool = append(m.pool, evalActions(parsed, m.dataContext, m.workingMemory))
-	m.lockPool.Unlock()
-	return nil
-}
-
-func (m *MuSteelExecuter) addPool(pl []string) error {
-	return addList(pl, m.addActions)
 }
 
 func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
@@ -360,6 +422,7 @@ func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
 
 func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	var Xset []SemanticAction
+	m.lockMemory.Lock()
 	for _, action := range actions {
 		variable := action.Variable
 		variable = m.workingMemory.AddVariable(variable)
@@ -396,8 +459,11 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	}
 	fmt.Println()
 	sActions, eActions := m.discovery(Xset)
+	m.lockMemory.Unlock()
+	m.lockPool.Lock()
 	m.pool = append(m.pool, sActions...)
 	m.lockPool.Unlock()
+	m.coordinator.confirmWrite()
 	if len(eActions) > 0 {
 		payload, err := marshalExternalActions(eActions)
 		if err == nil {
@@ -442,10 +508,12 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global datastructure.RuleDict) {
 	local = datastructure.MakeRuleDict()
 	global = datastructure.MakeRuleDict()
+	m.lockRules.Lock()
 	for _, act := range Xset {
 		local.Add(m.localLibrary[act.Resource])
 		global.Add(m.globalLibrary[act.Resource])
 	}
+	m.lockRules.Unlock()
 	return local, global
 }
 
@@ -471,7 +539,59 @@ func (m *MuSteelExecuter) preEvaluated(rule *datastructure.Rule) externalAction 
 	return res
 }
 
+func (m *MuSteelExecuter) hasRuleAux(name string) bool {
+	for _, d := range m.localLibrary {
+		if d.Contains(name) {
+			return true
+		}
+	}
+	for _, d := range m.globalLibrary {
+		if d.Contains(name) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *MuSteelExecuter) addRuleAux(r string) error {
+	rule, err := m.parseRule(r)
+	if err != nil {
+		return err
+	}
+	if m.hasRuleAux(rule.Name) {
+		return fmt.Errorf("there is already a rule named %s", rule.Name)
+	}
+
+	library := m.localLibrary
+	if rule.Task.Mode != "for" {
+		library = m.globalLibrary
+	}
+	for _, evt := range rule.Events {
+		if library[evt] == nil {
+			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
+			library[evt] = dict
+		}
+		library[evt].Insert(rule)
+	}
+	return nil
+}
+
+func (m *MuSteelExecuter) addActions(actions string) error {
+	parsed, err := m.parseActions(actions)
+	if err != nil {
+		return err
+	}
+	m.pool = append(m.pool, evalActions(parsed, m.dataContext, m.workingMemory))
+	return nil
+}
+
+func (m *MuSteelExecuter) addPool(pl []string) error {
+	return addList(pl, m.addActions)
+}
+
 func (m *MuSteelExecuter) parseRule(r string) (*datastructure.Rule, error) {
+	m.lockMemory.Lock()
+	defer m.lockMemory.Unlock()
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
@@ -492,6 +612,8 @@ func (m *MuSteelExecuter) parseRule(r string) (*datastructure.Rule, error) {
 }
 
 func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.Action, error) {
+	m.lockMemory.Lock()
+	defer m.lockMemory.Unlock()
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
@@ -512,7 +634,7 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.Action, 
 	return listener.Rule.DefaultActions, nil
 }
 
-func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
+func (m *MuSteelExecuter) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
 	dataContext := ast.NewDataContext()
 	resources := m.memory.GetResources()
 	err := dataContext.Add(name, &(resources))
@@ -538,10 +660,6 @@ func (m *MuSteelExecuter) NewEmptyGruleStructures(name string) (ast.IDataContext
 	}
 	knowledgeBase.InitializeContext(dataContext)
 	return dataContext, knowledgeBase.WorkingMemory, nil
-}
-
-func (m *MuSteelExecuter) PrintState() string {
-	return fmt.Sprintf("Memory: %v\nPool: %v\n", m.memory, m.printPool())
 }
 
 func (m *MuSteelExecuter) printPool() string {

@@ -50,8 +50,11 @@ func (a *MockAgent) ForAll(actions []byte) error {
 	a.operationCommands <- commandsCh
 	actionsCh <- actions
 	if <-commandsCh == "interested" {
-		commandsCh <- "do_commit"
-		<-commandsCh
+		commandsCh <- "can_commit?"
+		if <-commandsCh == "prepared" {
+			commandsCh <- "do_commit"
+			<-commandsCh
+		}
 	}
 	return nil
 }

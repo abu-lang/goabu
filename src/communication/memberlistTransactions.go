@@ -427,7 +427,10 @@ func (a *memberlistAgent) handleTransactions() {
 					a.operationCommands <- commandsCh
 					actionsCh <- message.Transaction.Payload
 					response.Type = <-commandsCh
-					if response.Type == "interested" {
+					if response.Type == "aborted" {
+						a.terminated[message.Transaction.id()] = "aborted"
+						a.transaction = transactionInfo{Initiator: ""}
+					} else if response.Type == "interested" {
 						a.transaction = message.Transaction
 						a.transaction.Payload = nil
 						a.transaction.Partecipants = nil
@@ -448,6 +451,9 @@ func (a *memberlistAgent) handleTransactions() {
 					break
 				}
 				a.list.SendBestEffort(message.Sender, responseMsg)
+				if stopping && a.transaction.Initiator == "" {
+					return
+				}
 			case "can_commit?":
 				status := a.getStatus(message.Transaction)
 				if status == "not_interested" {
@@ -462,8 +468,15 @@ func (a *memberlistAgent) handleTransactions() {
 						a.transaction = transactionInfo{Initiator: ""}
 						status = "aborted"
 					} else {
-						a.transaction.Partecipants = message.Transaction.Partecipants
-						status = "prepared"
+						a.transaction.commands <- "can_commit?"
+						status = <-a.transaction.commands
+						if status == "aborted" {
+							a.transaction.stopMonitor <- true
+							a.terminated[message.Transaction.id()] = "aborted"
+							a.transaction = transactionInfo{Initiator: ""}
+						} else {
+							a.transaction.Partecipants = message.Transaction.Partecipants
+						}
 					}
 				}
 				response := messageUnion{

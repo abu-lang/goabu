@@ -653,6 +653,16 @@ func startMockCommit(payload []byte, requests <-chan chan []byte, commandRequest
 		}
 		commandsCh <- "interested"
 		switch <-commandsCh {
+		case "can_commit?":
+			commandsCh <- "prepared"
+		case "do_abort":
+			commandsCh <- "done"
+			defer func() { status <- TestResAbort }()
+			return
+		default:
+			panic(errors.New("illegal command"))
+		}
+		switch <-commandsCh {
 		case "do_commit":
 			defer func() { status <- TestResCommit }()
 		case "do_abort":
@@ -680,6 +690,13 @@ func startMockInterested(payload []byte, requests <-chan chan []byte, commandReq
 				good = false
 			}
 			commandsCh <- "interested"
+			switch <-commandsCh {
+			case "can_commit?":
+				commandsCh <- "prepared"
+			case "do_abort":
+				commandsCh <- "done"
+				return
+			}
 			<-commandsCh
 			commandsCh <- "done"
 		}
