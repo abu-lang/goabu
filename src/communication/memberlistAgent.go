@@ -57,6 +57,7 @@ type memberlistAgent struct {
 	lockRegistry   *sync.RWMutex
 	listPtr        **memberlist.Memberlist
 	terminated     map[string]string
+	transactions   map[string]*transactionInfo
 	logLevel       zap.AtomicLevel
 	logger         *zap.Logger
 
@@ -76,7 +77,6 @@ type memberlistAgent struct {
 	coordinatedChannels   chan chan transactionChannels
 	trackGossip           chan chan *sync.WaitGroup
 	initiatedTransactions int
-	transaction           transactionInfo
 	// not modified after constructor
 	listeningPort     int
 	operations        chan chan []byte
@@ -97,9 +97,6 @@ func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string, lc conf
 		initiatedTransactions: 0,
 		operations:            make(chan chan []byte),
 		operationCommands:     make(chan chan string),
-		transaction: transactionInfo{
-			Initiator: "",
-		},
 	}
 	res.listPtr = &res.list
 	if lc.Encoding == "" {
@@ -145,6 +142,7 @@ func (a *memberlistAgent) Start() error {
 
 	a.registry = makeResourceRegistry(a.localResources, uuid.String(), registrySize)
 	a.terminated = make(map[string]string)
+	a.transactions = make(map[string]*transactionInfo)
 	a.waitingForRegistry = make(chan string, msgBuffLen)
 	a.haltUpdates = make(chan bool)
 	a.quitTransactions = make(chan chan bool)
@@ -256,6 +254,7 @@ func (a *memberlistAgent) Stop() error {
 	// clean up
 	a.registry = nil
 	a.terminated = nil
+	a.transactions = nil
 	a.list = nil
 	a.config = nil
 	a.waitingForRegistry = nil

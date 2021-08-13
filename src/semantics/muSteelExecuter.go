@@ -343,79 +343,83 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 			return
 		}
 		commandsCh := <-commandRequests
-		eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
-		if err != nil {
-			panic(err)
-		}
-		var sActions [][]SemanticAction
-		localResources := misc.MakeStringSet("")
-		for r := range m.types {
-			localResources.Insert(r)
-		}
-		workingSet := misc.MakeStringSet("")
-		for _, eAction := range eActions {
-			if localResources.ContainsSet(eAction.CondWorkingSet) {
-				workingSet.Add(eAction.CondWorkingSet)
-				for _, ws := range eAction.WorkingSets {
-					if localResources.ContainsSet(ws) {
-						workingSet.Add(ws)
-					}
+		go m.serveTransaction(actionsCh, commandsCh)
+	}
+}
+
+func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh chan string) {
+	eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
+	if err != nil {
+		panic(err)
+	}
+	var sActions [][]SemanticAction
+	localResources := misc.MakeStringSet("")
+	for r := range m.types {
+		localResources.Insert(r)
+	}
+	workingSet := misc.MakeStringSet("")
+	for _, eAction := range eActions {
+		if localResources.ContainsSet(eAction.CondWorkingSet) {
+			workingSet.Add(eAction.CondWorkingSet)
+			for _, ws := range eAction.WorkingSets {
+				if localResources.ContainsSet(ws) {
+					workingSet.Add(ws)
 				}
 			}
 		}
-		k := m.coordinator.requestRead(workingSet)
-		m.lockMemory.RLock()
-		context, workMem, err := m.newEmptyGruleStructures("ext")
-		m.lockMemory.RUnlock()
-		if err != nil {
-			m.logger.Panic(err.Error())
-		}
-		for _, eAction := range eActions {
-			if localResources.ContainsSet(eAction.CondWorkingSet) {
-				actions := eAction.cullActions(localResources)
-				if len(actions) == 0 {
-					continue
-				}
-				m.lockMemory.RLock()
-				sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, actions, context, workMem))
-				m.lockMemory.RUnlock()
-			}
-		}
-		if len(sActions) == 0 {
-			if m.coordinator.confirmRead(k) {
-				commandsCh <- "not_interested"
-			} else {
-				commandsCh <- "aborted"
-			}
-			m.coordinator.closeRead(k)
-			continue
-		}
-		commandsCh <- "interested"
-		switch <-commandsCh {
-		case "can_commit?":
-			if m.coordinator.confirmRead(k) {
-				commandsCh <- "prepared"
-			} else {
-				commandsCh <- "aborted"
-				m.coordinator.closeRead(k)
+	}
+	k := m.coordinator.requestRead(workingSet)
+	m.lockMemory.RLock()
+	context, workMem, err := m.newEmptyGruleStructures("ext")
+	m.lockMemory.RUnlock()
+	if err != nil {
+		m.logger.Panic(err.Error())
+	}
+	for _, eAction := range eActions {
+		if localResources.ContainsSet(eAction.CondWorkingSet) {
+			actions := eAction.cullActions(localResources)
+			if len(actions) == 0 {
 				continue
 			}
-		case "do_abort":
-			commandsCh <- "done"
-			m.coordinator.confirmRead(k)
-			m.coordinator.closeRead(k)
-			continue
+			m.lockMemory.RLock()
+			sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, actions, context, workMem))
+			m.lockMemory.RUnlock()
 		}
-		switch <-commandsCh {
-		case "do_commit":
-			m.lockPool.Lock()
-			m.pool = append(m.pool, sActions...)
-			m.lockPool.Unlock()
-			fallthrough
-		case "do_abort":
-			commandsCh <- "done"
-			m.coordinator.closeRead(k)
+	}
+	if len(sActions) == 0 {
+		if m.coordinator.confirmRead(k) {
+			commandsCh <- "not_interested"
+		} else {
+			commandsCh <- "aborted"
 		}
+		m.coordinator.closeRead(k)
+		return
+	}
+	commandsCh <- "interested"
+	switch <-commandsCh {
+	case "can_commit?":
+		if m.coordinator.confirmRead(k) {
+			commandsCh <- "prepared"
+		} else {
+			commandsCh <- "aborted"
+			m.coordinator.closeRead(k)
+			return
+		}
+	case "do_abort":
+		commandsCh <- "done"
+		m.coordinator.confirmRead(k)
+		m.coordinator.closeRead(k)
+		return
+	}
+	switch <-commandsCh {
+	case "do_commit":
+		m.lockPool.Lock()
+		m.pool = append(m.pool, sActions...)
+		m.lockPool.Unlock()
+		fallthrough
+	case "do_abort":
+		commandsCh <- "done"
+		m.coordinator.closeRead(k)
 	}
 }
 

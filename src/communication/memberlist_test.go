@@ -3,7 +3,6 @@ package communication
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"fmt"
 	"steel-lang/config"
 	"steel-lang/misc"
@@ -17,8 +16,6 @@ const (
 	TestResCommit
 	TestResAbort
 )
-
-var deadlock = flag.Bool("deadlock", false, "execute TestDeadlockExample (probably blocking)")
 
 func TestMakeMemberlistAgent(t *testing.T) {
 	tests := []struct {
@@ -331,9 +328,6 @@ func TestSecondMid(t *testing.T) {
 }
 
 func TestDeadlockExample(t *testing.T) {
-	if !*deadlock {
-		t.SkipNow()
-	}
 	resources := misc.MakeStringSet("pRoIdEnT789_")
 	payload := []byte("deadlock_example")
 
@@ -346,15 +340,14 @@ func TestDeadlockExample(t *testing.T) {
 		{port: 19101, join: []int{19100}},
 		{port: 19102, join: []int{19101}},
 		{port: 19103, join: []int{19102}},
+		{port: 19104, join: []int{19103}},
 	}
 	agents := makeAgents(resources, argsList)
-	detectors := make([]<-chan bool, 0, len(agents))
 	for i, agt := range agents {
 		t.Run(fmt.Sprintf("ClusterMemberStart#%d", i+1), func(t *testing.T) {
 			start(t, agt, agt.listeningPort)
 		})
-		d := startPartecipantDetector(payload, agt)
-		detectors = append(detectors, d)
+		startMockExec(agt.ReceivedActions())
 	}
 	for i, agt := range agents {
 		t.Run(fmt.Sprintf("ClusterMemberJoin#%d", i+1), func(t *testing.T) {
@@ -379,20 +372,11 @@ func TestDeadlockExample(t *testing.T) {
 	}
 	t1 := waitTran(agents[0])
 	t2 := waitTran(agents[1])
-	for _, d := range detectors {
-		<-d
-	}
-	t.Log("deadlock probably reached: all members are partecipating in a transaction")
 	select {
 	case <-t1:
 		t1 = nil
 	case <-t2:
 		t2 = nil
-	}
-	// first transaction terminated: replace dead detectors
-	for _, agt := range agents {
-		ops, cmds := agt.ReceivedActions()
-		startMockCommit(payload, ops, cmds)
 	}
 	select {
 	case <-t1:
@@ -461,6 +445,12 @@ func checkCorrectStart(t *testing.T, a *memberlistAgent, p int) {
 		t.Error("registry should not be nil")
 	case a.terminated == nil:
 		t.Error("terminated should not be nil")
+	case len(a.terminated) > 0:
+		t.Error("terminated should be empty")
+	case a.transactions == nil:
+		t.Error("transactions should not be nil")
+	case len(a.transactions) > 0:
+		t.Error("transactions should be empty")
 	case a.waitingForRegistry == nil:
 		t.Error("waitingForRegistry should not be nil")
 	case a.haltUpdates == nil:
@@ -494,6 +484,8 @@ func checkCorrectStop(t *testing.T, a *memberlistAgent) {
 		t.Error("registry should be nil")
 	case a.terminated != nil:
 		t.Error("terminated should be nil")
+	case a.transactions != nil:
+		t.Error("transactions should be nil")
 	case a.list != nil:
 		t.Error("list should be nil")
 	case a.config != nil:
@@ -731,4 +723,32 @@ func startMockUninterested(payload []byte, requests <-chan chan []byte, commandR
 		}
 	}(res, payload, requests, commandRequests)
 	return res
+}
+
+func startMockExec(requests <-chan chan []byte, commandRequests <-chan chan string) {
+	go func() {
+		for {
+			actionsCh := <-requests
+			commandsCh := <-commandRequests
+			go func(actionsCh <-chan []byte, commandsCh chan string) {
+				<-actionsCh
+				commandsCh <- "interested"
+				switch <-commandsCh {
+				case "can_commit?":
+					commandsCh <- "prepared"
+				case "do_abort":
+					commandsCh <- "done"
+					return
+				default:
+					panic(errors.New("illegal command"))
+				}
+				switch <-commandsCh {
+				case "do_commit", "do_abort":
+				default:
+					panic(errors.New("illegal command"))
+				}
+				commandsCh <- "done"
+			}(actionsCh, commandsCh)
+		}
+	}()
 }
