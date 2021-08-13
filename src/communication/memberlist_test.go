@@ -344,6 +344,8 @@ func TestDeadlockExample(t *testing.T) {
 	}{
 		{port: 19100},
 		{port: 19101, join: []int{19100}},
+		{port: 19102, join: []int{19101}},
+		{port: 19103, join: []int{19102}},
 	}
 	agents := makeAgents(resources, argsList)
 	detectors := make([]<-chan bool, 0, len(agents))
@@ -634,6 +636,13 @@ func startPartecipantDetector(payload []byte, a *memberlistAgent) <-chan bool {
 			}
 			commandsCh <- "interested"
 			status <- true
+			switch <-commandsCh {
+			case "can_commit?":
+				commandsCh <- "prepared"
+			case "do_abort":
+				commandsCh <- "done"
+				return
+			}
 			<-commandsCh
 			commandsCh <- "done"
 		case <-halted:
