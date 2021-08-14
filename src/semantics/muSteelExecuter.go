@@ -353,10 +353,12 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 	var extActions []externalAction
 	localRules, globalRules := m.activeRules(Xset)
 	for _, rule := range localRules {
+		var defaults []SemanticAction
 		if len(rule.DefaultActions) > 0 {
-			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
+			defaults = evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
 		}
-		newpool = appendNonempty(newpool, condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory))
+		newpool = appendNonempty(newpool,
+			append(defaults, condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)...))
 	}
 	for _, rule := range globalRules {
 		if len(rule.DefaultActions) > 0 {
