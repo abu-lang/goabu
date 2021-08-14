@@ -66,10 +66,6 @@ func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, ag
 	if err != nil {
 		return nil, err
 	}
-	err = res.AddRules(rules)
-	if err != nil {
-		return nil, err
-	}
 	if lc.Encoding == "" {
 		lc.Encoding = "console"
 	}
@@ -86,6 +82,10 @@ func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, ag
 		return nil, err
 	}
 	res.SetLogLevel(lc.Level)
+	err = res.AddRules(rules)
+	if err != nil {
+		return nil, err
+	}
 	err = mem.Start()
 	if err != nil {
 		return nil, err
@@ -362,14 +362,8 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 		if len(rule.DefaultActions) > 0 {
 			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
 		}
-		la := rule.LocalActions()
-		if len(la) > 0 {
-			newpool = appendNonempty(newpool, condEvalActions(rule.Task.Condition, la, m.dataContext, m.workingMemory))
-		}
 		ext := m.preEvaluated(rule)
-		if len(ext.Actions) > 0 {
-			extActions = append(extActions, ext)
-		}
+		extActions = append(extActions, ext)
 	}
 	return newpool, extActions
 }
@@ -396,15 +390,11 @@ func (m *MuSteelExecuter) preEvaluated(rule *datastructure.Rule) externalAction 
 		workingMemory:  m.workingMemory,
 	}
 	res.WorkingSets = make([]misc.StringSet, 0, len(rule.Task.Actions))
-	var exts []datastructure.Action
 	for _, action := range rule.Task.Actions {
-		if !action.IsLocal() {
-			res.WorkingSets = append(res.WorkingSets, misc.MakeStringSet(action.Resource))
-			exts = append(exts, action)
-		}
+		res.WorkingSets = append(res.WorkingSets, misc.MakeStringSet(action.Resource))
 	}
 	res.Condition = res.preEvaluatedExpression(rule.Task.Condition, res.CondWorkingSet)
-	res.Actions = res.preEvaluatedActions(exts)
+	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
 	return res
 }
 
@@ -464,6 +454,10 @@ func (m *MuSteelExecuter) parseRule(r string) (*datastructure.Rule, error) {
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
+		m.logger.Error("error during parsing: "+e.Error(),
+			zap.String("act", "parse"),
+			zap.String("obj", r))
+		m.logger.Sync()
 	})
 
 	ts := parser.TokenStream(r)
@@ -486,6 +480,10 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.Action, 
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
+		m.logger.Error("error during parsing: "+e.Error(),
+			zap.String("act", "parse"),
+			zap.String("obj", actions))
+		m.logger.Sync()
 	})
 
 	ts := parser.TokenStream(actions)

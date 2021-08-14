@@ -6,26 +6,18 @@ import (
 	"reflect"
 	"steel-lang/datastructure"
 	antlr_parser "steel-lang/parser/antlr"
-	"strings"
 
 	"github.com/hyperjumptech/grule-rule-engine/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 )
 
-const (
-	condUnknown = iota
-	condLocal
-	condExternal
-)
-
 type EcaruleParserListener struct {
 	*antlr.GruleV3ParserListener
-	Rule              *datastructure.Rule
-	types             map[string]string
-	allowExt          bool
-	allowLocalActions bool
-	condition         int
+	Rule         *datastructure.Rule
+	types        map[string]string
+	allowExt     bool
+	inAssignLeft bool
 }
 
 func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, ecb func(e error)) *EcaruleParserListener {
@@ -38,7 +30,6 @@ func NewEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 	res := &EcaruleParserListener{
 		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, ecb),
 		types:                 types,
-		allowLocalActions:     true,
 		Rule:                  &datastructure.Rule{},
 	}
 	res.Stack.Push(res.Rule)
@@ -111,8 +102,6 @@ func (l *EcaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
 	if l.StopParse {
 		return
 	}
-	l.condition = condUnknown
-	l.allowLocalActions = true
 	l.Stack.Pop()
 	t, ok := l.Stack.Peek().(*datastructure.Task)
 	if ok {
@@ -141,77 +130,65 @@ func (l *EcaruleParserListener) EnterMaybeActions(ctx *antlr_parser.MaybeActions
 func (l *EcaruleParserListener) ExitMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
 
 func (l *EcaruleParserListener) EnterAssignment(ctx *grulev3.AssignmentContext) {
-	switch l.condition {
-	case condUnknown:
-		l.condition = condLocal
-		l.allowLocalActions = true
-	case condExternal:
-		l.allowLocalActions = false
-	}
+	l.inAssignLeft = true
 
 	l.GruleV3ParserListener.EnterAssignment(ctx)
 }
 
-func (l *EcaruleParserListener) ExitAssignment(ctx *grulev3.AssignmentContext) {
-	e, ok := l.Stack.Peek().(*ast.Assignment)
-	if ok {
-		text := e.GetGrlText()
-		if !strings.HasPrefix(text, "ext.") {
-			if !l.allowLocalActions {
-				l.parseError(fmt.Errorf("local action %s is not allowed because the condition contains external resources", text))
+func (l *EcaruleParserListener) ExitVariable(ctx *grulev3.VariableContext) {
+	if !l.StopParse {
+		var r *ast.Variable = nil
+		e, ok := l.Stack.Peek().(*ast.Variable)
+		if ok {
+			switch {
+			case ctx.SIMPLENAME() != nil && len(ctx.SIMPLENAME().GetText()) > 0:
+				n := ctx.SIMPLENAME().GetText()
+				if n == "this" || n == "ext" {
+					break
+				}
+				if l.inAssignLeft && l.allowExt {
+					r = l.newExtAssignVariable(n)
+				} else {
+					t, present := l.types[n]
+					if !present {
+						l.parseError(fmt.Errorf("could not determine the type of %s", n))
+						break
+					}
+					r = l.newThisAssignVariable(n, t)
+				}
+			case e.Variable != nil && e.Variable.Name == "ext":
+				if !l.allowExt {
+					l.parseError(fmt.Errorf("external variable %s is not allowed in this context", e.GetGrlText()))
+					break
+				}
+				r = l.newExtAssignVariable(e.Name)
+			case e.Variable != nil && e.Variable.Name == "this":
+				if l.inAssignLeft && l.allowExt {
+					l.parseError(fmt.Errorf("local actions are not allowed in 'for all' tasks"))
+					break
+				}
+				n := e.Name
+				t, present := l.types[n]
+				if !present {
+					l.parseError(fmt.Errorf("could not determine the type of %s", n))
+					break
+				}
+				r = l.newThisAssignVariable(n, t)
 			}
 		}
-		e.Variable = l.newTypedVariable(text, e.Variable)
+		if r != nil {
+			l.Stack.Pop()
+			l.Stack.Push(r)
+		}
 	}
 
-	l.GruleV3ParserListener.ExitAssignment(ctx)
+	l.GruleV3ParserListener.ExitVariable(ctx)
 }
 
-func (l *EcaruleParserListener) ExitExpressionAtom(ctx *grulev3.ExpressionAtomContext) {
-	e, ok := l.Stack.Peek().(*ast.ExpressionAtom)
-	if ok {
-		text := e.GetGrlText()
-		switch {
-		case strings.HasPrefix(text, "ext."):
-			if l.condition == condUnknown {
-				l.condition = condExternal
-			}
-			fallthrough
-		case strings.HasPrefix(text, "this."):
-			e.Variable = l.newTypedVariable(text, e.Variable)
-		}
-	}
+func (l *EcaruleParserListener) EnterExpression(ctx *grulev3.ExpressionContext) {
+	l.inAssignLeft = false
 
-	l.GruleV3ParserListener.ExitExpressionAtom(ctx)
-}
-
-func (l *EcaruleParserListener) newTypedVariable(text string, v *ast.Variable) *ast.Variable {
-	switch {
-	case strings.HasPrefix(text, "ext."):
-		if v == nil {
-			l.parseError(fmt.Errorf("expected external resource got %s", text))
-			break
-		}
-		if !l.allowExt {
-			l.parseError(fmt.Errorf("external variable %s is not allowed in this context", v.GetGrlText()))
-			break
-		}
-		r := v.Name
-		return l.KnowledgeBase.WorkingMemory.AddVariable(l.newExtAssignVariable(r))
-	default:
-		if v == nil {
-			l.parseError(fmt.Errorf("expected local resource got %s", text))
-			break
-		}
-		r := v.Name
-		t, present := l.types[r]
-		if !present {
-			l.parseError(fmt.Errorf("could not determine the type of %s", r))
-			break
-		}
-		return l.KnowledgeBase.WorkingMemory.AddVariable(l.newThisAssignVariable(r, t))
-	}
-	return v
+	l.GruleV3ParserListener.EnterExpression(ctx)
 }
 
 func (l *EcaruleParserListener) newThisAssignVariable(r string, t string) *ast.Variable {

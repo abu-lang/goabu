@@ -34,7 +34,13 @@ func (r *Rule) AcceptAssignment(a *ast.Assignment) error {
 	if !a.IsAssign {
 		return fmt.Errorf("assigment %s only assigment operator '=' is supported", a.GetGrlText())
 	}
-	n := strings.Trim(a.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText(), `"`)
+	n := ""
+	if validAssignment(a) {
+		n = strings.Trim(a.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText(), `"`)
+	}
+	if n == "" {
+		return errors.New("invalid assignment: " + a.GetGrlText())
+	}
 	r.DefaultActions = append(r.DefaultActions, Action{Resource: n, Expression: a})
 	return nil
 }
@@ -47,7 +53,13 @@ func (t *Task) AcceptAssignment(a *ast.Assignment) error {
 	if !a.IsAssign {
 		return fmt.Errorf("assigment %s only assigment operator '=' is supported", a.GetGrlText())
 	}
-	n := strings.Trim(a.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText(), `"`)
+	n := ""
+	if validAssignment(a) {
+		n = strings.Trim(a.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant.GetGrlText(), `"`)
+	}
+	if n == "" {
+		return errors.New("invalid assignment: " + a.GetGrlText())
+	}
 	t.Actions = append(t.Actions, Action{Resource: n, Expression: a})
 	return nil
 }
@@ -76,16 +88,27 @@ func ActionsToStr(actions []Action) string {
 	return res
 }
 
-func (r *Rule) LocalActions() []Action {
-	var res []Action
-	for _, a := range r.Task.Actions {
-		if a.IsLocal() {
-			res = append(res, a)
+func validAssignment(a *ast.Assignment) bool {
+	if a.Variable == nil ||
+		a.Variable.ArrayMapSelector == nil ||
+		a.Variable.ArrayMapSelector.Expression == nil ||
+		a.Variable.ArrayMapSelector.Expression.ExpressionAtom == nil ||
+		a.Variable.ArrayMapSelector.Expression.ExpressionAtom.Constant == nil {
+		return false
+	}
+	ok := false
+	v := a.Variable
+	if v.Variable != nil && v.Variable.Variable != nil && v.Variable.Variable.Variable == nil {
+		switch v.Variable.Name {
+		case "Bool", "Integer", "Float", "Text", "Time", "Other":
+			if v.Variable.Variable.Name == "this" {
+				ok = true
+			}
+		case "Void":
+			if v.Variable.Variable.Name == "ext" {
+				ok = true
+			}
 		}
 	}
-	return res
-}
-
-func (a Action) IsLocal() bool {
-	return a.Expression.Variable.Variable.Variable.Name == "this"
+	return ok
 }
