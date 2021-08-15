@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"steel-lang/config"
-	"steel-lang/misc"
 	"sync"
 
 	"github.com/google/uuid"
@@ -17,7 +16,6 @@ const (
 	// milliseconds
 	timeoutRegister = 1000
 	msgBuffLen      = 10
-	registrySize    = 0
 )
 
 const (
@@ -34,16 +32,10 @@ const (
 
 var TestsMidSends = 2
 
-type registryInventory struct {
-	Sender    *memberlist.Node
-	Inventory misc.StringSet
-}
-
 type messageUnion struct {
 	Type   string
 	Sender *memberlist.Node
 
-	Registry    resourceRegistry
 	Transaction transactionInfo
 }
 
@@ -77,7 +69,7 @@ type memberlistAgent struct {
 	lockHalted *sync.Mutex
 }
 
-func MakeMemberlistAgent(names misc.StringSet, port int, lc config.LogConfig, nodes ...string) *memberlistAgent {
+func MakeMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *memberlistAgent {
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,
@@ -85,7 +77,7 @@ func MakeMemberlistAgent(names misc.StringSet, port int, lc config.LogConfig, no
 		initiatedTransactions: 0,
 		operations:            make(chan chan []byte),
 		operationCommands:     make(chan chan string),
-		delegate:              defaultDelegate(names),
+		delegate:              delegateDefault{},
 	}
 	if lc.Encoding == "" {
 		lc.Encoding = "console"
@@ -318,8 +310,8 @@ func (a *memberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 
 //----------------------------------TESTING-----------------------------------
 
-func TestsMakeMemberlistAgent(names misc.StringSet, port int, test int, nodes ...string) *memberlistAgent {
-	res := MakeMemberlistAgent(names, port, config.TestsLogConfig, nodes...)
+func TestsMakeMemberlistAgent(port int, test int, nodes ...string) *memberlistAgent {
+	res := MakeMemberlistAgent(port, config.TestsLogConfig, nodes...)
 	res.test = test
 	res.lockHalted = &sync.Mutex{}
 	return res

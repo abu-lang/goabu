@@ -23,11 +23,11 @@ func TestLed2Buttons(t *testing.T) {
 	memButtons.Add("Button", "button1", "38")
 	memButtons.Add("Button", "button2", "40")
 	r1 := "rule R1 on button2 for all this.button1 && this.button2 do ext.led = !ext.led"
-	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(memLed.ResourceNames(), 8100, config.TestsLogConfig), config.TestsLogConfig)
+	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.MakeMemberlistAgent(8100, config.TestsLogConfig), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.MakeMemberlistAgent(memButtons.ResourceNames(), 8101, config.TestsLogConfig, "127.0.0.1:8100"), config.TestsLogConfig)
+	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.MakeMemberlistAgent(8101, config.TestsLogConfig, "127.0.0.1:8100"), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"steel-lang/config"
-	"steel-lang/misc"
 	"testing"
 
 	"github.com/google/uuid"
@@ -20,19 +19,18 @@ const (
 func TestMakeMemberlistAgent(t *testing.T) {
 	tests := []struct {
 		index int
-		set   string
 		port  int
 		nodes []string
 	}{
-		//  {_, set, port, nodes},
-		{1, "lorem,ipsum10", 0, nil},
-		{2, "b", 8100, []string{}},
-		{3, "D__987,a,b543_", 8101, []string{"127.0.0.1:8150"}},
-		{4, "E_e1,E_e1,C____,d_210_", 8102, []string{"127.0.0.1:8150,127.0.0.1:8151"}},
+		//  {_, port, nodes},
+		{1, 0, nil},
+		{2, 8100, []string{}},
+		{3, 8101, []string{"127.0.0.1:8150"}},
+		{4, 8102, []string{"127.0.0.1:8150,127.0.0.1:8151"}},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestMakeMemberlistAgent#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, config.TestsLogConfig, test.nodes...)
+			agt := MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
 			if agt.IsRunning() {
 				t.Error("agent should not be running")
 			}
@@ -65,19 +63,18 @@ func TestMakeMemberlistAgent(t *testing.T) {
 func TestStart(t *testing.T) {
 	tests := []struct {
 		index int
-		set   string
 		port  int
 		nodes []string
 	}{
-		//  {_, set, port, nodes},
-		{1, "enim,minim10", 0, nil},
-		{2, "dolor123,sit", 9100, []string{}},
-		{3, "a,b,c,d,e,f,f,f", 9101, []string{"127.0.0.1:9150"}},
-		{4, "iIi,H_h_h_,G_qwerty_", 9102, []string{"127.0.0.1:9150,127.0.0.1:9151"}},
+		//  {_, port, nodes},
+		{1, 0, nil},
+		{2, 9100, []string{}},
+		{3, 9101, []string{"127.0.0.1:9150"}},
+		{4, 9102, []string{"127.0.0.1:9150,127.0.0.1:9151"}},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestStart#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(misc.MakeStringSet(test.set), test.port, config.TestsLogConfig, test.nodes...)
+			agt := MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
 			start(t, agt, test.port)
 			err := agt.Start()
 			if err == nil {
@@ -109,10 +106,9 @@ func TestJoin(t *testing.T) {
 		{11, 10108, []string{".,>Z><<-@#00asdfg"}, false, false},
 	}
 	dummy := make([]*memberlistAgent, 0, len(tests))
-	resources := misc.MakeStringSet("laboris,nisi,ut,aliquip,ex")
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestJoin#%d", test.index), func(t *testing.T) {
-			dummy = append(dummy, MakeMemberlistAgent(resources, test.port, config.TestsLogConfig, test.nodes...))
+			dummy = append(dummy, MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...))
 			agt := dummy[i]
 			if test.start {
 				start(t, agt, test.port)
@@ -142,7 +138,7 @@ func TestJoin(t *testing.T) {
 
 func TestForAll(t *testing.T) {
 	const port = 0
-	a := MakeMemberlistAgent(misc.MakeStringSet("a______789,B___,C_1_qwerty"), port, config.TestsLogConfig)
+	a := MakeMemberlistAgent(port, config.TestsLogConfig)
 	checkCorrectStop(t, a)
 	err := a.ForAll([]byte(`lorem`))
 	if err == nil {
@@ -163,7 +159,7 @@ func TestForAll(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	const port = 11100
-	a := MakeMemberlistAgent(misc.MakeStringSet("amet_456"), port, config.TestsLogConfig)
+	a := MakeMemberlistAgent(port, config.TestsLogConfig)
 	if a.Stop() == nil {
 		t.Error("should return error when agent is not running")
 	}
@@ -186,8 +182,6 @@ func TestStop(t *testing.T) {
 }
 
 func TestAborted(t *testing.T) {
-	resources := misc.MakeStringSet("nisi,ut,aliquip")
-
 	argsList := []struct {
 		port int
 		join []int
@@ -199,14 +193,13 @@ func TestAborted(t *testing.T) {
 		{port: 12103, join: []int{12101}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte("commodo"), TestResAbort)
+	transactionHelper(t, makeAgents(argsList), []byte("commodo"), TestResAbort)
 }
 
 func TestUnreliable(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	resources := misc.MakeStringSet("consequat")
 
 	argsList := []struct {
 		port int
@@ -220,14 +213,13 @@ func TestUnreliable(t *testing.T) {
 		{port: 13104, join: []int{13102}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte(". Duis aute123"), TestResCommit)
+	transactionHelper(t, makeAgents(argsList), []byte(". Duis aute123"), TestResCommit)
 }
 
 func TestInterestedMid(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	resources := misc.MakeStringSet("irure_dolor,in")
 
 	argsList := []struct {
 		port int
@@ -241,14 +233,13 @@ func TestInterestedMid(t *testing.T) {
 		{port: 14104, join: []int{14100}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte("456reprehenderit in"), TestResAbort)
+	transactionHelper(t, makeAgents(argsList), []byte("456reprehenderit in"), TestResAbort)
 }
 
 func TestInterestedAfter(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	resources := misc.MakeStringSet("voluptate_")
 
 	argsList := []struct {
 		port int
@@ -261,14 +252,13 @@ func TestInterestedAfter(t *testing.T) {
 		{port: 15103, join: []int{15101}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte("velit esse.....@#"), TestResAbort)
+	transactionHelper(t, makeAgents(argsList), []byte("velit esse.....@#"), TestResAbort)
 }
 
 func TestFirstMid(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	resources := misc.MakeStringSet("dolore,eu,fugiat")
 
 	argsList := []struct {
 		port int
@@ -281,14 +271,13 @@ func TestFirstMid(t *testing.T) {
 		{port: 16103, join: []int{16100, 16102}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte("nulla pariatur. +-+-"), TestResAgree)
+	transactionHelper(t, makeAgents(argsList), []byte("nulla pariatur. +-+-"), TestResAgree)
 }
 
 func TestFirstAfter(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	resources := misc.MakeStringSet("E111111Excepteur")
 
 	argsList := []struct {
 		port int
@@ -301,14 +290,13 @@ func TestFirstAfter(t *testing.T) {
 		{port: 17103, join: []int{17100}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte("**!sint occaecat"), TestResCommit)
+	transactionHelper(t, makeAgents(argsList), []byte("**!sint occaecat"), TestResCommit)
 }
 
 func TestSecondMid(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	resources := misc.MakeStringSet("cupidatat,non")
 
 	argsList := []struct {
 		port int
@@ -321,11 +309,10 @@ func TestSecondMid(t *testing.T) {
 		{port: 18103, join: []int{18102}},
 	}
 
-	transactionHelper(t, makeAgents(resources, argsList), []byte("proident, sunt in"), TestResCommit)
+	transactionHelper(t, makeAgents(argsList), []byte("proident, sunt in"), TestResCommit)
 }
 
 func TestDeadlockExample(t *testing.T) {
-	resources := misc.MakeStringSet("pRoIdEnT789_")
 	payload := []byte("deadlock_example")
 
 	argsList := []struct {
@@ -339,7 +326,7 @@ func TestDeadlockExample(t *testing.T) {
 		{port: 19103, join: []int{19102}},
 		{port: 19104, join: []int{19103}},
 	}
-	agents := makeAgents(resources, argsList)
+	agents := makeAgents(argsList)
 	for i, agt := range agents {
 		t.Run(fmt.Sprintf("ClusterMemberStart#%d", i+1), func(t *testing.T) {
 			start(t, agt, agt.listeningPort)
@@ -494,7 +481,7 @@ func checkCorrectStop(t *testing.T, a *memberlistAgent) {
 	}
 }
 
-func makeAgents(resources misc.StringSet, argsList []struct {
+func makeAgents(argsList []struct {
 	port int
 	join []int
 	test int
@@ -505,7 +492,7 @@ func makeAgents(resources misc.StringSet, argsList []struct {
 		for _, p := range args.join {
 			nodes = append(nodes, fmt.Sprintf("127.0.0.1:%d", p))
 		}
-		res = append(res, TestsMakeMemberlistAgent(resources, args.port, args.test, nodes...))
+		res = append(res, TestsMakeMemberlistAgent(args.port, args.test, nodes...))
 	}
 	return res
 }
