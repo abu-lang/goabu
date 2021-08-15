@@ -277,13 +277,6 @@ func (m *MuSteelExecuter) HasOptimisticInput() bool {
 	return m.optimistInput
 }
 
-func (m *MuSteelExecuter) PrintState() string {
-	m.lockMemory.RLock()
-	mem := m.memory.String()
-	m.lockMemory.RUnlock()
-	return fmt.Sprintf("Memory: %s\nPool: %v\n", mem, m.printPool())
-}
-
 func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
 	// TODO: implement other strategies
 	return m.pool[0], 0
@@ -529,23 +522,6 @@ func (m *MuSteelExecuter) newEmptyGruleStructures(name string) (ast.IDataContext
 	}
 	knowledgeBase.InitializeContext(dataContext)
 	return dataContext, knowledgeBase.WorkingMemory, nil
-}
-
-func (m *MuSteelExecuter) printPool() string {
-	m.lockPool.Lock()
-	defer m.lockPool.Unlock()
-	if len(m.pool) == 0 {
-		return "{}"
-	} else {
-		str := "{"
-		for _, list := range m.pool {
-			str = str + "\n  "
-			for _, action := range list {
-				str = str + action.String()
-			}
-		}
-		return str + "\n}"
-	}
 }
 
 func addList(strs []string, add func(string) error) error {
