@@ -87,7 +87,7 @@ type memberlistAgent struct {
 	lockHalted *sync.Mutex
 }
 
-func MakeMemberlistAgent(names misc.StringSet, port int, nodes []string, lc config.LogConfig) *memberlistAgent {
+func MakeMemberlistAgent(names misc.StringSet, port int, lc config.LogConfig, nodes ...string) *memberlistAgent {
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,
@@ -549,8 +549,8 @@ func (d memberlistAgent) NotifyUpdate(node *memberlist.Node) {
 
 //----------------------------------TESTING-----------------------------------
 
-func TestsMakeMemberlistAgent(names misc.StringSet, port int, nodes []string, test int) *memberlistAgent {
-	res := MakeMemberlistAgent(names, port, nodes, config.TestsLogConfig)
+func TestsMakeMemberlistAgent(names misc.StringSet, port int, test int, nodes ...string) *memberlistAgent {
+	res := MakeMemberlistAgent(names, port, config.TestsLogConfig, nodes...)
 	res.test = test
 	res.lockHalted = &sync.Mutex{}
 	return res
