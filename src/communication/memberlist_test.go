@@ -462,8 +462,6 @@ func checkCorrectStop(t *testing.T, a *memberlistAgent) {
 		t.Error("transactions should be nil")
 	case a.list != nil:
 		t.Error("list should be nil")
-	case a.config != nil:
-		t.Error("config should be nil")
 	case a.quitTransactions != nil:
 		t.Error("quitTransactions should be nil")
 	case a.quitGossip != nil:

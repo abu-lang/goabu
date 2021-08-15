@@ -47,6 +47,7 @@ type memberlistAgent struct {
 	logger       *zap.Logger
 
 	running               bool
+	initialConfig         *memberlist.Config
 	config                *memberlist.Config
 	list                  *memberlist.Memberlist
 	delegate              MemberlistDelegate
@@ -70,14 +71,28 @@ type memberlistAgent struct {
 }
 
 func MakeMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *memberlistAgent {
+	return MakeMemberlistAgentAdvanced(port, nil, nil, lc, nodes...)
+}
+
+func MakeMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *MemberlistDelegate, lc config.LogConfig, nodes ...string) *memberlistAgent {
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,
+		config:                &memberlist.Config{},
 		initialNodes:          nodes,
 		initiatedTransactions: 0,
 		operations:            make(chan chan []byte),
 		operationCommands:     make(chan chan string),
-		delegate:              delegateDefault{},
+	}
+	if cfg != nil {
+		res.initialConfig = cfg
+	} else {
+		res.initialConfig = memberlist.DefaultLocalConfig()
+	}
+	if delegate != nil {
+		res.delegate = *delegate
+	} else {
+		res.delegate = delegateDefault{}
 	}
 	if lc.Encoding == "" {
 		lc.Encoding = "console"
@@ -130,7 +145,7 @@ func (a *memberlistAgent) Start() error {
 	a.coordinatedChannels = make(chan chan transactionChannels)
 	a.trackGossip = make(chan chan *sync.WaitGroup)
 
-	a.config = memberlist.DefaultLocalConfig()
+	*a.config = *a.initialConfig
 	stdLog, err := zap.NewStdLogAt(a.logger, zapcore.DebugLevel)
 	if err != nil {
 		return err
@@ -240,7 +255,7 @@ func (a *memberlistAgent) Stop() error {
 	a.terminated = nil
 	a.transactions = nil
 	a.list = nil
-	a.config = nil
+	a.config = &memberlist.Config{}
 	a.adapter = delegateAdapter{}
 	a.transactionMessages = nil
 	a.quitTransactions = nil
