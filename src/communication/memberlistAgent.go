@@ -1,13 +1,11 @@
 package communication
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"steel-lang/config"
 	"steel-lang/misc"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
@@ -50,34 +48,26 @@ type messageUnion struct {
 }
 
 type memberlistAgent struct {
-	// real time access from delegate
-	localResources misc.StringSet
-	initialNodes   []string
-	registry       resourceRegistry
-	lockRegistry   *sync.RWMutex
-	listPtr        **memberlist.Memberlist
-	terminated     map[string]string
-	transactions   map[string]*transactionInfo
-	logLevel       zap.AtomicLevel
-	logger         *zap.Logger
+	initialNodes []string
+	terminated   map[string]string
+	transactions map[string]*transactionInfo
+	logLevel     zap.AtomicLevel
+	logger       *zap.Logger
 
-	// delegate sees value set in Start()
-	running bool
-	config  *memberlist.Config
-	list    *memberlist.Memberlist
-	// chan Node.Name
-	waitingForRegistry    chan string
-	haltUpdates           chan bool
+	running               bool
+	config                *memberlist.Config
+	list                  *memberlist.Memberlist
+	delegate              MemberlistDelegate
+	adapter               delegateAdapter
 	quitTransactions      chan chan bool
 	quitGossip            chan chan bool
 	quitDemux             chan chan bool
-	pendingUpdates        chan resourceRegistry
 	transactionMessages   chan messageUnion
 	transactionResponses  chan messageUnion
 	coordinatedChannels   chan chan transactionChannels
 	trackGossip           chan chan *sync.WaitGroup
 	initiatedTransactions int
-	// not modified after constructor
+
 	listeningPort     int
 	operations        chan chan []byte
 	operationCommands chan chan string
@@ -91,14 +81,12 @@ func MakeMemberlistAgent(names misc.StringSet, port int, lc config.LogConfig, no
 	res := &memberlistAgent{
 		running:               false,
 		listeningPort:         port,
-		localResources:        names,
 		initialNodes:          nodes,
-		lockRegistry:          &sync.RWMutex{},
 		initiatedTransactions: 0,
 		operations:            make(chan chan []byte),
 		operationCommands:     make(chan chan string),
+		delegate:              defaultDelegate(names),
 	}
-	res.listPtr = &res.list
 	if lc.Encoding == "" {
 		lc.Encoding = "console"
 	}
@@ -140,15 +128,11 @@ func (a *memberlistAgent) Start() error {
 		return err
 	}
 
-	a.registry = makeResourceRegistry(a.localResources, uuid.String(), registrySize)
 	a.terminated = make(map[string]string)
 	a.transactions = make(map[string]*transactionInfo)
-	a.waitingForRegistry = make(chan string, msgBuffLen)
-	a.haltUpdates = make(chan bool)
 	a.quitTransactions = make(chan chan bool)
 	a.quitGossip = make(chan chan bool)
 	a.quitDemux = make(chan chan bool)
-	a.pendingUpdates = make(chan resourceRegistry, msgBuffLen)
 	a.transactionMessages = make(chan messageUnion, msgBuffLen)
 	a.transactionResponses = make(chan messageUnion, msgBuffLen)
 	a.coordinatedChannels = make(chan chan transactionChannels)
@@ -162,18 +146,24 @@ func (a *memberlistAgent) Start() error {
 	a.config.Logger = stdLog
 	a.config.BindPort = a.listeningPort
 	a.config.Name = uuid.String()
-	a.config.Delegate = *a
-	a.config.Events = *a
+
+	a.adapter = a.makeAdapter(a.delegate)
+	a.config.Delegate = a.adapter
+	a.config.Events = a.adapter
+
+	go joiner(a.trackGossip, a.quitGossip)
 
 	// start listening
 	a.list, err = memberlist.Create(a.config)
 	if err != nil {
+		replyCh := make(chan bool)
+		a.quitGossip <- replyCh
+		<-replyCh
 		return err
 	}
 
 	a.running = true
-	go joiner(a.trackGossip, a.quitGossip)
-	go a.handleUpdates()
+	a.adapter.start()
 	go demuxResponses(a.coordinatedChannels, a.transactionResponses, a.quitDemux)
 	go a.handleTransactions()
 	return nil
@@ -229,7 +219,7 @@ func (a *memberlistAgent) Stop() error {
 	<-replyCh
 	fmt.Println("Stopped response demultiplexing")
 	fmt.Println("Stopping update handling...")
-	a.haltUpdates <- true
+	a.adapter.stop()
 	fmt.Println("Stopped update handling")
 	fmt.Println("Gossiping leave...")
 	err := a.list.Leave(a.config.PushPullInterval)
@@ -251,17 +241,17 @@ func (a *memberlistAgent) Stop() error {
 	<-replyCh
 	fmt.Println("Stopped gossip handling")
 
+	// preserve delegate
+	a.delegate = a.adapter.delegate
+
 	// clean up
-	a.registry = nil
 	a.terminated = nil
 	a.transactions = nil
 	a.list = nil
 	a.config = nil
-	a.waitingForRegistry = nil
-	a.pendingUpdates = nil
+	a.adapter = delegateAdapter{}
 	a.transactionMessages = nil
 	a.quitTransactions = nil
-	a.haltUpdates = nil
 	a.quitGossip = nil
 	a.quitDemux = nil
 	a.transactionResponses = nil
@@ -291,54 +281,6 @@ func (a *memberlistAgent) SetLogLevel(l int) {
 	a.logLevel.SetLevel(zapLevel)
 }
 
-func (a *memberlistAgent) handleUpdates() {
-	for {
-		select {
-		case <-a.haltUpdates:
-			return
-		case remoteRegistry := <-a.pendingUpdates:
-			for nodeName, resources := range remoteRegistry {
-				a.lockRegistry.RLock()
-				entry, present := a.registry[nodeName]
-				a.lockRegistry.RUnlock()
-				if !present || (entry != nil && resources == nil) {
-					a.lockRegistry.Lock()
-					if len(a.registry) == registrySize {
-						a.lockRegistry.Unlock()
-						break
-					}
-					a.registry[nodeName] = resources
-					a.lockRegistry.Unlock()
-				}
-			}
-		case destName := <-a.waitingForRegistry:
-			for _, node := range a.list.Members() {
-				if node.Name == destName {
-					message := messageUnion{
-						Type:     "registry_response",
-						Sender:   a.list.LocalNode(),
-						Registry: a.registry,
-					}
-					a.lockRegistry.RLock()
-					localRegistry, err := json.Marshal(message)
-					a.lockRegistry.RUnlock()
-					if err != nil {
-						fmt.Println("error in message marshalling:", err.Error())
-						return
-					}
-					err = a.list.SendReliable(node, localRegistry)
-					if err != nil {
-						fmt.Println("error in sending registry response to", destName, err.Error())
-						return
-					}
-					fmt.Println("sent registry response to", node.Name)
-					break
-				}
-			}
-		}
-	}
-}
-
 //---------------------------------DELEGATES----------------------------------
 
 func joiner(track <-chan chan *sync.WaitGroup, quit <-chan chan bool) {
@@ -356,195 +298,22 @@ func joiner(track <-chan chan *sync.WaitGroup, quit <-chan chan bool) {
 	}
 }
 
-func (d memberlistAgent) register() (*sync.WaitGroup, error) {
-	replyCh := make(chan *sync.WaitGroup)
-	select {
-	case d.trackGossip <- replyCh:
-		return <-replyCh, nil
-	case <-time.After(time.Millisecond * timeoutRegister):
-		return nil, errors.New("timeout in waiting from joiner")
+func (a *memberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
+	return delegateAdapter{
+		listPtr:              &a.list,
+		trackGossip:          a.trackGossip,
+		transactionMessages:  a.transactionMessages,
+		transactionResponses: a.transactionResponses,
+		delegate:             d,
+		members: BaseMembers{
+			Config:          a.config,
+			Terminated:      a.terminated,
+			Transactions:    a.transactions,
+			ListeningPort:   a.listeningPort,
+			Logger:          a.logger,
+			ReceivedActions: a.ReceivedActions,
+		},
 	}
-}
-
-func (d memberlistAgent) NodeMeta(limit int) []byte {
-	return []byte{}
-}
-
-func (d memberlistAgent) NotifyMsg(m []byte) {
-	group, err := d.register()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	defer group.Done()
-
-	var message messageUnion
-	err = json.Unmarshal(m, &message)
-	if err != nil {
-		fmt.Println("error in message unmarshalling:", err.Error())
-		return
-	}
-	switch message.Type {
-	case "registry_request":
-		select {
-		case d.waitingForRegistry <- message.Sender.Name:
-			fmt.Println("received registry request from", message.Sender.Name)
-		default:
-			fmt.Println("discarded incoming registry request from", message.Sender.Name)
-		}
-	case "registry_response":
-		select {
-		case d.pendingUpdates <- message.Registry:
-			fmt.Println("received registry response from", message.Sender.Name)
-		default:
-			fmt.Println("discarded incoming registry response from", message.Sender.Name)
-		}
-	case "interested":
-		fallthrough
-	case "not_interested":
-		fallthrough
-	case "prepared":
-		fallthrough
-	case "aborted":
-		fallthrough
-	case "committed":
-		select {
-		case d.transactionResponses <- message:
-		default:
-			fmt.Println("discarded response from", message.Sender.Name)
-		}
-	default:
-		select {
-		case d.transactionMessages <- message:
-		default:
-			fmt.Println("discarded incoming transaction message from", message.Sender.Name)
-		}
-	}
-}
-
-func (d memberlistAgent) GetBroadcasts(overhead, limit int) [][]byte {
-	return [][]byte{}
-}
-
-func (d memberlistAgent) LocalState(join bool) []byte {
-	group, err := d.register()
-	if err != nil {
-		fmt.Println(err.Error())
-		return []byte{}
-	}
-	defer group.Done()
-
-	if join {
-		d.lockRegistry.RLock()
-		localRegistry, err := json.Marshal(d.registry)
-		d.lockRegistry.RUnlock()
-		if err != nil {
-			fmt.Println("error in registry marshalling:", err.Error())
-			return []byte{}
-		}
-		fmt.Println("join: sending registry")
-		return localRegistry
-	}
-	d.lockRegistry.RLock()
-	inventory := registryInventory{
-		Sender:    (*d.listPtr).LocalNode(),
-		Inventory: d.registry.inventory(),
-	}
-	d.lockRegistry.RUnlock()
-	inventoryMsg, err := json.Marshal(inventory)
-	if err != nil {
-		fmt.Println("error during inventory marshalling:", err.Error())
-		return []byte{}
-	}
-	fmt.Println("sending inventory")
-	return inventoryMsg
-}
-
-func (d memberlistAgent) MergeRemoteState(buf []byte, join bool) {
-	group, err := d.register()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	defer group.Done()
-
-	if join {
-		var remoteRegistry resourceRegistry
-		err := json.Unmarshal(buf, &remoteRegistry)
-		if err != nil {
-			fmt.Println("join: error in registry unmarshalling:", err.Error())
-			return
-		}
-
-		d.lockRegistry.RLock()
-		size := len(d.registry)
-		d.lockRegistry.RUnlock()
-		if size == registrySize {
-			fmt.Println("join: discarded received registry as already reached maximum registry size")
-			return
-		}
-		select {
-		case d.pendingUpdates <- remoteRegistry:
-			fmt.Println("join: received registry")
-		default:
-			fmt.Println("join: discarded received registry")
-		}
-		return
-	}
-	var remoteInventory registryInventory
-	err = json.Unmarshal(buf, &remoteInventory)
-	if err != nil {
-		fmt.Println("error in registry unmarshalling:", err.Error())
-		return
-	}
-	d.lockRegistry.RLock()
-	size := len(d.registry)
-	d.lockRegistry.RUnlock()
-	if size == registrySize {
-		return
-	}
-	d.lockRegistry.RLock()
-	inventory := d.registry.inventory()
-	d.lockRegistry.RUnlock()
-	if !inventory.ContainsSet(remoteInventory.Inventory) {
-		message := messageUnion{
-			Type:   "registry_request",
-			Sender: (*d.listPtr).LocalNode(),
-		}
-		marshalled, err := json.Marshal(message)
-		if err != nil {
-			fmt.Println("error in registry request marshalling:", err.Error())
-			return
-		}
-		err = (*d.listPtr).SendBestEffort(remoteInventory.Sender, marshalled)
-		if err != nil {
-			fmt.Println("error in sending registry request to", remoteInventory.Sender.Name, err.Error())
-		}
-		fmt.Println("sent registry request to", remoteInventory.Sender.Name)
-	}
-}
-
-func (d memberlistAgent) NotifyJoin(node *memberlist.Node) {
-	// do nothing
-}
-
-func (d memberlistAgent) NotifyLeave(node *memberlist.Node) {
-	group, err := d.register()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	defer group.Done()
-
-	d.lockRegistry.Lock()
-	// partially free space
-	d.registry[node.Name] = nil
-	d.lockRegistry.Unlock()
-	fmt.Println(node.Name, "has left")
-}
-
-func (d memberlistAgent) NotifyUpdate(node *memberlist.Node) {
-	// do nothing
 }
 
 //----------------------------------TESTING-----------------------------------

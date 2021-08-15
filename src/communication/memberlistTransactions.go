@@ -113,10 +113,8 @@ func (a *memberlistAgent) interested(tran transactionInfo) []string {
 
 func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
 	waitFor := misc.MakeStringSet("")
-	for _, member := range a.list.Members() {
-		if member.Name != a.list.LocalNode().Name {
-			waitFor.Insert(member.Name)
-		}
+	for _, member := range a.adapter.filterPartecipants(a.list.Members()) {
+		waitFor.Insert(member.Name)
 	}
 	var interested []string
 	for !waitFor.Empty() {
@@ -574,7 +572,7 @@ func (a *memberlistAgent) handleTransactions() {
 
 			default:
 				respond = false
-				a.logger.Error("unsupported message: "+message.Type,
+				a.logger.DPanic("unsupported transaction message: "+message.Type,
 					zap.String("act", "recv"),
 					zap.String("obj", `"`+message.Type+`"`),
 					zap.String("from", message.Sender.Name))

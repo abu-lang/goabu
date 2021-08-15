@@ -48,9 +48,6 @@ func TestMakeMemberlistAgent(t *testing.T) {
 			if agt.operationCommands == nil {
 				t.Error("opeartionCommands should not be nil")
 			}
-			if agt.listPtr != &agt.list {
-				t.Error("listPtr should be pointing to list")
-			}
 			if agt.test != TestsNothing {
 				t.Error("test should be TestNothing")
 			}
@@ -441,8 +438,6 @@ func checkCorrectStart(t *testing.T, a *memberlistAgent, p int) {
 		t.Error("memberlist should be created")
 	}
 	switch {
-	case a.registry == nil:
-		t.Error("registry should not be nil")
 	case a.terminated == nil:
 		t.Error("terminated should not be nil")
 	case len(a.terminated) > 0:
@@ -451,18 +446,12 @@ func checkCorrectStart(t *testing.T, a *memberlistAgent, p int) {
 		t.Error("transactions should not be nil")
 	case len(a.transactions) > 0:
 		t.Error("transactions should be empty")
-	case a.waitingForRegistry == nil:
-		t.Error("waitingForRegistry should not be nil")
-	case a.haltUpdates == nil:
-		t.Error("haltUpdates should not be nil")
 	case a.quitTransactions == nil:
 		t.Error("quitTransactions should not be nil")
 	case a.quitGossip == nil:
 		t.Error("quitGossip should not be nil")
 	case a.quitDemux == nil:
 		t.Error("quitDemux should not be nil")
-	case a.pendingUpdates == nil:
-		t.Error("pendingUpdates should not be nil")
 	case a.transactionMessages == nil:
 		t.Error("transactionMessages should not be nil")
 	case a.transactionResponses == nil:
@@ -480,8 +469,6 @@ func checkCorrectStop(t *testing.T, a *memberlistAgent) {
 		t.Error("should not be running")
 	}
 	switch {
-	case a.registry != nil:
-		t.Error("registry should be nil")
 	case a.terminated != nil:
 		t.Error("terminated should be nil")
 	case a.transactions != nil:
@@ -490,18 +477,12 @@ func checkCorrectStop(t *testing.T, a *memberlistAgent) {
 		t.Error("list should be nil")
 	case a.config != nil:
 		t.Error("config should be nil")
-	case a.waitingForRegistry != nil:
-		t.Error("waitingForRegistry should be nil")
-	case a.haltUpdates != nil:
-		t.Error("haltUpdates should be nil")
 	case a.quitTransactions != nil:
 		t.Error("quitTransactions should be nil")
 	case a.quitGossip != nil:
 		t.Error("quitGossip should be nil")
 	case a.quitDemux != nil:
 		t.Error("quitDemux should be nil")
-	case a.pendingUpdates != nil:
-		t.Error("pendingUpdates should be nil")
 	case a.transactionMessages != nil:
 		t.Error("transactionMessages should be nil")
 	case a.transactionResponses != nil:
