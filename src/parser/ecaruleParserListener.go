@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"steel-lang/datastructure"
+	"steel-lang/ecarule"
 	antlr_parser "steel-lang/parser/antlr"
 
 	"github.com/hyperjumptech/grule-rule-engine/antlr"
@@ -14,7 +14,7 @@ import (
 
 type EcaruleParserListener struct {
 	*antlr.GruleV3ParserListener
-	Rule         *datastructure.Rule
+	Rule         *ecarule.Rule
 	types        map[string]string
 	allowExt     bool
 	inAssignLeft bool
@@ -30,7 +30,7 @@ func NewEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 	res := &EcaruleParserListener{
 		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, ecb),
 		types:                 types,
-		Rule:                  &datastructure.Rule{},
+		Rule:                  &ecarule.Rule{},
 	}
 	res.Stack.Push(res.Rule)
 	return res
@@ -62,7 +62,7 @@ func (l *EcaruleParserListener) EnterEvents(ctx *antlr_parser.EventsContext) {
 	if l.StopParse {
 		return
 	}
-	rule, ok := l.Stack.Peek().(*datastructure.Rule)
+	rule, ok := l.Stack.Peek().(*ecarule.Rule)
 	if !ok {
 		l.parseError(errors.New("syntax error"))
 		return
@@ -80,7 +80,7 @@ func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 	if l.StopParse {
 		return
 	}
-	rule, ok := l.Stack.Peek().(*datastructure.Rule)
+	rule, ok := l.Stack.Peek().(*ecarule.Rule)
 	if !ok {
 		l.parseError(errors.New("syntax error"))
 		return
@@ -103,7 +103,7 @@ func (l *EcaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
 		return
 	}
 	l.Stack.Pop()
-	t, ok := l.Stack.Peek().(*datastructure.Task)
+	t, ok := l.Stack.Peek().(*ecarule.Task)
 	if ok {
 		l.allowExt = t.Mode != "for"
 	} else {

@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"steel-lang/config"
-	"steel-lang/datastructure"
+	"steel-lang/ecarule"
+	"steel-lang/memory"
 	"steel-lang/parser"
 	antlr_parser "steel-lang/parser/antlr"
 	"steel-lang/stringset"
@@ -19,19 +20,19 @@ import (
 )
 
 type State struct {
-	Memory datastructure.Resources
+	Memory memory.Resources
 	Pool   [][]SemanticAction
 }
 
 type MuSteelExecuter struct {
-	memory        datastructure.ResourceController
+	memory        memory.ResourceController
 	lockMemory    sync.RWMutex
 	types         map[string]string
 	pool          [][]SemanticAction
 	coordinator   execCoordinator
 	lockPool      sync.Mutex
-	localLibrary  map[string]datastructure.RuleDict
-	globalLibrary map[string]datastructure.RuleDict
+	localLibrary  map[string]ecarule.RuleDict
+	globalLibrary map[string]ecarule.RuleDict
 	lockRules     sync.Mutex
 
 	workingMemory *ast.WorkingMemory
@@ -47,13 +48,13 @@ type MuSteelExecuter struct {
 	lockOptimistic sync.Mutex
 }
 
-func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
+func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:        mem.Copy(),
 		pool:          make([][]SemanticAction, 0),
 		coordinator:   newCoordinator(),
-		localLibrary:  make(map[string]datastructure.RuleDict),
-		globalLibrary: make(map[string]datastructure.RuleDict),
+		localLibrary:  make(map[string]ecarule.RuleDict),
+		globalLibrary: make(map[string]ecarule.RuleDict),
 		agent:         agt,
 	}
 	if !res.memory.IsValid() {
@@ -382,9 +383,9 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 	return newpool, extActions
 }
 
-func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global datastructure.RuleDict) {
-	local = datastructure.MakeRuleDict()
-	global = datastructure.MakeRuleDict()
+func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global ecarule.RuleDict) {
+	local = ecarule.MakeRuleDict()
+	global = ecarule.MakeRuleDict()
 	m.lockRules.Lock()
 	for _, act := range Xset {
 		local.Add(m.localLibrary[act.Resource])
@@ -395,7 +396,7 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global data
 }
 
 // Precondition: rule.Task.Mode != "for"
-func (m *MuSteelExecuter) preEvaluated(rule *datastructure.Rule) externalAction {
+func (m *MuSteelExecuter) preEvaluated(rule *ecarule.Rule) externalAction {
 	res := externalAction{
 		CondWorkingSet: stringset.Make(""),
 		Constants:      make(map[string]interface{}),
@@ -441,7 +442,7 @@ func (m *MuSteelExecuter) addRuleAux(r string) error {
 	}
 	for _, evt := range rule.Events {
 		if library[evt] == nil {
-			var dict datastructure.RuleDict = datastructure.MakeRuleDict()
+			var dict ecarule.RuleDict = ecarule.MakeRuleDict()
 			library[evt] = dict
 		}
 		library[evt].Insert(rule)
@@ -463,7 +464,7 @@ func (m *MuSteelExecuter) addPool(pl []string) error {
 	return addList(pl, m.addActions)
 }
 
-func (m *MuSteelExecuter) parseRule(r string) (*datastructure.Rule, error) {
+func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
 	m.lockMemory.Lock()
 	defer m.lockMemory.Unlock()
 	var err error
@@ -489,7 +490,7 @@ func (m *MuSteelExecuter) parseRule(r string) (*datastructure.Rule, error) {
 	return listener.Rule, nil
 }
 
-func (m *MuSteelExecuter) parseActions(actions string) ([]datastructure.Action, error) {
+func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error) {
 	m.lockMemory.Lock()
 	defer m.lockMemory.Unlock()
 	var err error

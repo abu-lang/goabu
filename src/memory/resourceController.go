@@ -1,4 +1,4 @@
-package datastructure
+package memory
 
 import "steel-lang/stringset"
 

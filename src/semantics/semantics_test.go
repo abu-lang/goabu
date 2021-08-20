@@ -2,20 +2,20 @@ package semantics
 
 import (
 	"steel-lang/config"
-	"steel-lang/datastructure"
+	"steel-lang/memory"
 	"testing"
 	"time"
 )
 
 func TestNewMuSteelExecuter(t *testing.T) {
-	invalid := datastructure.MakeResources()
+	invalid := memory.MakeResources()
 	invalid.Bool["lorem42"] = false
 	invalid.Float["lorem42"] = 3.14
 	_, err := NewMuSteelExecuter(invalid, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err == nil {
 		t.Error("should return error with invalid memory")
 	}
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Integer["dolor"] = 42
 	memory.Text["sit"] = "amet"
 	started := MakeMockAgent()
@@ -46,7 +46,7 @@ func TestAddRules(t *testing.T) {
 		for all this.trigger != ext.trigger && this.trigger == "activated"
 		do ext.trigger = this.trigger;`
 
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Bool["executed"] = false
 	memory.Text["trigger"] = "activable"
 	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
@@ -81,7 +81,7 @@ func TestAddRules(t *testing.T) {
 }
 
 func TestAddPool(t *testing.T) {
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Float["elit"] = 5.0
 	memory.Integer["consectetur"] = 5
 	memory.Text["adipiscing"] = "eiusmod"
@@ -136,7 +136,7 @@ func TestLocal(t *testing.T) {
 		do  this.cooling = !this.cooling;
 			this.temperature = "NORMAL".ToLower()`
 
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Integer["counter"] = 42
 	memory.Bool["cooling"] = false
 	memory.Text["temperature"] = "low"
@@ -186,7 +186,7 @@ func TestReceiveExternalActions(t *testing.T) {
 			ext.tempor = MakeTime(2000, 1, 1, 0, 0, 0);
 			ext.labore = false `
 
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Float["elit"] = -100.0
 	memory.Integer["consectetur"] = 30
 	memory.Text["adipiscing"] = "sed"
@@ -232,7 +232,7 @@ func TestReceiveExternalActions(t *testing.T) {
 }
 
 func TestForall(t *testing.T) {
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0

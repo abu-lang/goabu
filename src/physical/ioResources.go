@@ -3,7 +3,7 @@ package physical
 import (
 	"errors"
 	"fmt"
-	"steel-lang/datastructure"
+	"steel-lang/memory"
 	"steel-lang/stringset"
 )
 
@@ -14,7 +14,7 @@ type ioResourceMeta struct {
 }
 
 type frame struct {
-	constructor func(IOAdaptor, string, ...interface{}) (IOdelegate, datastructure.Resources, error)
+	constructor func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)
 	ioResourceMeta
 }
 
@@ -25,7 +25,7 @@ type resource struct {
 }
 
 type IOResources struct {
-	datastructure.Resources
+	memory.Resources
 	adaptor   IOAdaptor
 	inputs    chan string
 	errors    chan error
@@ -36,7 +36,7 @@ type IOResources struct {
 
 func MakeEmptyIOResources(a IOAdaptor) *IOResources {
 	return &IOResources{
-		Resources: datastructure.MakeResources(),
+		Resources: memory.MakeResources(),
 		adaptor:   a,
 		inputs:    make(chan string),
 		errors:    make(chan error),
@@ -91,7 +91,7 @@ func (i *IOResources) Modified(r string) {
 	}
 }
 
-func (i *IOResources) Copy() datastructure.ResourceController {
+func (i *IOResources) Copy() memory.ResourceController {
 	return &IOResources{
 		Resources: i.Resources.Copy().GetResources(),
 		adaptor:   i.adaptor,
@@ -102,15 +102,15 @@ func (i *IOResources) Copy() datastructure.ResourceController {
 	}
 }
 
-func (i *IOResources) AddInputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, datastructure.Resources, error)) error {
+func (i *IOResources) AddInputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	return i.addFrame(true, false, t, c)
 }
 
-func (i *IOResources) AddOutputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, datastructure.Resources, error)) error {
+func (i *IOResources) AddOutputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	return i.addFrame(false, true, t, c)
 }
 
-func (i *IOResources) AddInputOutputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, datastructure.Resources, error)) error {
+func (i *IOResources) AddInputOutputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	return i.addFrame(true, true, t, c)
 }
 
@@ -140,7 +140,7 @@ func (i *IOResources) Add(t string, name string, args ...interface{}) error {
 	return nil
 }
 
-func (i *IOResources) addFrame(input, output bool, t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, datastructure.Resources, error)) error {
+func (i *IOResources) addFrame(input, output bool, t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	_, present := i.frames[t]
 	if present {
 		return fmt.Errorf("there is already a frame for type %s", t)

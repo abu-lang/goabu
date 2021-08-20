@@ -3,13 +3,13 @@ package main_test
 import (
 	"steel-lang/communication"
 	"steel-lang/config"
-	"steel-lang/datastructure"
+	"steel-lang/memory"
 	"steel-lang/semantics"
 	"testing"
 )
 
 func TestSingleNode(t *testing.T) {
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
@@ -42,7 +42,7 @@ func TestSingleNode(t *testing.T) {
 }
 
 func TestTwoNodes(t *testing.T) {
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Integer["lorem"] = 5
 	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
 	rules := []string{r}
@@ -81,7 +81,7 @@ func TestTwoNodes(t *testing.T) {
 }
 
 func TestThreeNodes(t *testing.T) {
-	memory := datastructure.MakeResources()
+	memory := memory.MakeResources()
 	memory.Float["ipsum"] = 3.0
 	memory.Bool["involved"] = false
 	r1 := "rule r1 on ipsum default involved = false; for all this.ipsum != ext.ipsum do ext.involved = true ; "

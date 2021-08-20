@@ -1,35 +1,35 @@
-package datastructure_test
+package memory_test
 
 import (
-	"steel-lang/datastructure"
+	"steel-lang/memory"
 	"testing"
 	"time"
 )
 
 func TestIsValid(t *testing.T) {
-	r1 := datastructure.MakeResources()
+	r1 := memory.MakeResources()
 
-	r2 := datastructure.MakeResources()
+	r2 := memory.MakeResources()
 	r2.Integer["Lorem"] = 42
 	r2.Text["ipsum"] = "dolor"
 
-	r3 := datastructure.MakeResources()
+	r3 := memory.MakeResources()
 	r3.Bool["x"] = false
 	r3.Float["y"] = 3.14
-	r3.Other["x"] = datastructure.MakeResources()
+	r3.Other["x"] = memory.MakeResources()
 
-	r4 := datastructure.MakeResources()
+	r4 := memory.MakeResources()
 	r4.Integer[""] = 123
 
-	r5 := datastructure.MakeResources()
+	r5 := memory.MakeResources()
 	r5.Time["10sit"] = time.Now()
 
-	r6 := datastructure.MakeResources()
+	r6 := memory.MakeResources()
 	r6.Text["a,met"] = ""
 
 	tests := []struct {
 		index     int
-		resources datastructure.Resources
+		resources memory.Resources
 		isValid   bool
 	}{
 		//  {_, resources, isValid},

@@ -2,7 +2,7 @@ package delegates
 
 import (
 	"errors"
-	"steel-lang/datastructure"
+	"steel-lang/memory"
 	"steel-lang/physical"
 
 	"gobot.io/x/gobot/drivers/gpio"
@@ -13,19 +13,19 @@ type motor struct {
 	backwardPin string
 }
 
-func MakeMotor(adaptor physical.IOAdaptor, name string, args ...interface{}) (physical.IOdelegate, datastructure.Resources, error) {
+func MakeMotor(adaptor physical.IOAdaptor, name string, args ...interface{}) (physical.IOdelegate, memory.Resources, error) {
 	if len(args) != 2 {
-		return physical.MakeLazyDelegate(), datastructure.MakeResources(), errors.New("motor constructor invocation should have 4 arguments")
+		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("motor constructor invocation should have 4 arguments")
 	}
 	forward, ok := args[0].(string)
 	if !ok {
-		return physical.MakeLazyDelegate(), datastructure.MakeResources(), errors.New("third argument of motor constructor should be a string specifying a pin")
+		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("third argument of motor constructor should be a string specifying a pin")
 	}
 	backward, ok := args[1].(string)
 	if !ok {
-		return physical.MakeLazyDelegate(), datastructure.MakeResources(), errors.New("fourth argument of motor constructor should be a string specifying a pin")
+		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("fourth argument of motor constructor should be a string specifying a pin")
 	}
-	resources := datastructure.MakeResources()
+	resources := memory.MakeResources()
 	resources.Integer[name] = 0
 	return motor{forwardPin: forward, backwardPin: backward}, resources, nil
 }
@@ -34,7 +34,7 @@ func (m motor) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors ch
 	return nil
 }
 
-func (m motor) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources, errors chan<- error) *datastructure.Resources {
+func (m motor) Modified(adaptor physical.IOAdaptor, name string, resources memory.Resources, errors chan<- error) *memory.Resources {
 	speed := resources.Integer[name]
 	forward := speed >= 0
 	if !forward {

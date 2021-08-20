@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"steel-lang/datastructure"
+	"steel-lang/ecarule"
 	"steel-lang/stringset"
 	"strings"
 
@@ -14,7 +14,7 @@ import (
 
 type externalAction struct {
 	Condition      *ast.Expression
-	Actions        []datastructure.Action
+	Actions        []ecarule.Action
 	CondWorkingSet stringset.StringSet
 	WorkingSets    []stringset.StringSet
 	Constants      map[string]interface{}
@@ -24,11 +24,11 @@ type externalAction struct {
 }
 
 func (a externalAction) String() string {
-	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), datastructure.ActionsToStr(a.Actions))
+	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), ecarule.ActionsToStr(a.Actions))
 }
 
-func (a externalAction) cullActions(localResources stringset.StringSet) []datastructure.Action {
-	var res []datastructure.Action
+func (a externalAction) cullActions(localResources stringset.StringSet) []ecarule.Action {
+	var res []ecarule.Action
 	for i, action := range a.Actions {
 		if localResources.ContainsSet(a.WorkingSets[i]) {
 			res = append(res, action)
@@ -37,13 +37,13 @@ func (a externalAction) cullActions(localResources stringset.StringSet) []datast
 	return res
 }
 
-func (a externalAction) preEvaluatedActions(actions []datastructure.Action) []datastructure.Action {
+func (a externalAction) preEvaluatedActions(actions []ecarule.Action) []ecarule.Action {
 	if actions == nil {
 		return nil
 	}
-	res := make([]datastructure.Action, 0, len(actions))
+	res := make([]ecarule.Action, 0, len(actions))
 	for i, action := range actions {
-		res = append(res, datastructure.Action{
+		res = append(res, ecarule.Action{
 			Resource:   action.Resource,
 			Expression: a.preEvaluatedAssignment(action.Expression, a.WorkingSets[i]),
 		})
@@ -157,7 +157,7 @@ func (a externalAction) attachTypesConsts(types map[string]string) {
 	a.attachTypesConstsActions(a.Actions, types)
 }
 
-func (a externalAction) attachTypesConstsActions(actions []datastructure.Action, types map[string]string) {
+func (a externalAction) attachTypesConstsActions(actions []ecarule.Action, types map[string]string) {
 	for _, action := range actions {
 		a.attachTypesConstsAssignment(action.Expression, types)
 	}

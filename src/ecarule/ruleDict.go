@@ -1,4 +1,4 @@
-package datastructure
+package ecarule
 
 type RuleDict map[string]*Rule
 

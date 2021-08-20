@@ -2,7 +2,7 @@ package delegates
 
 import (
 	"errors"
-	"steel-lang/datastructure"
+	"steel-lang/memory"
 	"steel-lang/physical"
 )
 
@@ -10,15 +10,15 @@ type DigitalPin struct {
 	pin string
 }
 
-func MakeDigitalPin(adaptor physical.IOAdaptor, name string, args ...interface{}) (physical.IOdelegate, datastructure.Resources, error) {
+func MakeDigitalPin(adaptor physical.IOAdaptor, name string, args ...interface{}) (physical.IOdelegate, memory.Resources, error) {
 	if len(args) != 1 {
-		return physical.MakeLazyDelegate(), datastructure.MakeResources(), errors.New("digitalPin constructor invocation should have 3 arguments")
+		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("digitalPin constructor invocation should have 3 arguments")
 	}
 	pin, ok := args[0].(string)
 	if !ok {
-		return physical.MakeLazyDelegate(), datastructure.MakeResources(), errors.New("third argument of digitalPin constructor should be a string specifying a pin")
+		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("third argument of digitalPin constructor should be a string specifying a pin")
 	}
-	resources := datastructure.MakeResources()
+	resources := memory.MakeResources()
 	resources.Bool[name] = false
 	return DigitalPin{pin: pin}, resources, nil
 }
@@ -27,7 +27,7 @@ func (p DigitalPin) Start(adaptor physical.IOAdaptor, inputs chan<- string, erro
 	return nil
 }
 
-func (p DigitalPin) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources, errors chan<- error) *datastructure.Resources {
+func (p DigitalPin) Modified(adaptor physical.IOAdaptor, name string, resources memory.Resources, errors chan<- error) *memory.Resources {
 	if resources.Bool[name] {
 		err := adaptor.DigitalWrite(p.pin, 1)
 		if err != nil {
