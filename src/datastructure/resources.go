@@ -2,7 +2,7 @@ package datastructure
 
 import (
 	"fmt"
-	"steel-lang/misc"
+	"steel-lang/stringset"
 	"time"
 )
 
@@ -45,7 +45,7 @@ func (r Resources) InputsNumber() int {
 }
 
 func (r Resources) IsValid() bool {
-	atts := misc.MakeStringSet("")
+	atts := stringset.Make("")
 	for a := range r.Bool {
 		if atts.Contains(a) {
 			return false
@@ -116,8 +116,8 @@ func (r Resources) GetResources() Resources {
 	return r
 }
 
-func (r Resources) ResourceNames() misc.StringSet {
-	atts := misc.MakeStringSet("")
+func (r Resources) ResourceNames() stringset.StringSet {
+	atts := stringset.Make("")
 	for a := range r.Bool {
 		atts.Insert(a)
 	}
@@ -139,7 +139,7 @@ func (r Resources) ResourceNames() misc.StringSet {
 	return atts
 }
 
-func (r Resources) Extract(s misc.StringSet) Resources {
+func (r Resources) Extract(s stringset.StringSet) Resources {
 	res := MakeResources()
 	for k, v := range r.Bool {
 		if s.Contains(k) {
@@ -218,7 +218,7 @@ func (r Resources) String() string {
 	return str + "]"
 }
 
-func (r Resources) Clone() ResourceController {
+func (r Resources) Copy() ResourceController {
 	res := MakeResources()
 	for k, v := range r.Bool {
 		res.Bool[k] = v
@@ -235,6 +235,8 @@ func (r Resources) Clone() ResourceController {
 	for k, v := range r.Time {
 		res.Time[k] = v
 	}
-	res.Other = misc.CopyMap(r.Other)
+	for k, v := range r.Other {
+		res.Other[k] = v
+	}
 	return res
 }

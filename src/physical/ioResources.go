@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"steel-lang/datastructure"
-	"steel-lang/misc"
+	"steel-lang/stringset"
 )
 
 type ioResourceMeta struct {
@@ -21,7 +21,7 @@ type frame struct {
 type resource struct {
 	meta ioResourceMeta
 	IOdelegate
-	managed misc.StringSet
+	managed stringset.StringSet
 }
 
 type IOResources struct {
@@ -91,9 +91,9 @@ func (i *IOResources) Modified(r string) {
 	}
 }
 
-func (i *IOResources) Clone() datastructure.ResourceController {
+func (i *IOResources) Copy() datastructure.ResourceController {
 	return &IOResources{
-		Resources: i.Resources.Clone().GetResources(),
+		Resources: i.Resources.Copy().GetResources(),
 		adaptor:   i.adaptor,
 		inputs:    i.inputs,
 		delegates: i.delegates,

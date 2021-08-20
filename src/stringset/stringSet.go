@@ -1,4 +1,4 @@
-package misc
+package stringset
 
 import (
 	"regexp"
@@ -7,7 +7,7 @@ import (
 
 type StringSet map[string]bool
 
-func MakeStringSet(csv string) StringSet {
+func Make(csv string) StringSet {
 	var res StringSet = make(map[string]bool)
 	if csv == "" {
 		return res
@@ -90,7 +90,7 @@ func (set StringSet) AllMatch(reg string) bool {
 }
 
 func (set StringSet) Clone() StringSet {
-	res := MakeStringSet("")
+	res := Make("")
 	for el := range set {
 		res[el] = true
 	}

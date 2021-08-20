@@ -1,16 +1,16 @@
 package semantics
 
-import "steel-lang/misc"
+import "steel-lang/stringset"
 
 type key int
 
 type execCoordinator interface {
-	requestRead(misc.StringSet) key
+	requestRead(stringset.StringSet) key
 	confirmRead(key) bool
 	closeRead(key)
 
 	requestWrite(bool)
-	fixWorkingSetWrite(misc.StringSet)
+	fixWorkingSetWrite(stringset.StringSet)
 	confirmWrite()
 	closeWrite()
 }

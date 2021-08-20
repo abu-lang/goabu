@@ -3,7 +3,7 @@ package semantics
 import (
 	"fmt"
 	"math"
-	"steel-lang/misc"
+	"steel-lang/stringset"
 	"strings"
 	"time"
 
@@ -22,7 +22,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 	var queue string = ""
 	var l int = 0
 	var timeout <-chan time.Time = nil
-	var queued misc.StringSet = misc.MakeStringSet("")
+	var queued stringset.StringSet = stringset.Make("")
 	for {
 		select {
 		case err := <-errors:
@@ -37,7 +37,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 				queue = ""
 				l = 0
 				timeout = nil
-				queued = misc.MakeStringSet("")
+				queued = stringset.Make("")
 			}
 			queue += action
 			l++
@@ -57,7 +57,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 		queue = ""
 		l = 0
 		timeout = nil
-		queued = misc.MakeStringSet("")
+		queued = stringset.Make("")
 	}
 }
 
@@ -84,11 +84,11 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		return
 	}
 	var sActions [][]SemanticAction
-	localResources := misc.MakeStringSet("")
+	localResources := stringset.Make("")
 	for r := range m.types {
 		localResources.Insert(r)
 	}
-	workingSet := misc.MakeStringSet("")
+	workingSet := stringset.Make("")
 	for _, eAction := range eActions {
 		if localResources.ContainsSet(eAction.CondWorkingSet) {
 			workingSet.Add(eAction.CondWorkingSet)

@@ -1,20 +1,20 @@
-package misc_test
+package stringset_test
 
 import (
-	"steel-lang/misc"
+	"steel-lang/stringset"
 	"testing"
 )
 
-func TestMakeStringSet(t *testing.T) {
-	s1 := misc.MakeStringSet("")
-	s2 := misc.MakeStringSet("Lorem")
-	s3 := misc.MakeStringSet("ipsum,dolor,42")
-	s4 := misc.MakeStringSet(",,,")
-	s5 := misc.MakeStringSet(",amet")
-	s6 := misc.MakeStringSet("consectetur,consectetur")
+func TestMake(t *testing.T) {
+	s1 := stringset.Make("")
+	s2 := stringset.Make("Lorem")
+	s3 := stringset.Make("ipsum,dolor,42")
+	s4 := stringset.Make(",,,")
+	s5 := stringset.Make(",amet")
+	s6 := stringset.Make("consectetur,consectetur")
 	tests := []struct {
 		index    int
-		set      misc.StringSet
+		set      stringset.StringSet
 		empty    bool
 		size     int
 		elements []string
@@ -29,14 +29,14 @@ func TestMakeStringSet(t *testing.T) {
 	}
 	for _, test := range tests {
 		if test.set.Empty() != test.empty {
-			t.Errorf("TestMakeStringSet #%d failed: emptiness", test.index)
+			t.Errorf("TestMake #%d failed: emptiness", test.index)
 		}
 		if test.set.Size() != test.size {
-			t.Errorf("TestMakeStringSet #%d failed: size", test.index)
+			t.Errorf("TestMake #%d failed: size", test.index)
 		}
 		for _, el := range test.elements {
 			if !test.set.Contains(el) {
-				t.Errorf("TestMakeStringSet #%d failed: set does not contains \"%s\"", test.index, el)
+				t.Errorf("TestMake #%d failed: set does not contains \"%s\"", test.index, el)
 			}
 		}
 	}

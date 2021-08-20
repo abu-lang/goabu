@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"steel-lang/misc"
+	"steel-lang/stringset"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -32,7 +32,7 @@ func (t *transactionInfo) id() string {
 }
 
 func (t *transactionInfo) buryPartecipants(members []*memberlist.Node) {
-	alives := misc.MakeStringSet("")
+	alives := stringset.Make("")
 	for _, member := range members {
 		alives.Insert(member.Name)
 	}
@@ -129,7 +129,7 @@ func (a *memberlistAgent) interested(tran transactionInfo) []string {
 }
 
 func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
-	waitFor := misc.MakeStringSet("")
+	waitFor := stringset.Make("")
 	for _, member := range a.adapter.filterPartecipants(a.list.Members()) {
 		waitFor.Insert(member.Name)
 	}
@@ -137,7 +137,7 @@ func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan misc.StringSet)
+		receiversCh := make(chan stringset.StringSet)
 		if a.test == TestsMidInterested {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
@@ -178,7 +178,7 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	if !ok {
 		return errors.New("could not marshal can_commit? message")
 	}
-	receivers := misc.MakeStringSet("")
+	receivers := stringset.Make("")
 	for _, nodeName := range tran.Partecipants {
 		receivers.Insert(nodeName)
 	}
@@ -218,12 +218,12 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	return res
 }
 
-func (a *memberlistAgent) firstPhase(partecipants misc.StringSet, msg []byte, channels transactionChannels) error {
+func (a *memberlistAgent) firstPhase(partecipants stringset.StringSet, msg []byte, channels transactionChannels) error {
 	waitFor := partecipants.Clone()
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan misc.StringSet)
+		receiversCh := make(chan stringset.StringSet)
 		if a.test == TestsMidFirst {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
@@ -262,11 +262,11 @@ func (a *memberlistAgent) firstPhase(partecipants misc.StringSet, msg []byte, ch
 	return nil
 }
 
-func (a *memberlistAgent) secondPhase(waitFor misc.StringSet, msg []byte, responses <-chan string) {
+func (a *memberlistAgent) secondPhase(waitFor stringset.StringSet, msg []byte, responses <-chan string) {
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan misc.StringSet)
+		receiversCh := make(chan stringset.StringSet)
 		if a.test == TestsMidSecond {
 			go a.testsPhaseSend(waitForCopy, msg, false, receiversCh, TestsMidSends)
 		} else {
@@ -292,8 +292,8 @@ func (a *memberlistAgent) secondPhase(waitFor misc.StringSet, msg []byte, respon
 	}
 }
 
-func (a *memberlistAgent) phaseSend(receivers misc.StringSet, msg []byte, reliableSend bool, done chan<- misc.StringSet) {
-	newReceivers := misc.MakeStringSet("")
+func (a *memberlistAgent) phaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet) {
+	newReceivers := stringset.Make("")
 	for _, member := range a.list.Members() {
 		if receivers.Contains(member.Name) {
 			newReceivers.Insert(member.Name)
@@ -310,7 +310,7 @@ func (a *memberlistAgent) phaseSend(receivers misc.StringSet, msg []byte, reliab
 	done <- newReceivers
 }
 
-func (a *memberlistAgent) testsPhaseSend(receivers misc.StringSet, msg []byte, reliableSend bool, done chan<- misc.StringSet, haltAfter int) {
+func (a *memberlistAgent) testsPhaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet, haltAfter int) {
 	selected := make([]*memberlist.Node, 0, haltAfter)
 	sent := 0
 	for _, member := range a.list.Members() {

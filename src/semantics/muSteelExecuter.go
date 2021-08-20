@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"steel-lang/config"
 	"steel-lang/datastructure"
-	"steel-lang/misc"
 	"steel-lang/parser"
 	antlr_parser "steel-lang/parser/antlr"
+	"steel-lang/stringset"
 	"strconv"
 	"sync"
 
@@ -49,7 +49,7 @@ type MuSteelExecuter struct {
 
 func NewMuSteelExecuter(mem datastructure.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
-		memory:        mem.Clone(),
+		memory:        mem.Copy(),
 		pool:          make([][]SemanticAction, 0),
 		coordinator:   newCoordinator(),
 		localLibrary:  make(map[string]datastructure.RuleDict),
@@ -123,14 +123,14 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 }
 
 func (m *MuSteelExecuter) GetState() State {
-	all := misc.MakeStringSet("")
+	all := stringset.Make("")
 	for r := range m.types {
 		all.Insert(r)
 	}
 	for {
 		k := m.coordinator.requestRead(all)
 		m.lockMemory.RLock()
-		memCopy := m.memory.Clone().GetResources()
+		memCopy := m.memory.Copy().GetResources()
 		m.lockMemory.RUnlock()
 		m.lockPool.Lock()
 		poolCopy := make([][]SemanticAction, 0, len(m.pool))
@@ -183,7 +183,7 @@ func (m *MuSteelExecuter) Exec() {
 	actions, index := m.chooseActions()
 	m.lockPool.Unlock()
 	m.logger.Info(fmt.Sprintf("Exec: %v", actions), zap.String("act", "exec"), zap.Array("actions", updateLogger(actions)))
-	workingSet := misc.MakeStringSet("")
+	workingSet := stringset.Make("")
 	for _, action := range actions {
 		workingSet.Insert(action.Resource)
 	}
@@ -201,7 +201,7 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	if err != nil {
 		return err
 	}
-	workingSet := misc.MakeStringSet("")
+	workingSet := stringset.Make("")
 	for _, p := range parsed {
 		workingSet.Insert(p.Resource)
 	}
@@ -397,15 +397,15 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global data
 // Precondition: rule.Task.Mode != "for"
 func (m *MuSteelExecuter) preEvaluated(rule *datastructure.Rule) externalAction {
 	res := externalAction{
-		CondWorkingSet: misc.MakeStringSet(""),
+		CondWorkingSet: stringset.Make(""),
 		Constants:      make(map[string]interface{}),
 		IntConstants:   make(map[string]int64),
 		dataContext:    m.dataContext,
 		workingMemory:  m.workingMemory,
 	}
-	res.WorkingSets = make([]misc.StringSet, 0, len(rule.Task.Actions))
+	res.WorkingSets = make([]stringset.StringSet, 0, len(rule.Task.Actions))
 	for _, action := range rule.Task.Actions {
-		res.WorkingSets = append(res.WorkingSets, misc.MakeStringSet(action.Resource))
+		res.WorkingSets = append(res.WorkingSets, stringset.Make(action.Resource))
 	}
 	res.Condition = res.preEvaluatedExpression(rule.Task.Condition, res.CondWorkingSet)
 	res.Actions = res.preEvaluatedActions(rule.Task.Actions)

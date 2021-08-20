@@ -1,6 +1,6 @@
 package datastructure
 
-import "steel-lang/misc"
+import "steel-lang/stringset"
 
 type ResourceController interface {
 	Start() error
@@ -11,8 +11,8 @@ type ResourceController interface {
 	Has(string) bool
 	GetTypes() map[string]string
 	GetResources() Resources
-	ResourceNames() misc.StringSet
+	ResourceNames() stringset.StringSet
 	InputsNumber() int
 	String() string
-	Clone() ResourceController
+	Copy() ResourceController
 }

@@ -2,18 +2,18 @@ package semantics
 
 import (
 	"container/list"
-	"steel-lang/misc"
+	"steel-lang/stringset"
 	"sync"
 )
 
 type reader struct {
-	workingSet misc.StringSet
+	workingSet stringset.StringSet
 	status     string
 	blocking   bool
 }
 
 type writer struct {
-	workingSet   misc.StringSet
+	workingSet   stringset.StringSet
 	optimistic   bool
 	awaiting     int
 	zeroAwaiting chan struct{}
@@ -35,7 +35,7 @@ func newCoordinator() *coordinator {
 	}
 }
 
-func (c *coordinator) requestRead(ws misc.StringSet) key {
+func (c *coordinator) requestRead(ws stringset.StringSet) key {
 	var e *list.Element = nil
 	for {
 		c.mutex.Lock()
@@ -98,7 +98,7 @@ func (c *coordinator) requestWrite(optimistic bool) {
 	}
 }
 
-func (c *coordinator) fixWorkingSetWrite(ws misc.StringSet) {
+func (c *coordinator) fixWorkingSetWrite(ws stringset.StringSet) {
 	if c.writing.optimistic {
 		c.startOptimistic(ws)
 	} else {
@@ -106,7 +106,7 @@ func (c *coordinator) fixWorkingSetWrite(ws misc.StringSet) {
 	}
 }
 
-func (c *coordinator) startWrite(ws misc.StringSet) {
+func (c *coordinator) startWrite(ws stringset.StringSet) {
 	var e *list.Element = nil
 	for {
 		c.mutex.Lock()
@@ -139,9 +139,9 @@ func (c *coordinator) startWrite(ws misc.StringSet) {
 	}
 }
 
-func (c *coordinator) startOptimistic(ws misc.StringSet) {
+func (c *coordinator) startOptimistic(ws stringset.StringSet) {
 	c.mutex.Lock()
-	cs := misc.MakeStringSet("")
+	cs := stringset.Make("")
 	for r := range ws {
 		if c.readers[r] > 0 {
 			cs.Insert(r)
@@ -184,7 +184,7 @@ func (c *coordinator) confirmRead(k key) bool {
 func (c *coordinator) confirmWrite() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.writing.workingSet = misc.MakeStringSet("")
+	c.writing.workingSet = stringset.Make("")
 	c.wakeNext()
 }
 
