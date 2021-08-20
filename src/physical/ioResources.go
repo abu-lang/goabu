@@ -28,6 +28,7 @@ type IOResources struct {
 	datastructure.Resources
 	adaptor   IOAdaptor
 	inputs    chan string
+	errors    chan error
 	delegates []*resource
 	managers  map[string]*resource
 	frames    map[string]frame
@@ -38,6 +39,7 @@ func MakeEmptyIOResources(a IOAdaptor) *IOResources {
 		Resources: datastructure.MakeResources(),
 		adaptor:   a,
 		inputs:    make(chan string),
+		errors:    make(chan error),
 		managers:  make(map[string]*resource),
 		frames:    make(map[string]frame),
 	}
@@ -49,7 +51,7 @@ func (i *IOResources) Start() error {
 		return err
 	}
 	for _, r := range i.delegates {
-		err = r.Start(i.adaptor, i.inputs)
+		err = r.Start(i.adaptor, i.inputs, i.errors)
 		if err != nil {
 			return err
 		}
@@ -59,6 +61,10 @@ func (i *IOResources) Start() error {
 
 func (i *IOResources) Inputs() <-chan string {
 	return i.inputs
+}
+
+func (i *IOResources) Errors() <-chan error {
+	return i.errors
 }
 
 func (i *IOResources) InputsNumber() int {
@@ -73,14 +79,13 @@ func (i *IOResources) InputsNumber() int {
 
 func (i *IOResources) Modified(r string) {
 	if !i.Has(r) {
-		fmt.Printf("no resource is named: %s\n", r)
 		return
 	}
 	resource, present := i.managers[r]
 	if !present {
 		return
 	}
-	mods := resource.Modified(i.adaptor, r, i.Resources.Extract(resource.managed))
+	mods := resource.Modified(i.adaptor, r, i.Resources.Extract(resource.managed), i.errors)
 	if mods != nil {
 		i.Resources.Enclose(mods.Extract(resource.managed))
 	}

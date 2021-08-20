@@ -1,7 +1,6 @@
 package communication
 
 import (
-	"encoding/json"
 	"errors"
 	"sync"
 	"time"
@@ -67,17 +66,16 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 	defer group.Done()
 
 	var message messageUnion
-	err = json.Unmarshal(m, &message)
-	ok := err == nil
+	ok := message.unmarshal(m)
 	if ok {
 		switch message.Type { // intercept transaction messages
 		case "interested", "not_interested", "prepared", "aborted", "committed":
 			select {
 			case d.transactionResponses <- message:
 			default:
-				d.members.Logger.Warn("dicarded transaction response",
+				d.members.Logger.Warn("Dicarded transaction response",
 					zap.String("act", "discard"),
-					zap.String("obj", "transaction_response"),
+					zap.String("obj", "transaction response"),
 					zap.String("from", message.Sender.Name))
 			}
 			return
@@ -85,9 +83,9 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 			select {
 			case d.transactionMessages <- message:
 			default:
-				d.members.Logger.Warn("dicarded incoming transaction message",
+				d.members.Logger.Warn("Dicarded incoming transaction message",
 					zap.String("act", "discard"),
-					zap.String("obj", "transaction_message"),
+					zap.String("obj", "transaction message"),
 					zap.String("from", message.Sender.Name))
 			}
 			return
@@ -149,9 +147,9 @@ func (d delegateAdapter) NotifyLeave(node *memberlist.Node) {
 	}
 	defer group.Done()
 
-	d.members.Logger.Info(node.Name+" has left",
+	d.members.Logger.Info("Node "+node.Name+" has left",
 		zap.String("act", "leave"),
-		zap.String("node", node.Name))
+		zap.String("subj", node.Name))
 	defer d.members.Logger.Sync()
 
 	d.delegate.NotifyLeave(d.delegateMembers(), node)

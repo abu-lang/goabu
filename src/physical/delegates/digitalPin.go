@@ -23,11 +23,11 @@ func MakeDigitalPin(adaptor physical.IOAdaptor, name string, args ...interface{}
 	return DigitalPin{pin: pin}, resources, nil
 }
 
-func (p DigitalPin) Start(adaptor physical.IOAdaptor, inputs chan<- string) error {
+func (p DigitalPin) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors chan<- error) error {
 	return nil
 }
 
-func (p DigitalPin) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources) *datastructure.Resources {
+func (p DigitalPin) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources, errors chan<- error) *datastructure.Resources {
 	if resources.Bool[name] {
 		err := adaptor.DigitalWrite(p.pin, 1)
 		if err != nil {

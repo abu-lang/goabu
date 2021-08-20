@@ -34,6 +34,10 @@ func (r Resources) Inputs() <-chan string {
 	return nil
 }
 
+func (r Resources) Errors() <-chan error {
+	return nil
+}
+
 func (r Resources) Modified(resource string) {}
 
 func (r Resources) InputsNumber() int {

@@ -27,20 +27,20 @@ func MakeButton(adaptor physical.IOAdaptor, name string, args ...interface{}) (p
 	return Button{name: name, ButtonDriver: gpio.NewButtonDriver(adaptor, pin)}, resources, nil
 }
 
-func (b Button) Start(adaptor physical.IOAdaptor, inputs chan<- string) error {
+func (b Button) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors chan<- error) error {
 	err := b.ButtonDriver.Start()
 	if err != nil {
 		return err
 	}
-	go b.getButtonInput(inputs)
+	go b.getButtonInput(inputs, errors)
 	return nil
 }
 
-func (b Button) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources) *datastructure.Resources {
+func (b Button) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources, errors chan<- error) *datastructure.Resources {
 	return nil
 }
 
-func (b Button) getButtonInput(in chan<- string) {
+func (b Button) getButtonInput(in chan<- string, errs chan<- error) {
 	events := b.Subscribe()
 	status := false
 	push := b.name + " = true;"
@@ -61,7 +61,7 @@ func (b Button) getButtonInput(in chan<- string) {
 				inputs = in
 			}
 		case gpio.Error:
-			fmt.Println(event.Data)
+			errs <- fmt.Errorf("input error on button %s, received: %v", b.name, event.Data)
 		}
 		select {
 		case inputs <- action:

@@ -30,11 +30,11 @@ func MakeMotor(adaptor physical.IOAdaptor, name string, args ...interface{}) (ph
 	return motor{forwardPin: forward, backwardPin: backward}, resources, nil
 }
 
-func (m motor) Start(adaptor physical.IOAdaptor, inputs chan<- string) error {
+func (m motor) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors chan<- error) error {
 	return nil
 }
 
-func (m motor) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources) *datastructure.Resources {
+func (m motor) Modified(adaptor physical.IOAdaptor, name string, resources datastructure.Resources, errors chan<- error) *datastructure.Resources {
 	speed := resources.Integer[name]
 	forward := speed >= 0
 	if !forward {

@@ -1,10 +1,13 @@
 package semantics
 
 import (
+	"fmt"
 	"math"
 	"steel-lang/misc"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const inputsRate float64 = 5.0
@@ -14,6 +17,7 @@ const inputsFlush = 100
 
 func (m *MuSteelExecuter) receiveInputs() {
 	inputs := m.memory.Inputs()
+	errors := m.memory.Errors()
 	queueSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
 	var queue string = ""
 	var l int = 0
@@ -21,6 +25,8 @@ func (m *MuSteelExecuter) receiveInputs() {
 	var queued misc.StringSet = misc.MakeStringSet("")
 	for {
 		select {
+		case err := <-errors:
+			m.logger.Error("I/O error: "+err.Error(), zap.String("act", "io"))
 		case action := <-inputs:
 			resource := strings.TrimSpace(strings.Split(action, "=")[0])
 			if queued.Contains(resource) {
@@ -46,7 +52,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 		}
 		err := m.Input(queue)
 		if err != nil {
-			panic(err)
+			m.logger.Panic(fmt.Sprintf("Could not process input %s: %s", queue, err.Error()), zap.String("act", "io"))
 		}
 		queue = ""
 		l = 0
@@ -68,9 +74,14 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 }
 
 func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh chan string) {
+	defer m.logger.Sync()
 	eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
 	if err != nil {
-		panic(err)
+		m.logger.Error("Error during external actions unmarshalling: "+err.Error(),
+			zap.String("act", "unmarshalling"),
+			zap.String("obj", "external actions"))
+		commandsCh <- "aborted"
+		return
 	}
 	var sActions [][]SemanticAction
 	localResources := misc.MakeStringSet("")
@@ -136,6 +147,7 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		m.lockPool.Lock()
 		m.pool = append(m.pool, sActions...)
 		m.lockPool.Unlock()
+		m.logger.Info("Added external actions", zap.String("act", "add_updates"), zap.Array("updates", poolLogger(sActions)))
 		fallthrough
 	case "do_abort":
 		commandsCh <- "done"

@@ -14,7 +14,6 @@ import (
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
-	"github.com/hyperjumptech/grule-rule-engine/pkg"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -183,16 +182,18 @@ func (m *MuSteelExecuter) Exec() {
 	}
 	actions, index := m.chooseActions()
 	m.lockPool.Unlock()
+	m.logger.Info(fmt.Sprintf("Exec: %v", actions), zap.String("act", "exec"), zap.Array("actions", updateLogger(actions)))
 	workingSet := misc.MakeStringSet("")
 	for _, action := range actions {
 		workingSet.Insert(action.Resource)
 	}
 	m.coordinator.fixWorkingSetWrite(workingSet)
-	fmt.Print("Exec: ")
 	m.lockPool.Lock()
 	m.removeActions(index)
 	m.lockPool.Unlock()
 	m.execActions(actions)
+	m.logger.Debug("Terminated Exec", zap.String("act", "exec"))
+	m.logger.Sync()
 }
 
 func (m *MuSteelExecuter) Input(actions string) error {
@@ -210,8 +211,10 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	m.lockMemory.RLock()
 	sActions := evalActions(parsed, m.dataContext, m.workingMemory)
 	m.lockMemory.RUnlock()
-	fmt.Print("Input: ")
+	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("actions", updateLogger(sActions)))
 	m.execActions(sActions)
+	m.logger.Debug("Processed input", zap.String("act", "input"))
+	m.logger.Sync()
 	return nil
 }
 
@@ -248,7 +251,7 @@ func (m *MuSteelExecuter) SetLogLevel(l int) {
 	case config.LogError:
 		zapLevel = zapcore.ErrorLevel
 	case config.LogFatal:
-		zapLevel = zapcore.DPanicLevel
+		zapLevel = zapcore.PanicLevel
 	}
 	m.logLevel.SetLevel(zapLevel)
 }
@@ -290,49 +293,65 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 		variable = m.workingMemory.AddVariable(variable)
 		currentVal, err := variable.Evaluate(m.dataContext, m.workingMemory)
 		if err != nil {
-			panic(err)
+			m.logger.Panic(fmt.Sprintf("Could not evaluate resource %s: %s", action.Resource, err.Error()),
+				zap.String("act", "eval_var"),
+				zap.String("obj", action.Resource))
 		}
-		diff := false
-		if currentVal.Kind() == reflect.Interface || action.Value.Kind() == reflect.Interface {
-			diff = true
+		if reflect.DeepEqual(currentVal, action.Value) {
+			m.logger.Debug(fmt.Sprintf("Skipping action %v: resource value would not change", action),
+				zap.String("act", "assign"),
+				zap.Object("action", actionLogger(action)))
+			continue
+		}
+		ltype := currentVal.Type()
+		rtype := action.Value.Type()
+		if !rtype.AssignableTo(ltype) {
+			m.logger.DPanic(fmt.Sprintf("Skipping action %v: cannot assign a %v to a %v", action, rtype, ltype),
+				zap.String("act", "assign"),
+				zap.Object("action", actionLogger(action)))
 		} else {
-			eq, err := pkg.EvaluateEqual(currentVal, action.Value)
-			if err != nil {
-				panic(err)
-			}
-			if !eq.Bool() {
-				diff = true
-				ltype := currentVal.Type()
-				rtype := action.Value.Type()
-				if !rtype.AssignableTo(ltype) {
-					panic(fmt.Errorf("cannot assign a %v to a %v", rtype, ltype))
-				}
-			}
-		}
-		if diff {
 			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
 			if err != nil {
-				panic(err)
+				m.logger.Panic("Could not perform assingment: "+err.Error(),
+					zap.String("act", "assign"),
+					zap.Object("action", actionLogger(action)))
 			}
 			m.memory.Modified(action.Resource)
 			Xset = append(Xset, action)
-			fmt.Print(action)
+			m.logger.Debug("Executed action: "+action.String(),
+				zap.String("act", "assign"),
+				zap.Object("action", actionLogger(action)),
+				zap.String("evt", action.Resource))
 		}
 	}
-	fmt.Println()
 	sActions, eActions := m.discovery(Xset)
 	m.lockMemory.Unlock()
 	m.lockPool.Lock()
 	m.pool = append(m.pool, sActions...)
 	m.lockPool.Unlock()
 	m.coordinator.confirmWrite()
+	m.logger.Info(fmt.Sprintf("Discovery found %d updates", len(sActions)),
+		zap.String("act", "discovery"),
+		zap.Array("updates", poolLogger(sActions)))
 	if len(eActions) > 0 {
 		payload, err := marshalExternalActions(eActions)
-		if err == nil {
-			err = m.agent.ForAll(payload)
-		}
 		if err != nil {
-			fmt.Println(err.Error())
+			m.logger.Panic("Error during external actions marshalling: "+err.Error(),
+				zap.String("act", "marshalling"),
+				zap.String("obj", "external actions"))
+		}
+		tentatives := 0
+		for {
+			err = m.agent.ForAll(payload)
+			if err == nil {
+				break
+			}
+			tentatives++
+			if tentatives%10 == 0 {
+				m.logger.Error(fmt.Sprintf("Failed %d transactions", tentatives),
+					zap.String("act", "for_all"),
+					zap.Int("transactions", tentatives))
+			}
 		}
 	}
 }
@@ -427,6 +446,7 @@ func (m *MuSteelExecuter) addRuleAux(r string) error {
 		}
 		library[evt].Insert(rule)
 	}
+	m.logger.Debug("Introduced new rule", zap.String("act", "add_rule"), zap.String("obj", r))
 	return nil
 }
 

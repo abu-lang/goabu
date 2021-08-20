@@ -1,8 +1,8 @@
 package communication
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"steel-lang/config"
 	"sync"
 
@@ -37,6 +37,22 @@ type messageUnion struct {
 	Sender *memberlist.Node
 
 	Transaction transactionInfo
+}
+
+func (m *messageUnion) marshal(obj string, logger *zap.Logger) ([]byte, bool) {
+	res, err := json.Marshal(*m)
+	if err != nil {
+		logger.Error("Error during marshalling: "+err.Error(),
+			zap.String("act", "marshalling"),
+			zap.String("obj", obj))
+		return nil, false
+	}
+	return res, true
+}
+
+func (m *messageUnion) unmarshal(bs []byte) bool {
+	err := json.Unmarshal(bs, m)
+	return err == nil
 }
 
 type memberlistAgent struct {
@@ -117,7 +133,9 @@ func MakeMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *Mem
 	}
 	res.SetLogLevel(lc.Level)
 	if !ok {
-		res.logger.Warn("could not load memberlistAgent logger config")
+		res.logger.Warn("Could not load memberlistAgent logger config",
+			zap.String("act", "load"),
+			zap.String("obj", "agent logger config"))
 	}
 	return res
 }
@@ -171,7 +189,7 @@ func (a *memberlistAgent) Start() error {
 
 	a.running = true
 	a.adapter.start()
-	go demuxResponses(a.coordinatedChannels, a.transactionResponses, a.quitDemux)
+	go demuxResponses(a.coordinatedChannels, a.transactionResponses, a.quitDemux, a.logger)
 	go a.handleTransactions()
 	return nil
 }
@@ -199,7 +217,7 @@ func (a *memberlistAgent) ForAll(payload []byte) error {
 	a.initiatedTransactions++
 	info.Partecipants = a.interested(info)
 	if len(info.Partecipants) == 0 {
-		fmt.Println("terminated transaction: none interested")
+		a.logger.Debug("Terminated transaction: none interested", zap.String("act", "end_tran"), zap.Int("partecipants", 0))
 		return nil
 	}
 	return a.coordinateTransaction(info)
@@ -214,39 +232,46 @@ func (a *memberlistAgent) Stop() error {
 		return errors.New("agent is not running")
 	}
 
-	fmt.Println("Stopping transaction handling...")
+	a.logStopping("transaction handling")
 	replyCh := make(chan bool)
 	a.quitTransactions <- replyCh
 	<-replyCh
 	a.operations <- nil
-	fmt.Println("Stopped transaction handling")
-	fmt.Println("Stopping response demultiplexing...")
+	a.logStopped("transaction handling")
+
+	a.logStopping("response demultiplexing")
 	replyCh = make(chan bool)
 	a.quitDemux <- replyCh
 	<-replyCh
-	fmt.Println("Stopped response demultiplexing")
-	fmt.Println("Stopping update handling...")
+	a.logStopped("response demultiplexing")
+
+	a.logStopping("delegate")
 	a.adapter.stop()
-	fmt.Println("Stopped update handling")
-	fmt.Println("Gossiping leave...")
+	a.logStopped("delegate")
+
+	a.logger.Debug("Gossiping leave...", zap.String("act", "gossip"), zap.String("obj", "leave"))
 	err := a.list.Leave(a.config.PushPullInterval)
 	if err != nil {
-		fmt.Println("error in gossiping leave:", err.Error())
+		a.logger.Warn("Error in gossiping leave: "+err.Error(), zap.String("act", "gossip"), zap.String("obj", "leave"))
 	} else {
-		fmt.Println("Gossiped leave")
+		a.logger.Debug("Gossiped leave", zap.String("act", "gossip"), zap.String("obj", "leave"))
 	}
-	fmt.Println("Detaching from group...")
+
+	a.logger.Debug("Leaving group...", zap.String("act", "leave"))
 	err = a.list.Shutdown() // v0.2.4 always returns nil
 	if err != nil {
-		fmt.Println("error in leaving group:", err.Error())
+		a.logger.Error("Error in leaving group: "+err.Error(), zap.String("act", "leave"))
 	} else {
-		fmt.Println("Left group")
+		a.logger.Debug("Left group", zap.String("act", "leave"))
 	}
-	fmt.Println("Stopping gossip handling...")
+
+	a.logStopping("gossip handling")
 	replyCh = make(chan bool)
 	a.quitGossip <- replyCh
 	<-replyCh
-	fmt.Println("Stopped gossip handling")
+	a.logStopped("gossip handling")
+	a.logger.Info("Stopped agent", zap.String("act", "stop"), zap.String("obj", a.config.Name))
+	a.logger.Sync()
 
 	// preserve delegate
 	a.delegate = a.adapter.delegate
@@ -286,6 +311,18 @@ func (a *memberlistAgent) SetLogLevel(l int) {
 		zapLevel = zapcore.DPanicLevel
 	}
 	a.logLevel.SetLevel(zapLevel)
+}
+
+func (a *memberlistAgent) logStopping(proc string) {
+	a.logger.Debug("Stopping "+proc+"...",
+		zap.String("act", "stop"),
+		zap.String("obj", proc))
+}
+
+func (a *memberlistAgent) logStopped(proc string) {
+	a.logger.Debug("Stopped "+proc,
+		zap.String("act", "stop"),
+		zap.String("obj", proc))
 }
 
 //---------------------------------DELEGATES----------------------------------

@@ -27,9 +27,9 @@ func (d delegateDefault) NodeMeta(b BaseMembers, limit int) []byte {
 }
 
 func (d delegateDefault) NotifyMsg(b BaseMembers, m []byte) {
-	b.Logger.Error("unsupported message",
+	b.Logger.Error("Unsupported message",
 		zap.String("act", "recv"),
-		zap.String("obj", string(m)))
+		zap.Binary("obj", m))
 }
 
 func (d delegateDefault) GetBroadcasts(b BaseMembers, overhead, limit int) [][]byte {
