@@ -99,7 +99,7 @@ func (t transactionChannels) line(response string) chan<- string {
 	return nil
 }
 
-func (a *memberlistAgent) interested(tran transactionInfo) []string {
+func (a *MemberlistAgent) interested(tran transactionInfo) []string {
 	message := messageUnion{
 		Type:        "interested?",
 		Sender:      a.list.LocalNode(),
@@ -128,7 +128,7 @@ func (a *memberlistAgent) interested(tran transactionInfo) []string {
 	return res
 }
 
-func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
+func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
 	waitFor := stringset.Make("")
 	for _, member := range a.adapter.filterPartecipants(a.list.Members()) {
 		waitFor.Insert(member.Name)
@@ -161,14 +161,14 @@ func (a *memberlistAgent) interestPhase(msg []byte, channels transactionChannels
 				break INTERESTED
 			}
 			if a.test == TestsMidInterested && received >= TestsMidSends {
-				a.testsHalt()
+				a.testsHaltAndBlock()
 			}
 		}
 	}
 	return interested
 }
 
-func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
+func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	canCommit := messageUnion{
 		Type:        "can_commit?",
 		Sender:      a.list.LocalNode(),
@@ -218,7 +218,7 @@ func (a *memberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	return res
 }
 
-func (a *memberlistAgent) firstPhase(partecipants stringset.StringSet, msg []byte, channels transactionChannels) error {
+func (a *MemberlistAgent) firstPhase(partecipants stringset.StringSet, msg []byte, channels transactionChannels) error {
 	waitFor := partecipants.Clone()
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
@@ -255,14 +255,14 @@ func (a *memberlistAgent) firstPhase(partecipants stringset.StringSet, msg []byt
 				break GET_RESPONSES_1
 			}
 			if a.test == TestsMidFirst && received >= TestsMidSends {
-				a.testsHalt()
+				a.testsHaltAndBlock()
 			}
 		}
 	}
 	return nil
 }
 
-func (a *memberlistAgent) secondPhase(waitFor stringset.StringSet, msg []byte, responses <-chan string) {
+func (a *MemberlistAgent) secondPhase(waitFor stringset.StringSet, msg []byte, responses <-chan string) {
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
@@ -286,13 +286,13 @@ func (a *memberlistAgent) secondPhase(waitFor stringset.StringSet, msg []byte, r
 				break GET_RESPONSES_2
 			}
 			if a.test == TestsMidSecond && received >= TestsMidSends {
-				a.testsHalt()
+				a.testsHaltAndBlock()
 			}
 		}
 	}
 }
 
-func (a *memberlistAgent) phaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet) {
+func (a *MemberlistAgent) phaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet) {
 	newReceivers := stringset.Make("")
 	for _, member := range a.list.Members() {
 		if receivers.Contains(member.Name) {
@@ -310,7 +310,7 @@ func (a *memberlistAgent) phaseSend(receivers stringset.StringSet, msg []byte, r
 	done <- newReceivers
 }
 
-func (a *memberlistAgent) testsPhaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet, haltAfter int) {
+func (a *MemberlistAgent) testsPhaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet, haltAfter int) {
 	selected := make([]*memberlist.Node, 0, haltAfter)
 	sent := 0
 	for _, member := range a.list.Members() {
@@ -388,7 +388,7 @@ func demuxResponses(coordinated <-chan chan transactionChannels, responses <-cha
 
 }
 
-func (a *memberlistAgent) handleTransactions() {
+func (a *MemberlistAgent) handleTransactions() {
 	stopping := false
 	for {
 		select {
@@ -587,7 +587,7 @@ func (a *memberlistAgent) handleTransactions() {
 	}
 }
 
-func (a *memberlistAgent) getStatus(id string) string {
+func (a *MemberlistAgent) getStatus(id string) string {
 	outcome, present := a.terminated[id]
 	if present {
 		return outcome
@@ -602,7 +602,7 @@ func (a *memberlistAgent) getStatus(id string) string {
 	return "prepared"
 }
 
-func (a *memberlistAgent) abort(id string) {
+func (a *MemberlistAgent) abort(id string) {
 	tran, present := a.transactions[id]
 	if !present {
 		a.logger.Panic("Called abort for non-existent transaction")
@@ -614,7 +614,7 @@ func (a *memberlistAgent) abort(id string) {
 	delete(a.transactions, id)
 }
 
-func (a *memberlistAgent) commit(id string) {
+func (a *MemberlistAgent) commit(id string) {
 	tran, present := a.transactions[id]
 	if !present {
 		a.logger.Panic("Called commit for non-existent transaction")
@@ -626,7 +626,7 @@ func (a *memberlistAgent) commit(id string) {
 	delete(a.transactions, id)
 }
 
-func (a *memberlistAgent) monitorTransaction(transaction transactionInfo) {
+func (a *MemberlistAgent) monitorTransaction(transaction transactionInfo) {
 	message := messageUnion{
 		Type:        "get_decision",
 		Sender:      a.list.LocalNode(),

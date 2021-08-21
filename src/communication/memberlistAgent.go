@@ -55,7 +55,7 @@ func (m *messageUnion) unmarshal(bs []byte) bool {
 	return err == nil
 }
 
-type memberlistAgent struct {
+type MemberlistAgent struct {
 	initialNodes []string
 	terminated   map[string]string
 	transactions map[string]*transactionInfo
@@ -86,12 +86,12 @@ type memberlistAgent struct {
 	lockHalted *sync.Mutex
 }
 
-func MakeMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *memberlistAgent {
+func MakeMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *MemberlistAgent {
 	return MakeMemberlistAgentAdvanced(port, nil, nil, lc, nodes...)
 }
 
-func MakeMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *MemberlistDelegate, lc config.LogConfig, nodes ...string) *memberlistAgent {
-	res := &memberlistAgent{
+func MakeMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *MemberlistDelegate, lc config.LogConfig, nodes ...string) *MemberlistAgent {
+	res := &MemberlistAgent{
 		running:               false,
 		listeningPort:         port,
 		config:                &memberlist.Config{},
@@ -128,23 +128,23 @@ func MakeMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *Mem
 			res.logger, err = zapCfg.Build()
 		}
 		if err != nil {
-			panic("could not create memberlistAgent logger")
+			panic("could not create MemberlistAgent logger")
 		}
 	}
 	res.SetLogLevel(lc.Level)
 	if !ok {
-		res.logger.Warn("Could not load memberlistAgent logger config",
+		res.logger.Warn("Could not load MemberlistAgent logger config",
 			zap.String("act", "load"),
 			zap.String("obj", "agent logger config"))
 	}
 	return res
 }
 
-func (a *memberlistAgent) IsRunning() bool {
+func (a *MemberlistAgent) IsRunning() bool {
 	return a.running
 }
 
-func (a *memberlistAgent) Start() error {
+func (a *MemberlistAgent) Start() error {
 	if a.running {
 		return errors.New("agent is already running")
 	}
@@ -194,7 +194,7 @@ func (a *memberlistAgent) Start() error {
 	return nil
 }
 
-func (a *memberlistAgent) Join() error {
+func (a *MemberlistAgent) Join() error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
@@ -205,7 +205,7 @@ func (a *memberlistAgent) Join() error {
 	return nil
 }
 
-func (a *memberlistAgent) ForAll(payload []byte) error {
+func (a *MemberlistAgent) ForAll(payload []byte) error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
@@ -223,11 +223,11 @@ func (a *memberlistAgent) ForAll(payload []byte) error {
 	return a.coordinateTransaction(info)
 }
 
-func (a *memberlistAgent) ReceivedActions() (<-chan chan []byte, <-chan chan string) {
+func (a *MemberlistAgent) ReceivedActions() (<-chan chan []byte, <-chan chan string) {
 	return a.operations, a.operationCommands
 }
 
-func (a *memberlistAgent) Stop() error {
+func (a *MemberlistAgent) Stop() error {
 	if !a.running {
 		return errors.New("agent is not running")
 	}
@@ -293,7 +293,7 @@ func (a *memberlistAgent) Stop() error {
 	return nil
 }
 
-func (a *memberlistAgent) SetLogLevel(l int) {
+func (a *MemberlistAgent) SetLogLevel(l int) {
 	if l < config.LogDebug {
 		l = config.LogDebug
 	} else if l > config.LogFatal {
@@ -313,13 +313,13 @@ func (a *memberlistAgent) SetLogLevel(l int) {
 	a.logLevel.SetLevel(zapLevel)
 }
 
-func (a *memberlistAgent) logStopping(proc string) {
+func (a *MemberlistAgent) logStopping(proc string) {
 	a.logger.Debug("Stopping "+proc+"...",
 		zap.String("act", "stop"),
 		zap.String("obj", proc))
 }
 
-func (a *memberlistAgent) logStopped(proc string) {
+func (a *MemberlistAgent) logStopped(proc string) {
 	a.logger.Debug("Stopped "+proc,
 		zap.String("act", "stop"),
 		zap.String("obj", proc))
@@ -342,7 +342,7 @@ func joiner(track <-chan chan *sync.WaitGroup, quit <-chan chan bool) {
 	}
 }
 
-func (a *memberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
+func (a *MemberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 	return delegateAdapter{
 		listPtr:              &a.list,
 		trackGossip:          a.trackGossip,
@@ -362,28 +362,28 @@ func (a *memberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 
 //----------------------------------TESTING-----------------------------------
 
-func TestsMakeMemberlistAgent(port int, test int, nodes ...string) *memberlistAgent {
+func TestsMakeMemberlistAgent(port int, test int, nodes ...string) *MemberlistAgent {
 	res := MakeMemberlistAgent(port, config.TestsLogConfig, nodes...)
 	res.test = test
 	res.lockHalted = &sync.Mutex{}
 	return res
 }
 
-func (a *memberlistAgent) TestsHaltReturn() {
+func (a *MemberlistAgent) TestsHalt() {
 	a.list.Shutdown()
 	a.lockHalted.Lock()
 	a.halted = true
 	a.lockHalted.Unlock()
 }
 
-func (a *memberlistAgent) testsHalt() {
-	a.TestsHaltReturn()
+func (a *MemberlistAgent) testsHaltAndBlock() {
+	a.TestsHalt()
 	var block chan bool = nil
 	<-block
 }
 
-func (a *memberlistAgent) testsHaltIf(t int) {
+func (a *MemberlistAgent) testsHaltIf(t int) {
 	if a.test == t {
-		a.testsHalt()
+		a.testsHaltAndBlock()
 	}
 }

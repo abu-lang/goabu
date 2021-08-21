@@ -105,7 +105,7 @@ func TestJoin(t *testing.T) {
 		{10, 10107, []string{"127.0.0.1:10101", "127.0.0.1:10102"}, false, false},
 		{11, 10108, []string{".,>Z><<-@#00asdfg"}, false, false},
 	}
-	dummy := make([]*memberlistAgent, 0, len(tests))
+	dummy := make([]*MemberlistAgent, 0, len(tests))
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestJoin#%d", test.index), func(t *testing.T) {
 			dummy = append(dummy, MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...))
@@ -346,7 +346,7 @@ func TestDeadlockExample(t *testing.T) {
 		}
 	}
 	t.Log("Cluster is up, starting 2 transactions")
-	waitTran := func(agt *memberlistAgent) <-chan bool {
+	waitTran := func(agt *MemberlistAgent) <-chan bool {
 		res := make(chan bool)
 		go func() {
 			err := agt.ForAll(payload)
@@ -369,7 +369,7 @@ func TestDeadlockExample(t *testing.T) {
 	fmt.Printf("%d agents: no deadlock happened\n", len(agents)) // gc
 }
 
-func start(t *testing.T, a *memberlistAgent, p int) {
+func start(t *testing.T, a *MemberlistAgent, p int) {
 	t.Helper()
 	err := a.Start()
 	if err != nil {
@@ -378,7 +378,7 @@ func start(t *testing.T, a *memberlistAgent, p int) {
 	checkCorrectStart(t, a, p)
 }
 
-func stop(t *testing.T, a *memberlistAgent) {
+func stop(t *testing.T, a *MemberlistAgent) {
 	t.Helper()
 	err := a.Stop()
 	if err != nil {
@@ -387,13 +387,13 @@ func stop(t *testing.T, a *memberlistAgent) {
 	checkCorrectStop(t, a)
 }
 
-func restart(t *testing.T, a *memberlistAgent, p int) {
+func restart(t *testing.T, a *MemberlistAgent, p int) {
 	t.Helper()
 	stop(t, a)
 	start(t, a, p)
 }
 
-func localForAll(t *testing.T, a *memberlistAgent, payload []byte, interested bool) <-chan bool {
+func localForAll(t *testing.T, a *MemberlistAgent, payload []byte, interested bool) <-chan bool {
 	t.Helper()
 	ops, cmds := a.ReceivedActions()
 	var res <-chan bool
@@ -409,7 +409,7 @@ func localForAll(t *testing.T, a *memberlistAgent, payload []byte, interested bo
 	return res
 }
 
-func checkCorrectStart(t *testing.T, a *memberlistAgent, p int) {
+func checkCorrectStart(t *testing.T, a *MemberlistAgent, p int) {
 	t.Helper()
 	if !a.IsRunning() {
 		t.Error("should be running")
@@ -450,7 +450,7 @@ func checkCorrectStart(t *testing.T, a *memberlistAgent, p int) {
 	}
 }
 
-func checkCorrectStop(t *testing.T, a *memberlistAgent) {
+func checkCorrectStop(t *testing.T, a *MemberlistAgent) {
 	t.Helper()
 	if a.IsRunning() {
 		t.Error("should not be running")
@@ -483,8 +483,8 @@ func makeAgents(argsList []struct {
 	port int
 	join []int
 	test int
-}) []*memberlistAgent {
-	res := make([]*memberlistAgent, 0, len(argsList))
+}) []*MemberlistAgent {
+	res := make([]*MemberlistAgent, 0, len(argsList))
 	for _, args := range argsList {
 		nodes := make([]string, 0, len(args.join))
 		for _, p := range args.join {
@@ -495,7 +495,7 @@ func makeAgents(argsList []struct {
 	return res
 }
 
-func transactionHelper(t *testing.T, agents []*memberlistAgent, payload []byte, outcome int) {
+func transactionHelper(t *testing.T, agents []*MemberlistAgent, payload []byte, outcome int) {
 	t.Helper()
 	if len(agents) == 0 {
 		return
@@ -570,9 +570,9 @@ func transactionHelper(t *testing.T, agents []*memberlistAgent, payload []byte, 
 	}
 }
 
-func startPartecipantDetector(payload []byte, a *memberlistAgent) <-chan bool {
+func startPartecipantDetector(payload []byte, a *MemberlistAgent) <-chan bool {
 	res := make(chan bool)
-	go func(status chan<- bool, payload []byte, a *memberlistAgent) {
+	go func() {
 		halted := make(chan bool)
 		requests, commandRequests := a.ReceivedActions()
 		go func() {
@@ -593,7 +593,7 @@ func startPartecipantDetector(payload []byte, a *memberlistAgent) <-chan bool {
 				panic(errors.New("received wrong payload"))
 			}
 			commandsCh <- "interested"
-			status <- true
+			res <- true
 			switch <-commandsCh {
 			case "can_commit?":
 				commandsCh <- "prepared"
@@ -604,15 +604,15 @@ func startPartecipantDetector(payload []byte, a *memberlistAgent) <-chan bool {
 			<-commandsCh
 			commandsCh <- "done"
 		case <-halted:
-			status <- false
+			res <- false
 		}
-	}(res, payload, a)
+	}()
 	return res
 }
 
 func startMockCommit(payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan int {
 	res := make(chan int)
-	go func(status chan<- int, payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) {
+	go func() {
 		actionsCh := <-requests
 		commandsCh := <-commandRequests
 		if !bytes.Equal(<-actionsCh, payload) {
@@ -624,32 +624,32 @@ func startMockCommit(payload []byte, requests <-chan chan []byte, commandRequest
 			commandsCh <- "prepared"
 		case "do_abort":
 			commandsCh <- "done"
-			defer func() { status <- TestResAbort }()
+			defer func() { res <- TestResAbort }()
 			return
 		default:
 			panic(errors.New("illegal command"))
 		}
 		switch <-commandsCh {
 		case "do_commit":
-			defer func() { status <- TestResCommit }()
+			defer func() { res <- TestResCommit }()
 		case "do_abort":
-			defer func() { status <- TestResAbort }()
+			defer func() { res <- TestResAbort }()
 		default:
 			panic(errors.New("illegal command"))
 		}
 		commandsCh <- "done"
-	}(res, payload, requests, commandRequests)
+	}()
 	return res
 }
 
 func startMockInterested(payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan bool {
 	res := make(chan bool)
-	go func(status chan<- bool, payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) {
+	go func() {
 		good := true
 		for {
 			actionsCh := <-requests
 			if actionsCh == nil {
-				defer func() { status <- good }()
+				defer func() { res <- good }()
 				return
 			}
 			commandsCh := <-commandRequests
@@ -667,18 +667,18 @@ func startMockInterested(payload []byte, requests <-chan chan []byte, commandReq
 			<-commandsCh
 			commandsCh <- "done"
 		}
-	}(res, payload, requests, commandRequests)
+	}()
 	return res
 }
 
 func startMockUninterested(payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) <-chan bool {
 	res := make(chan bool)
-	go func(status chan<- bool, payload []byte, requests <-chan chan []byte, commandRequests <-chan chan string) {
+	go func() {
 		good := true
 		for {
 			actionsCh := <-requests
 			if actionsCh == nil {
-				defer func() { status <- good }()
+				defer func() { res <- good }()
 				return
 			}
 			commandsCh := <-commandRequests
@@ -687,7 +687,7 @@ func startMockUninterested(payload []byte, requests <-chan chan []byte, commandR
 			}
 			commandsCh <- "not_interested"
 		}
-	}(res, payload, requests, commandRequests)
+	}()
 	return res
 }
 
@@ -696,7 +696,7 @@ func startMockExec(requests <-chan chan []byte, commandRequests <-chan chan stri
 		for {
 			actionsCh := <-requests
 			commandsCh := <-commandRequests
-			go func(actionsCh <-chan []byte, commandsCh chan string) {
+			go func() {
 				<-actionsCh
 				commandsCh <- "interested"
 				switch <-commandsCh {
@@ -714,7 +714,7 @@ func startMockExec(requests <-chan chan []byte, commandRequests <-chan chan stri
 					panic(errors.New("illegal command"))
 				}
 				commandsCh <- "done"
-			}(actionsCh, commandsCh)
+			}()
 		}
 	}()
 }
