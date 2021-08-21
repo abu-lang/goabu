@@ -16,7 +16,7 @@ const (
 	TestResAbort
 )
 
-func TestMakeMemberlistAgent(t *testing.T) {
+func TestNewMemberlistAgent(t *testing.T) {
 	tests := []struct {
 		index int
 		port  int
@@ -29,8 +29,8 @@ func TestMakeMemberlistAgent(t *testing.T) {
 		{4, 8102, []string{"127.0.0.1:8150,127.0.0.1:8151"}},
 	}
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("TestMakeMemberlistAgent#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
+		t.Run(fmt.Sprintf("TestNewMemberlistAgent#%d", test.index), func(t *testing.T) {
+			agt := NewMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
 			if agt.IsRunning() {
 				t.Error("agent should not be running")
 			}
@@ -74,7 +74,7 @@ func TestStart(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestStart#%d", test.index), func(t *testing.T) {
-			agt := MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
+			agt := NewMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
 			start(t, agt, test.port)
 			err := agt.Start()
 			if err == nil {
@@ -108,7 +108,7 @@ func TestJoin(t *testing.T) {
 	dummy := make([]*MemberlistAgent, 0, len(tests))
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestJoin#%d", test.index), func(t *testing.T) {
-			dummy = append(dummy, MakeMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...))
+			dummy = append(dummy, NewMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...))
 			agt := dummy[i]
 			if test.start {
 				start(t, agt, test.port)
@@ -138,7 +138,7 @@ func TestJoin(t *testing.T) {
 
 func TestForAll(t *testing.T) {
 	const port = 0
-	a := MakeMemberlistAgent(port, config.TestsLogConfig)
+	a := NewMemberlistAgent(port, config.TestsLogConfig)
 	checkCorrectStop(t, a)
 	err := a.ForAll([]byte(`lorem`))
 	if err == nil {
@@ -159,7 +159,7 @@ func TestForAll(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	const port = 11100
-	a := MakeMemberlistAgent(port, config.TestsLogConfig)
+	a := NewMemberlistAgent(port, config.TestsLogConfig)
 	if a.Stop() == nil {
 		t.Error("should return error when agent is not running")
 	}
@@ -490,7 +490,7 @@ func makeAgents(argsList []struct {
 		for _, p := range args.join {
 			nodes = append(nodes, fmt.Sprintf("127.0.0.1:%d", p))
 		}
-		res = append(res, TestsMakeMemberlistAgent(args.port, args.test, nodes...))
+		res = append(res, TestsNewMemberlistAgent(args.port, args.test, nodes...))
 	}
 	return res
 }

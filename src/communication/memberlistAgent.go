@@ -86,11 +86,11 @@ type MemberlistAgent struct {
 	lockHalted *sync.Mutex
 }
 
-func MakeMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *MemberlistAgent {
-	return MakeMemberlistAgentAdvanced(port, nil, nil, lc, nodes...)
+func NewMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *MemberlistAgent {
+	return NewMemberlistAgentAdvanced(port, nil, nil, lc, nodes...)
 }
 
-func MakeMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *MemberlistDelegate, lc config.LogConfig, nodes ...string) *MemberlistAgent {
+func NewMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *MemberlistDelegate, lc config.LogConfig, nodes ...string) *MemberlistAgent {
 	res := &MemberlistAgent{
 		running:               false,
 		listeningPort:         port,
@@ -362,8 +362,8 @@ func (a *MemberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 
 //----------------------------------TESTING-----------------------------------
 
-func TestsMakeMemberlistAgent(port int, test int, nodes ...string) *MemberlistAgent {
-	res := MakeMemberlistAgent(port, config.TestsLogConfig, nodes...)
+func TestsNewMemberlistAgent(port int, test int, nodes ...string) *MemberlistAgent {
+	res := NewMemberlistAgent(port, config.TestsLogConfig, nodes...)
 	res.test = test
 	res.lockHalted = &sync.Mutex{}
 	return res
