@@ -142,10 +142,18 @@ func (m *MuSteelExecuter) GetState() State {
 	return State{Memory: memCopy, Pool: poolCopy}
 }
 
-func (m *MuSteelExecuter) IsStable() bool {
+func (m *MuSteelExecuter) DoIfStable(f func()) bool {
+	m.coordinator.requestWrite(false)
+	m.coordinator.fixWorkingSetWrite(stringset.Make(""))
 	m.lockPool.Lock()
-	defer m.lockPool.Unlock()
-	return len(m.pool) == 0
+	stable := len(m.pool) == 0
+	if stable {
+		f()
+	}
+	m.lockPool.Unlock()
+	m.coordinator.confirmWrite()
+	m.coordinator.closeWrite()
+	return stable
 }
 
 func (m *MuSteelExecuter) HasRule(name string) bool {

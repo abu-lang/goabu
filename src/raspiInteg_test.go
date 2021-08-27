@@ -3,6 +3,7 @@
 package main_test
 
 import (
+	"runtime"
 	"steel-lang/communication"
 	"steel-lang/config"
 	"steel-lang/physical"
@@ -41,7 +42,7 @@ func TestLed2Buttons(t *testing.T) {
 			toggles--
 		}
 	}
-	dummy.IsStable()
+	runtime.KeepAlive(dummy)
 }
 
 func TestMotor(t *testing.T) {

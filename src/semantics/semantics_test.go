@@ -28,7 +28,7 @@ func TestNewMuSteelExecuter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !e.IsStable() {
+	if !e.DoIfStable(func() {}) {
 		t.Error("should be stable")
 	}
 	if !e.agent.IsRunning() {
@@ -103,7 +103,7 @@ func TestAddPool(t *testing.T) {
 		e.Exec()
 		poolLength--
 	}
-	if !e.IsStable() {
+	if !e.DoIfStable(func() {}) {
 		t.Error("should be stable")
 	}
 	mem := e.memory.GetResources()
@@ -151,7 +151,7 @@ func TestLocal(t *testing.T) {
 	e.AddRules([]string{startCooling, counter, stopCooling})
 	e.addActions(`temperature = "high"`)
 	execs := 0
-	for !e.IsStable() {
+	for !e.DoIfStable(func() {}) {
 		if len(e.pool) != 1 {
 			t.Error("pool should have length 1")
 		}
@@ -210,7 +210,7 @@ func TestReceiveExternalActions(t *testing.T) {
 	e.addActions("elit = 100.0;")
 	e.addActions("consectetur = -2;")
 	execs := 0
-	for !e.IsStable() {
+	for !e.DoIfStable(func() {}) {
 		e.Exec()
 		execs++
 		if mem.Text["adipiscing"] != "sed" {

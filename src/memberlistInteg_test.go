@@ -25,7 +25,7 @@ func TestSingleNode(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		e.Exec()
 	}
-	if e.IsStable() {
+	if e.DoIfStable(func() {}) {
 		t.Error("should not be stable")
 	}
 	state := e.GetState()
@@ -52,10 +52,10 @@ func TestTwoNodes(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Parallel()
-		for e1.IsStable() {
+		for e1.DoIfStable(func() {}) {
 		}
 		e1.Exec()
-		if !e1.IsStable() {
+		if !e1.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
 		mem1 := e1.GetState().Memory
@@ -70,7 +70,7 @@ func TestTwoNodes(t *testing.T) {
 			t.Fatal(err)
 		}
 		e2.Input("lorem = 10; ")
-		if !e2.IsStable() {
+		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
 		mem2 := e2.GetState().Memory
@@ -94,7 +94,7 @@ func TestThreeNodes(t *testing.T) {
 		}
 		t.Parallel()
 		for e1.GetState().Memory.Float["ipsum"] != 6.5 {
-			for e1.IsStable() {
+			for e1.DoIfStable(func() {}) {
 			}
 			e1.Exec()
 		}
@@ -110,9 +110,9 @@ func TestThreeNodes(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Parallel()
-		for e2.IsStable() {
+		for e2.DoIfStable(func() {}) {
 		}
-		for !e2.IsStable() {
+		for !e2.DoIfStable(func() {}) {
 			e2.Exec()
 		}
 		mem2 := e2.GetState().Memory
@@ -132,10 +132,10 @@ func TestThreeNodes(t *testing.T) {
 		}
 		e3.Input("ipsum = 6.0;")
 		e3.Exec()
-		for e3.IsStable() {
+		for e3.DoIfStable(func() {}) {
 		}
 		e3.Exec()
-		if !e3.IsStable() {
+		if !e3.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
 		mem3 := e3.GetState().Memory
