@@ -124,29 +124,22 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 }
 
 func (m *MuSteelExecuter) GetState() State {
-	all := stringset.Make("")
-	for r := range m.types {
-		all.Insert(r)
+	m.coordinator.requestWrite(false)
+	m.coordinator.fixWorkingSetWrite(stringset.Make(""))
+	m.lockMemory.RLock()
+	memCopy := m.memory.Copy().GetResources()
+	m.lockMemory.RUnlock()
+	m.lockPool.Lock()
+	poolCopy := make([][]SemanticAction, 0, len(m.pool))
+	for _, acts := range m.pool {
+		actsCopy := make([]SemanticAction, len(acts))
+		copy(actsCopy, acts)
+		poolCopy = append(poolCopy, actsCopy)
 	}
-	for {
-		k := m.coordinator.requestRead(all)
-		m.lockMemory.RLock()
-		memCopy := m.memory.Copy().GetResources()
-		m.lockMemory.RUnlock()
-		m.lockPool.Lock()
-		poolCopy := make([][]SemanticAction, 0, len(m.pool))
-		for _, acts := range m.pool {
-			actsCopy := make([]SemanticAction, len(acts))
-			copy(actsCopy, acts)
-			poolCopy = append(poolCopy, actsCopy)
-		}
-		m.lockPool.Unlock()
-		ok := m.coordinator.confirmRead(k)
-		m.coordinator.closeRead(k)
-		if ok {
-			return State{Memory: memCopy, Pool: poolCopy}
-		}
-	}
+	m.lockPool.Unlock()
+	m.coordinator.confirmWrite()
+	m.coordinator.closeWrite()
+	return State{Memory: memCopy, Pool: poolCopy}
 }
 
 func (m *MuSteelExecuter) IsStable() bool {
