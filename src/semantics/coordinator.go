@@ -22,6 +22,7 @@ type writer struct {
 type coordinator struct {
 	readers    map[string]uint
 	requesting *list.List
+	awake      bool
 	reading    map[key]reader
 	writing    *writer
 	mutex      sync.Mutex
@@ -49,6 +50,8 @@ func (c *coordinator) requestRead(ws stringset.StringSet) key {
 				if n != nil {
 					w := n.Value.(chan struct{})
 					w <- struct{}{}
+				} else {
+					c.awake = false
 				}
 			}
 			var i key = 1
@@ -65,6 +68,8 @@ func (c *coordinator) requestRead(ws stringset.StringSet) key {
 		}
 		if e == nil {
 			e = c.requesting.PushBack(make(chan struct{}))
+		} else {
+			c.awake = false
 		}
 		wake := e.Value.(chan struct{})
 		c.mutex.Unlock()
@@ -84,6 +89,8 @@ func (c *coordinator) requestWrite(optimistic bool) {
 				if n != nil {
 					w := n.Value.(chan struct{})
 					w <- struct{}{}
+				} else {
+					c.awake = false
 				}
 			}
 			c.mutex.Unlock()
@@ -91,6 +98,8 @@ func (c *coordinator) requestWrite(optimistic bool) {
 		}
 		if e == nil {
 			e = c.requesting.PushBack(make(chan struct{}))
+		} else {
+			c.awake = false
 		}
 		wake := e.Value.(chan struct{})
 		c.mutex.Unlock()
@@ -125,6 +134,8 @@ func (c *coordinator) startWrite(ws stringset.StringSet) {
 				if n != nil {
 					w := n.Value.(chan struct{})
 					w <- struct{}{}
+				} else {
+					c.awake = false
 				}
 			}
 			c.mutex.Unlock()
@@ -132,6 +143,8 @@ func (c *coordinator) startWrite(ws stringset.StringSet) {
 		}
 		if e == nil {
 			e = c.requesting.PushBack(make(chan struct{}))
+		} else {
+			c.awake = false
 		}
 		wake := e.Value.(chan struct{})
 		c.mutex.Unlock()
@@ -216,8 +229,9 @@ func (c *coordinator) closeWrite() {
 }
 
 func (c *coordinator) wakeNext() {
-	if c.requesting.Len() > 0 {
+	if !c.awake && c.requesting.Len() > 0 {
 		w := c.requesting.Front().Value.(chan struct{})
 		w <- struct{}{}
+		c.awake = true
 	}
 }
