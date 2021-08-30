@@ -99,7 +99,7 @@ func (t transactionChannels) line(response string) chan<- string {
 	return nil
 }
 
-func (a *MemberlistAgent) interested(tran transactionInfo) []string {
+func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 	message := messageUnion{
 		Type:        "interested?",
 		Sender:      a.list.LocalNode(),
@@ -115,9 +115,9 @@ func (a *MemberlistAgent) interested(tran transactionInfo) []string {
 	channelsCh := make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- channels
-	res := a.interestPhase(msg, channels)
+	nodes, err := a.interestPhase(msg, channels, tran.Number)
 	a.testsHaltIf(TestsAfterInterested)
-	if len(res) == 0 {
+	if len(nodes) == 0 {
 		channelsCh := make(chan transactionChannels)
 		a.coordinatedChannels <- channelsCh
 		channelsCh <- transactionChannels{
@@ -125,10 +125,11 @@ func (a *MemberlistAgent) interested(tran transactionInfo) []string {
 			Number:    tran.Number,
 		}
 	}
-	return res
+	return nodes, err
 }
 
-func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels) []string {
+func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels, number int) ([]string, error) {
+	aborted := ""
 	waitFor := stringset.Make("")
 	for _, member := range a.adapter.filterPartecipants(a.list.Members()) {
 		waitFor.Insert(member.Name)
@@ -157,6 +158,9 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 			case uninterested := <-channels.areUninterested:
 				received++
 				delete(waitFor, uninterested)
+			case aborted = <-channels.haveAborted:
+				received++
+				delete(waitFor, aborted)
 			case <-timeout:
 				break INTERESTED
 			}
@@ -165,7 +169,27 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 			}
 		}
 	}
-	return interested
+	if aborted == "" {
+		return interested, nil
+	}
+	order := messageUnion{
+		Type:   "do_abort",
+		Sender: a.list.LocalNode(),
+		Transaction: transactionInfo{
+			Initiator: a.list.LocalNode().Name,
+			Number:    number,
+		},
+	}
+	abrt, ok := order.marshal(order.Type, a.logger)
+	if !ok {
+		a.logger.Panic("Could not marshal "+order.Type+" message", zap.String("act", "marshalling"), zap.String("obj", order.Type))
+	}
+	dests := stringset.Make("")
+	for _, i := range interested {
+		dests.Insert(i)
+	}
+	a.secondPhase(dests, abrt, channels.haveAborted)
+	return nil, fmt.Errorf("%s has aborted", aborted)
 }
 
 func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {

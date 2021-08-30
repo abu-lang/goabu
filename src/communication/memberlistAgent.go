@@ -215,7 +215,11 @@ func (a *MemberlistAgent) ForAll(payload []byte) error {
 		Payload:   payload,
 	}
 	a.initiatedTransactions++
-	info.Partecipants = a.interested(info)
+	var err error
+	info.Partecipants, err = a.interested(info)
+	if err != nil {
+		return err
+	}
 	if len(info.Partecipants) == 0 {
 		a.logger.Debug("Terminated transaction: none interested", zap.String("act", "end_tran"), zap.Int("partecipants", 0))
 		return nil
