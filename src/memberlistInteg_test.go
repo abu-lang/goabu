@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"steel-lang/communication"
 	"steel-lang/config"
 	"steel-lang/memory"
@@ -146,4 +147,63 @@ func TestThreeNodes(t *testing.T) {
 			t.Error("ipsum hould be 6.0")
 		}
 	})
+}
+
+func TestInc(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	const k = 5
+	const m = 4
+	memory := memory.MakeResources()
+	memory.Integer["A"] = 0
+	rules := []string{fmt.Sprintf("rule INC on A for all A < %d && ext.A < %d do A = this.A + 1", m, m)}
+	agts := make([]*semantics.MuSteelExecuter, 0, k)
+	for i := 0; i < k; i++ {
+		t.Run(fmt.Sprintf("TestInc#%d", i+1), func(t *testing.T) {
+			cfg := config.TestsLogConfig
+			cfg.Level = config.LogInfo
+			var prec []string
+			if i > 0 {
+				cfg.Level = config.LogWarning
+				prec = []string{fmt.Sprintf("127.0.0.1:%d", 11000+i)}
+			}
+			e, err := semantics.NewMuSteelExecuter(memory, rules, communication.NewMemberlistAgent(11000+i+1, cfg, prec...), cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			agts = append(agts, e)
+		})
+	}
+	done := make([]<-chan struct{}, 0, k)
+	for i := 0; i < k; i++ {
+		done = append(done, incNode(m, agts[i]))
+	}
+	for _, d := range done {
+		<-d
+	}
+}
+
+func incNode(m int64, e *semantics.MuSteelExecuter) <-chan struct{} {
+	res := make(chan struct{})
+	go func() {
+		e.Input("A = 1")
+		state := e.GetState()
+		for state.Memory.Integer["A"] != m {
+			if state.Memory.Integer["A"] > m {
+				panic(fmt.Sprintf("A should be <= %d", m))
+			}
+			e.Exec()
+			state = e.GetState()
+		}
+		for !e.DoIfStable(func() {}) {
+			e.Exec()
+			if e.GetState().Memory.Integer["A"] > m {
+				panic(fmt.Sprintf("A should be <= %d", m))
+			}
+		}
+		res <- struct{}{}
+	}()
+	return res
 }
