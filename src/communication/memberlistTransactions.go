@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"steel-lang/stringset"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -442,6 +443,27 @@ func (a *MemberlistAgent) handleTransactions() {
 			status := a.getStatus(id)
 			switch message.Type {
 
+			case "__interested__", "__not_interested__", "__aborted__":
+				if status != "evaluating" {
+					a.logger.Panic("Received evaluation result when not evaluating", zap.String("act", "recv"), zap.String("obj", message.Type))
+				}
+				tran := a.transactions[id]
+				response.Type = strings.Trim(message.Type, "_")
+				if response.Type == "interested" {
+					tran.stopMonitor = make(chan bool)
+					go a.monitorTransaction(*tran)
+				} else {
+					a.terminated[id] = response.Type
+				}
+				respond = false
+				for _, node := range a.list.Members() {
+					if node.Name == tran.Initiator {
+						message.Sender = node
+						respond = true
+						break
+					}
+				}
+
 			case "interested?":
 				switch status {
 				case "new":
@@ -454,19 +476,20 @@ func (a *MemberlistAgent) handleTransactions() {
 					a.operations <- actionsCh
 					a.operationCommands <- commandsCh
 					actionsCh <- message.Transaction.Payload
-					response.Type = <-commandsCh
-					if response.Type == "interested" {
-						tran := &transactionInfo{}
-						*tran = message.Transaction
-						tran.Payload = nil
-						tran.Partecipants = nil
-						tran.stopMonitor = make(chan bool)
-						go a.monitorTransaction(*tran)
-						tran.commands = commandsCh
-						a.transactions[id] = tran
-					} else {
-						a.terminated[id] = response.Type
-					}
+					tran := &transactionInfo{}
+					*tran = message.Transaction
+					tran.Payload = nil
+					tran.Partecipants = nil
+					go func(tran transactionInfo) {
+						a.transactionMessages <- messageUnion{
+							Sender:      a.list.LocalNode(),
+							Type:        "__" + <-commandsCh + "__",
+							Transaction: tran,
+						}
+					}(*tran)
+					tran.commands = commandsCh
+					a.transactions[id] = tran
+					respond = false
 				case "interested", "not_interested":
 					response.Type = status
 				default:
@@ -480,8 +503,8 @@ func (a *MemberlistAgent) handleTransactions() {
 					zap.String("obj", "can_commit?"),
 					zap.String("from", message.Sender.Name))
 				switch status {
-				case "not_interested":
-					a.logger.Panic("Received can_commit? but I wasn't interested",
+				case "not_interested", "evaluating":
+					a.logger.Panic("Received can_commit? but I am evaluating or I wasn't interested",
 						zap.String("act", "recv"),
 						zap.String("obj", "can_commit?"),
 						zap.String("from", message.Sender.Name))
@@ -512,6 +535,12 @@ func (a *MemberlistAgent) handleTransactions() {
 					zap.String("obj", "do_abort"),
 					zap.String("from", message.Sender.Name))
 				switch status {
+				case "evaluating":
+					select {
+					case a.transactionMessages <- message:
+					default:
+					}
+					respond = false
 				case "commited", "new", "not_interested":
 					a.logger.Panic("Received do_abort for a committed, new or uninteresting transaction",
 						zap.String("act", "recv"),
@@ -542,8 +571,8 @@ func (a *MemberlistAgent) handleTransactions() {
 
 			case "get_decision":
 				switch status {
-				case "new", "not_interested":
-					a.logger.Panic("Received get_decision for a new or uninteresting transaction",
+				case "new", "evaluating", "not_interested":
+					a.logger.Panic("Received get_decision for a new, evaluating or uninteresting transaction",
 						zap.String("act", "recv"),
 						zap.String("obj", "get_decision"),
 						zap.String("from", message.Sender.Name))
@@ -644,6 +673,9 @@ func (a *MemberlistAgent) getStatus(id string) string {
 	tran, present := a.transactions[id]
 	if !present {
 		return "new"
+	}
+	if tran.stopMonitor == nil {
+		return "evaluating"
 	}
 	if len(tran.Partecipants) == 0 {
 		return "interested"

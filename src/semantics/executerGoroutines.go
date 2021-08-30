@@ -119,11 +119,12 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 	}
 	if len(sActions) == 0 {
 		if m.coordinator.confirmRead(k) {
+			m.coordinator.closeRead(k)
 			commandsCh <- "not_interested"
 		} else {
+			m.coordinator.closeRead(k)
 			commandsCh <- "aborted"
 		}
-		m.coordinator.closeRead(k)
 		return
 	}
 	commandsCh <- "interested"
@@ -132,14 +133,14 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		if m.coordinator.confirmRead(k) {
 			commandsCh <- "prepared"
 		} else {
-			commandsCh <- "aborted"
 			m.coordinator.closeRead(k)
+			commandsCh <- "aborted"
 			return
 		}
 	case "do_abort":
-		commandsCh <- "done"
 		m.coordinator.confirmRead(k)
 		m.coordinator.closeRead(k)
+		commandsCh <- "done"
 		return
 	}
 	switch <-commandsCh {
@@ -150,7 +151,7 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		m.logger.Info("Added external actions", zap.String("act", "add_updates"), zap.Array("updates", poolLogger(sActions)))
 		fallthrough
 	case "do_abort":
-		commandsCh <- "done"
 		m.coordinator.closeRead(k)
+		commandsCh <- "done"
 	}
 }
