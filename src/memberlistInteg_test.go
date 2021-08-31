@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"flag"
 	"fmt"
 	"steel-lang/communication"
 	"steel-lang/config"
@@ -8,6 +9,8 @@ import (
 	"steel-lang/semantics"
 	"testing"
 )
+
+var optimistic = flag.Bool("opt", false, "set optimistic concurrency control")
 
 func TestSingleNode(t *testing.T) {
 	memory := memory.MakeResources()
@@ -18,6 +21,8 @@ func TestSingleNode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	e.SetOptimisticExec(*optimistic)
+	e.SetOptimisticInput(*optimistic)
 	r1 := "rule r1 on start default magna = 123 + this.magna; for this.aliqua do this.magna = -123;"
 	r2 := "rule r2 on magna for this.magna >= this.magna do this.magna = 2 * this.magna + this.magna;"
 	e.AddRule(r1)
@@ -52,6 +57,8 @@ func TestTwoNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		e1.SetOptimisticExec(*optimistic)
+		e1.SetOptimisticInput(*optimistic)
 		t.Parallel()
 		for e1.DoIfStable(func() {}) {
 		}
@@ -70,6 +77,8 @@ func TestTwoNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		e2.SetOptimisticExec(*optimistic)
+		e2.SetOptimisticInput(*optimistic)
 		e2.Input("lorem = 10; ")
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
@@ -93,6 +102,8 @@ func TestThreeNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		e1.SetOptimisticExec(*optimistic)
+		e1.SetOptimisticInput(*optimistic)
 		t.Parallel()
 		for e1.GetState().Memory.Float["ipsum"] != 6.5 {
 			for e1.DoIfStable(func() {}) {
@@ -110,6 +121,8 @@ func TestThreeNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		e2.SetOptimisticExec(*optimistic)
+		e2.SetOptimisticInput(*optimistic)
 		t.Parallel()
 		for e2.DoIfStable(func() {}) {
 		}
@@ -131,6 +144,8 @@ func TestThreeNodes(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		e3.SetOptimisticExec(*optimistic)
+		e3.SetOptimisticInput(*optimistic)
 		e3.Input("ipsum = 6.0;")
 		e3.Exec()
 		for e3.DoIfStable(func() {}) {
@@ -173,6 +188,8 @@ func TestInc(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			e.SetOptimisticExec(*optimistic)
+			e.SetOptimisticInput(*optimistic)
 			agts = append(agts, e)
 		})
 	}

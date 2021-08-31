@@ -28,10 +28,14 @@ func TestLed2Buttons(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	eLed.SetOptimisticExec(*optimistic)
+	eLed.SetOptimisticInput(*optimistic)
 	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.NewMemberlistAgent(8101, config.TestsLogConfig, "127.0.0.1:8100"), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
+	dummy.SetOptimisticExec(*optimistic)
+	dummy.SetOptimisticInput(*optimistic)
 	ledStatus := eLed.GetState().Memory.Bool["led"]
 	for toggles > 0 {
 		time.Sleep(time.Millisecond)
@@ -55,6 +59,8 @@ func TestMotor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	e.SetOptimisticExec(*optimistic)
+	e.SetOptimisticInput(*optimistic)
 	e.Input("motor = -150")
 	time.Sleep(8 * time.Second)
 	e.Input("motor = 150;")

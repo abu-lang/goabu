@@ -1,11 +1,14 @@
 package semantics
 
 import (
+	"flag"
 	"steel-lang/config"
 	"steel-lang/memory"
 	"testing"
 	"time"
 )
+
+var optimistic = flag.Bool("opt", false, "set optimistic concurrency control")
 
 func TestNewMuSteelExecuter(t *testing.T) {
 	invalid := memory.MakeResources()
@@ -90,6 +93,8 @@ func TestAddPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	e.SetOptimisticExec(*optimistic)
+	e.SetOptimisticInput(*optimistic)
 	e.addPool([]string{
 		"elit = 2.71828;",
 		`consectetur = this.consectetur * 7; adipiscing = "";`,
@@ -144,6 +149,8 @@ func TestLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	e.SetOptimisticExec(*optimistic)
+	e.SetOptimisticInput(*optimistic)
 	err = e.StopAgent()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -198,6 +205,8 @@ func TestReceiveExternalActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	e.SetOptimisticExec(*optimistic)
+	e.SetOptimisticInput(*optimistic)
 	e.AddRule(r1)
 	e.AddRule(r2)
 
@@ -240,6 +249,8 @@ func TestForall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	e.SetOptimisticExec(*optimistic)
+	e.SetOptimisticInput(*optimistic)
 	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
 	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
 	e.AddRule(r1)
