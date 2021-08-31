@@ -472,8 +472,6 @@ func (m *MuSteelExecuter) addPool(pl []string) error {
 }
 
 func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
-	m.lockMemory.Lock()
-	defer m.lockMemory.Unlock()
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
@@ -486,10 +484,13 @@ func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	lp.Reset(r)
-	antlr.ParseTreeWalkerDefault.Walk(listener, lp.Parser.Prule())
+	tree := lp.Parser.Prule()
 
+	m.lockMemory.Lock()
+	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
 	// update WorkingMemory
 	m.workingMemory.IndexVariables()
+	m.lockMemory.Unlock()
 
 	if err != nil {
 		return nil, err
@@ -498,8 +499,6 @@ func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
 }
 
 func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error) {
-	m.lockMemory.Lock()
-	defer m.lockMemory.Unlock()
 	var err error
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
 		err = e
@@ -512,10 +511,13 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error)
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	lp.Reset(actions)
-	antlr.ParseTreeWalkerDefault.Walk(listener, lp.Parser.Actions())
+	tree := lp.Parser.Actions()
 
+	m.lockMemory.Lock()
+	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
 	// update WorkingMemory
 	m.workingMemory.IndexVariables()
+	m.lockMemory.Unlock()
 
 	if err != nil {
 		return nil, err
