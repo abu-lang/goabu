@@ -8,7 +8,6 @@ import (
 	"steel-lang/ecarule"
 	"steel-lang/memory"
 	"steel-lang/parser"
-	antlr_parser "steel-lang/parser/antlr"
 	"steel-lang/stringset"
 	"strconv"
 	"sync"
@@ -38,6 +37,8 @@ type MuSteelExecuter struct {
 	workingMemory *ast.WorkingMemory
 	dataContext   ast.IDataContext
 
+	lexerParserPool sync.Pool
+
 	agent ISteelAgent
 
 	logLevel zap.AtomicLevel
@@ -56,6 +57,11 @@ func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt IStee
 		localLibrary:  make(map[string]ecarule.RuleDict),
 		globalLibrary: make(map[string]ecarule.RuleDict),
 		agent:         agt,
+		lexerParserPool: sync.Pool{
+			New: func() interface{} {
+				return parser.NewEcaruleLexerParser()
+			},
+		},
 	}
 	if !res.memory.IsValid() {
 		return nil, errors.New("invalid Resources argument")
@@ -477,10 +483,10 @@ func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
 		m.logger.Sync()
 	})
 
-	ts := parser.TokenStream(r)
-	p := antlr_parser.NewEcaruleParser(ts)
-	p.BuildParseTrees = true
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Prule())
+	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
+	defer m.lexerParserPool.Put(lp)
+	lp.Reset(r)
+	antlr.ParseTreeWalkerDefault.Walk(listener, lp.Parser.Prule())
 
 	// update WorkingMemory
 	m.workingMemory.IndexVariables()
@@ -503,11 +509,10 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error)
 		m.logger.Sync()
 	})
 
-	ts := parser.TokenStream(actions)
-	p := antlr_parser.NewEcaruleParser(ts)
-	p.BuildParseTrees = true
-
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Actions())
+	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
+	defer m.lexerParserPool.Put(lp)
+	lp.Reset(actions)
+	antlr.ParseTreeWalkerDefault.Walk(listener, lp.Parser.Actions())
 
 	// update WorkingMemory
 	m.workingMemory.IndexVariables()
