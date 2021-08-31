@@ -10,6 +10,7 @@ import (
 	"github.com/hyperjumptech/grule-rule-engine/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
+	"github.com/hyperjumptech/grule-rule-engine/pkg"
 )
 
 type EcaruleParserListener struct {
@@ -20,7 +21,7 @@ type EcaruleParserListener struct {
 	inAssignLeft bool
 }
 
-func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, ecb func(e error)) *EcaruleParserListener {
+func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory) *EcaruleParserListener {
 	kb := &ast.KnowledgeBase{
 		Name:          "dummy1",
 		Version:       "0.0.1",
@@ -28,7 +29,7 @@ func NewEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 		WorkingMemory: workingMemory,
 	}
 	res := &EcaruleParserListener{
-		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, ecb),
+		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, &pkg.GruleErrorReporter{Errors: make([]error, 0)}),
 		types:                 types,
 		Rule:                  &ecarule.Rule{},
 	}
@@ -36,9 +37,13 @@ func NewEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 	return res
 }
 
+func (l *EcaruleParserListener) Errors() []error {
+	return l.ErrorCallback.Errors
+}
+
 func (l *EcaruleParserListener) parseError(err error) {
 	l.StopParse = true
-	l.ErrorCallback(err)
+	l.ErrorCallback.AddError(err)
 }
 
 // EnterPrule is called when production prule is entered.

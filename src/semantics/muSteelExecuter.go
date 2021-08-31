@@ -472,19 +472,22 @@ func (m *MuSteelExecuter) addPool(pl []string) error {
 }
 
 func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
-	var err error
-	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
-		err = e
-		m.logger.Error("error during parsing: "+e.Error(),
-			zap.String("act", "parse"),
-			zap.String("obj", r))
-		m.logger.Sync()
-	})
-
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	lp.Reset(r)
 	tree := lp.Parser.Prule()
+	errs := lp.Errors()
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.String("obj", r))
+		}
+		m.logger.Sync()
+		return nil, errs[0]
+	}
+
+	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
 
 	m.lockMemory.Lock()
 	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
@@ -492,26 +495,36 @@ func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
 	m.workingMemory.IndexVariables()
 	m.lockMemory.Unlock()
 
-	if err != nil {
-		return nil, err
+	errs = listener.Errors()
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.String("obj", r))
+		}
+		m.logger.Sync()
+		return nil, errs[0]
 	}
 	return listener.Rule, nil
 }
 
 func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error) {
-	var err error
-	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory, func(e error) {
-		err = e
-		m.logger.Error("error during parsing: "+e.Error(),
-			zap.String("act", "parse"),
-			zap.String("obj", actions))
-		m.logger.Sync()
-	})
-
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	lp.Reset(actions)
 	tree := lp.Parser.Actions()
+	errs := lp.Errors()
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.String("obj", actions))
+		}
+		m.logger.Sync()
+		return nil, errs[0]
+	}
+
+	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
 
 	m.lockMemory.Lock()
 	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
@@ -519,8 +532,15 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error)
 	m.workingMemory.IndexVariables()
 	m.lockMemory.Unlock()
 
-	if err != nil {
-		return nil, err
+	errs = listener.Errors()
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.String("obj", actions))
+		}
+		m.logger.Sync()
+		return nil, errs[0]
 	}
 	return listener.Rule.DefaultActions, nil
 }
