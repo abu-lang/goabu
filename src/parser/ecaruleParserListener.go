@@ -51,7 +51,7 @@ func (l *EcaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
 	if l.StopParse {
 		return
 	}
-	l.Rule.Name = ctx.SIMPLENAME(0).GetText()
+	l.Rule.Name = ctx.SIMPLENAME().GetText()
 }
 
 // ExitPrule is called when production prule is exited.
@@ -92,10 +92,7 @@ func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 	}
 	mode := "for"
 	if ctx.ALL() != nil {
-		mode = mode + " all"
-	}
-	if ctx.SOME() != nil {
-		mode = mode + " some"
+		mode = "for all"
 	}
 	l.allowExt = mode != "for"
 	rule.Task.Mode = mode
