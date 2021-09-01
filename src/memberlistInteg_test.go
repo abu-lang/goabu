@@ -94,8 +94,8 @@ func TestThreeNodes(t *testing.T) {
 	memory := memory.MakeResources()
 	memory.Float["ipsum"] = 3.0
 	memory.Bool["involved"] = false
-	r1 := "rule r1 on ipsum default involved = false; for all this.ipsum != ext.ipsum do ext.involved = true ; "
-	r2 := "rule r2 on involved for all ext.involved && this.ipsum > ext.ipsum do ext.ipsum = this.ipsum;"
+	r1 := "rule r1 on ipsum default involved = true for all ipsum != ext.ipsum do involved = true"
+	r2 := "rule r2 on involved for all involved && ipsum > ext.ipsum do ipsum = this.ipsum"
 	rules := []string{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
 		e1, err := semantics.NewMuSteelExecuter(memory, rules, communication.NewMemberlistAgent(10001, config.TestsLogConfig), config.TestsLogConfig)
@@ -106,12 +106,9 @@ func TestThreeNodes(t *testing.T) {
 		e1.SetOptimisticInput(*optimistic)
 		t.Parallel()
 		for e1.GetState().Memory.Float["ipsum"] != 6.5 {
-			for e1.DoIfStable(func() {}) {
-			}
 			e1.Exec()
 		}
-		mem1 := e1.GetState().Memory
-		if !mem1.Bool["involved"] {
+		if !e1.GetState().Memory.Bool["involved"] {
 			t.Error("involved should be true")
 		}
 	})
@@ -126,15 +123,13 @@ func TestThreeNodes(t *testing.T) {
 		t.Parallel()
 		for e2.DoIfStable(func() {}) {
 		}
-		for !e2.DoIfStable(func() {}) {
-			e2.Exec()
-		}
+		e2.Exec()
 		mem2 := e2.GetState().Memory
 		if !mem2.Bool["involved"] {
 			t.Error("involved should be true")
 		}
 		if mem2.Float["ipsum"] != 6.5 {
-			t.Error("ipsum hould be 6.5")
+			t.Error("ipsum should be 6.5")
 		}
 	})
 	t.Run("TestThreeNodes#3", func(t *testing.T) {
@@ -147,19 +142,11 @@ func TestThreeNodes(t *testing.T) {
 		e3.SetOptimisticExec(*optimistic)
 		e3.SetOptimisticInput(*optimistic)
 		e3.Input("ipsum = 6.0;")
-		e3.Exec()
-		for e3.DoIfStable(func() {}) {
+		for e3.GetState().Memory.Float["ipsum"] != 6.5 {
+			e3.Exec()
 		}
-		e3.Exec()
-		if !e3.DoIfStable(func() {}) {
-			t.Error("should be stable")
-		}
-		mem3 := e3.GetState().Memory
-		if !mem3.Bool["involved"] {
+		if !e3.GetState().Memory.Bool["involved"] {
 			t.Error("involved should be true")
-		}
-		if mem3.Float["ipsum"] != 6.0 {
-			t.Error("ipsum hould be 6.0")
 		}
 	})
 }
