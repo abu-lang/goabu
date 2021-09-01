@@ -138,7 +138,7 @@ func (m *MuSteelExecuter) GetState() State {
 	m.lockPool.Lock()
 	poolCopy := make([]Update, 0, len(m.pool))
 	for _, update := range m.pool {
-		var updateCopy Update = make([]SemanticAction, len(update))
+		var updateCopy Update = make([]Assignment, len(update))
 		copy(updateCopy, update)
 		poolCopy = append(poolCopy, updateCopy)
 	}
@@ -297,7 +297,7 @@ func (m *MuSteelExecuter) execUpdate(update Update) {
 	var executed Update
 	m.lockMemory.Lock()
 	for _, action := range update {
-		variable := action.Variable
+		variable := action.variable
 		variable = m.workingMemory.AddVariable(variable)
 		currentVal, err := variable.Evaluate(m.dataContext, m.workingMemory)
 		if err != nil {
@@ -308,7 +308,7 @@ func (m *MuSteelExecuter) execUpdate(update Update) {
 		if reflect.DeepEqual(currentVal, action.Value) {
 			m.logger.Debug(fmt.Sprintf("Skipping action %v: resource value would not change", action),
 				zap.String("act", "assign"),
-				zap.Object("action", actionLogger(action)))
+				zap.Object("action", assignmentLogger(action)))
 			continue
 		}
 		ltype := currentVal.Type()
@@ -316,19 +316,19 @@ func (m *MuSteelExecuter) execUpdate(update Update) {
 		if !rtype.AssignableTo(ltype) {
 			m.logger.DPanic(fmt.Sprintf("Skipping action %v: cannot assign a %v to a %v", action, rtype, ltype),
 				zap.String("act", "assign"),
-				zap.Object("action", actionLogger(action)))
+				zap.Object("action", assignmentLogger(action)))
 		} else {
 			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
 			if err != nil {
 				m.logger.Panic("Could not perform assingment: "+err.Error(),
 					zap.String("act", "assign"),
-					zap.Object("action", actionLogger(action)))
+					zap.Object("action", assignmentLogger(action)))
 			}
 			m.memory.Modified(action.Resource)
 			executed = append(executed, action)
 			m.logger.Debug("Executed action: "+action.String(),
 				zap.String("act", "assign"),
-				zap.Object("action", actionLogger(action)),
+				zap.Object("action", assignmentLogger(action)),
 				zap.String("evt", action.Resource))
 		}
 	}
