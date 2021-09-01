@@ -90,12 +90,8 @@ func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 		l.parseError(errors.New("syntax error"))
 		return
 	}
-	mode := "for"
-	if ctx.ALL() != nil {
-		mode = "for all"
-	}
-	l.allowExt = mode != "for"
-	rule.Task.Mode = mode
+	rule.Task.External = ctx.ALL() != nil
+	l.allowExt = rule.Task.External
 	l.Stack.Push(&rule.Task)
 }
 
@@ -107,7 +103,7 @@ func (l *EcaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
 	l.Stack.Pop()
 	t, ok := l.Stack.Peek().(*ecarule.Task)
 	if ok {
-		l.allowExt = t.Mode != "for"
+		l.allowExt = t.External
 	} else {
 		l.allowExt = false
 	}

@@ -29,7 +29,7 @@ func appendNonempty(pool [][]SemanticAction, actions []SemanticAction) [][]Seman
 func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
 	res := make([]SemanticAction, 0)
 	for _, action := range actions {
-		assignment := action.Expression
+		assignment := action.Assignment
 		variable := assignment.Variable
 		rexpr := assignment.Expression
 		rexpr = workingMemory.AddExpression(rexpr)

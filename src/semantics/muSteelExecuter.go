@@ -402,7 +402,7 @@ func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global ecar
 	return local, global
 }
 
-// Precondition: rule.Task.Mode != "for"
+// Precondition: rule.Task.External
 func (m *MuSteelExecuter) preEvaluated(rule *ecarule.Rule) externalAction {
 	res := externalAction{
 		CondWorkingSet: stringset.Make(""),
@@ -444,7 +444,7 @@ func (m *MuSteelExecuter) addRuleAux(r string) error {
 	}
 
 	library := m.localLibrary
-	if rule.Task.Mode != "for" {
+	if rule.Task.External {
 		library = m.globalLibrary
 	}
 	for _, evt := range rule.Events {

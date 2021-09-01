@@ -17,11 +17,11 @@ type Rule struct {
 
 type Action struct {
 	Resource   string
-	Expression *ast.Assignment
+	Assignment *ast.Assignment
 }
 
 type Task struct {
-	Mode      string
+	External  bool
 	Condition *ast.Expression
 	Actions   []Action
 }
@@ -41,7 +41,7 @@ func (r *Rule) AcceptAssignment(a *ast.Assignment) error {
 	if n == "" {
 		return errors.New("invalid assignment: " + a.GetGrlText())
 	}
-	r.DefaultActions = append(r.DefaultActions, Action{Resource: n, Expression: a})
+	r.DefaultActions = append(r.DefaultActions, Action{Resource: n, Assignment: a})
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (t *Task) AcceptAssignment(a *ast.Assignment) error {
 	if n == "" {
 		return errors.New("invalid assignment: " + a.GetGrlText())
 	}
-	t.Actions = append(t.Actions, Action{Resource: n, Expression: a})
+	t.Actions = append(t.Actions, Action{Resource: n, Assignment: a})
 	return nil
 }
 
@@ -77,7 +77,7 @@ func (t *Task) AcceptExpression(exp *ast.Expression) error {
 }
 
 func (a Action) String() string {
-	return a.Expression.GetGrlText()
+	return a.Assignment.GetGrlText()
 }
 
 func ActionsToStr(actions []Action) string {

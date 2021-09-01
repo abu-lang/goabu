@@ -45,7 +45,7 @@ func (a externalAction) preEvaluatedActions(actions []ecarule.Action) []ecarule.
 	for i, action := range actions {
 		res = append(res, ecarule.Action{
 			Resource:   action.Resource,
-			Expression: a.preEvaluatedAssignment(action.Expression, a.WorkingSets[i]),
+			Assignment: a.preEvaluatedAssignment(action.Assignment, a.WorkingSets[i]),
 		})
 	}
 	return res
@@ -159,7 +159,7 @@ func (a externalAction) attachTypesConsts(types map[string]string) {
 
 func (a externalAction) attachTypesConstsActions(actions []ecarule.Action, types map[string]string) {
 	for _, action := range actions {
-		a.attachTypesConstsAssignment(action.Expression, types)
+		a.attachTypesConstsAssignment(action.Assignment, types)
 	}
 }
 
