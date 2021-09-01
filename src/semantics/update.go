@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type Update []SemanticAction
+
 type SemanticAction struct {
 	Resource string
 	Variable *ast.Variable
@@ -19,14 +21,14 @@ func (a SemanticAction) String() string {
 	return fmt.Sprintf("(%s,%v)", a.Resource, a.Value)
 }
 
-func appendNonempty(pool [][]SemanticAction, actions []SemanticAction) [][]SemanticAction {
-	if len(actions) == 0 {
+func appendNonempty(pool []Update, u Update) []Update {
+	if len(u) == 0 {
 		return pool
 	}
-	return append(pool, actions)
+	return append(pool, u)
 }
 
-func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
+func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) Update {
 	res := make([]SemanticAction, 0)
 	for _, action := range actions {
 		assignment := action.Assignment
@@ -46,7 +48,7 @@ func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, working
 	return res
 }
 
-func condEvalActions(exp *ast.Expression, actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) []SemanticAction {
+func condEvalActions(exp *ast.Expression, actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) Update {
 	exp = workingMemory.AddExpression(exp)
 	val, err := exp.Evaluate(dataContext, workingMemory)
 	if err != nil {
@@ -69,7 +71,7 @@ func (l actionLogger) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	return nil
 }
 
-type updateLogger []SemanticAction
+type updateLogger Update
 
 func (l updateLogger) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 	for _, a := range l {
@@ -81,7 +83,7 @@ func (l updateLogger) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 	return nil
 }
 
-type poolLogger [][]SemanticAction
+type poolLogger []Update
 
 func (l poolLogger) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 	for _, u := range l {

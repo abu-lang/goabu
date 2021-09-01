@@ -83,7 +83,7 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		commandsCh <- "aborted"
 		return
 	}
-	var sActions [][]SemanticAction
+	var updates []Update
 	localResources := stringset.Make("")
 	for r := range m.types {
 		localResources.Insert(r)
@@ -113,11 +113,11 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 				continue
 			}
 			m.lockMemory.RLock()
-			sActions = appendNonempty(sActions, condEvalActions(eAction.Condition, actions, context, workMem))
+			updates = appendNonempty(updates, condEvalActions(eAction.Condition, actions, context, workMem))
 			m.lockMemory.RUnlock()
 		}
 	}
-	if len(sActions) == 0 {
+	if len(updates) == 0 {
 		if m.coordinator.confirmRead(k) {
 			m.coordinator.closeRead(k)
 			commandsCh <- "not_interested"
@@ -146,9 +146,9 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 	switch <-commandsCh {
 	case "do_commit":
 		m.lockPool.Lock()
-		m.pool = append(m.pool, sActions...)
+		m.pool = append(m.pool, updates...)
 		m.lockPool.Unlock()
-		m.logger.Info("Added external actions", zap.String("act", "add_updates"), zap.Array("updates", poolLogger(sActions)))
+		m.logger.Info("Added external actions", zap.String("act", "add_updates"), zap.Array("updates", poolLogger(updates)))
 		fallthrough
 	case "do_abort":
 		m.coordinator.closeRead(k)

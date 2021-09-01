@@ -20,14 +20,14 @@ import (
 
 type State struct {
 	Memory memory.Resources
-	Pool   [][]SemanticAction
+	Pool   []Update
 }
 
 type MuSteelExecuter struct {
 	memory        memory.ResourceController
 	lockMemory    sync.RWMutex
 	types         map[string]string
-	pool          [][]SemanticAction
+	pool          []Update
 	coordinator   execCoordinator
 	lockPool      sync.Mutex
 	localLibrary  map[string]ecarule.RuleDict
@@ -52,7 +52,7 @@ type MuSteelExecuter struct {
 func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
 	res := &MuSteelExecuter{
 		memory:        mem.Copy(),
-		pool:          make([][]SemanticAction, 0),
+		pool:          make([]Update, 0),
 		coordinator:   newCoordinator(),
 		localLibrary:  make(map[string]ecarule.RuleDict),
 		globalLibrary: make(map[string]ecarule.RuleDict),
@@ -136,11 +136,11 @@ func (m *MuSteelExecuter) GetState() State {
 	memCopy := m.memory.Copy().GetResources()
 	m.lockMemory.RUnlock()
 	m.lockPool.Lock()
-	poolCopy := make([][]SemanticAction, 0, len(m.pool))
-	for _, acts := range m.pool {
-		actsCopy := make([]SemanticAction, len(acts))
-		copy(actsCopy, acts)
-		poolCopy = append(poolCopy, actsCopy)
+	poolCopy := make([]Update, 0, len(m.pool))
+	for _, update := range m.pool {
+		var updateCopy Update = make([]SemanticAction, len(update))
+		copy(updateCopy, update)
+		poolCopy = append(poolCopy, updateCopy)
 	}
 	m.lockPool.Unlock()
 	m.coordinator.confirmWrite()
@@ -188,18 +188,18 @@ func (m *MuSteelExecuter) Exec() {
 		m.lockPool.Unlock()
 		return
 	}
-	actions, index := m.chooseActions()
+	update, index := m.chooseUpdate()
 	m.lockPool.Unlock()
-	m.logger.Info(fmt.Sprintf("Exec: %v", actions), zap.String("act", "exec"), zap.Array("actions", updateLogger(actions)))
+	m.logger.Info(fmt.Sprintf("Exec: %v", update), zap.String("act", "exec"), zap.Array("update", updateLogger(update)))
 	workingSet := stringset.Make("")
-	for _, action := range actions {
+	for _, action := range update {
 		workingSet.Insert(action.Resource)
 	}
 	m.coordinator.fixWorkingSetWrite(workingSet)
 	m.lockPool.Lock()
-	m.removeActions(index)
+	m.removeUpdate(index)
 	m.lockPool.Unlock()
-	m.execActions(actions)
+	m.execUpdate(update)
 	m.logger.Debug("Terminated Exec", zap.String("act", "exec"))
 	m.logger.Sync()
 }
@@ -217,10 +217,10 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	defer m.coordinator.closeWrite()
 	m.coordinator.fixWorkingSetWrite(workingSet)
 	m.lockMemory.RLock()
-	sActions := evalActions(parsed, m.dataContext, m.workingMemory)
+	update := evalActions(parsed, m.dataContext, m.workingMemory)
 	m.lockMemory.RUnlock()
-	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("actions", updateLogger(sActions)))
-	m.execActions(sActions)
+	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("update", updateLogger(update)))
+	m.execUpdate(update)
 	m.logger.Debug("Processed input", zap.String("act", "input"))
 	m.logger.Sync()
 	return nil
@@ -288,15 +288,15 @@ func (m *MuSteelExecuter) HasOptimisticInput() bool {
 	return m.optimistInput
 }
 
-func (m *MuSteelExecuter) chooseActions() ([]SemanticAction, int) {
+func (m *MuSteelExecuter) chooseUpdate() (Update, int) {
 	// TODO: implement other strategies
 	return m.pool[0], 0
 }
 
-func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
-	var Xset []SemanticAction
+func (m *MuSteelExecuter) execUpdate(update Update) {
+	var executed Update
 	m.lockMemory.Lock()
-	for _, action := range actions {
+	for _, action := range update {
 		variable := action.Variable
 		variable = m.workingMemory.AddVariable(variable)
 		currentVal, err := variable.Evaluate(m.dataContext, m.workingMemory)
@@ -325,22 +325,22 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 					zap.Object("action", actionLogger(action)))
 			}
 			m.memory.Modified(action.Resource)
-			Xset = append(Xset, action)
+			executed = append(executed, action)
 			m.logger.Debug("Executed action: "+action.String(),
 				zap.String("act", "assign"),
 				zap.Object("action", actionLogger(action)),
 				zap.String("evt", action.Resource))
 		}
 	}
-	sActions, eActions := m.discovery(Xset)
+	updates, eActions := m.discovery(executed)
 	m.lockMemory.Unlock()
 	m.lockPool.Lock()
-	m.pool = append(m.pool, sActions...)
+	m.pool = append(m.pool, updates...)
 	m.lockPool.Unlock()
 	m.coordinator.confirmWrite()
-	m.logger.Info(fmt.Sprintf("Discovery found %d updates", len(sActions)),
+	m.logger.Info(fmt.Sprintf("Discovery found %d updates", len(updates)),
 		zap.String("act", "discovery"),
-		zap.Array("updates", poolLogger(sActions)))
+		zap.Array("updates", poolLogger(updates)))
 	if len(eActions) > 0 {
 		payload, err := marshalExternalActions(eActions)
 		if err != nil {
@@ -364,16 +364,16 @@ func (m *MuSteelExecuter) execActions(actions []SemanticAction) {
 	}
 }
 
-func (m *MuSteelExecuter) removeActions(index int) {
+func (m *MuSteelExecuter) removeUpdate(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, []externalAction) {
-	var newpool [][]SemanticAction
+func (m *MuSteelExecuter) discovery(u Update) ([]Update, []externalAction) {
+	var newpool []Update
 	var extActions []externalAction
-	localRules, globalRules := m.activeRules(Xset)
+	localRules, globalRules := m.activeRules(u)
 	for _, rule := range localRules {
-		var defaults []SemanticAction
+		var defaults Update
 		if len(rule.DefaultActions) > 0 {
 			defaults = evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
 		}
@@ -390,11 +390,11 @@ func (m *MuSteelExecuter) discovery(Xset []SemanticAction) ([][]SemanticAction, 
 	return newpool, extActions
 }
 
-func (m *MuSteelExecuter) activeRules(Xset []SemanticAction) (local, global ecarule.RuleDict) {
+func (m *MuSteelExecuter) activeRules(u Update) (local, global ecarule.RuleDict) {
 	local = ecarule.MakeRuleDict()
 	global = ecarule.MakeRuleDict()
 	m.lockRules.Lock()
-	for _, act := range Xset {
+	for _, act := range u {
 		local.Add(m.localLibrary[act.Resource])
 		global.Add(m.globalLibrary[act.Resource])
 	}
