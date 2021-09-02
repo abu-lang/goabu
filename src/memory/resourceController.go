@@ -11,7 +11,7 @@ type ResourceController interface {
 	Has(string) bool
 	GetTypes() map[string]string
 	GetResources() Resources
-	ResourceNames() stringset.StringSet
+	ResourceNames() stringset.Set
 	InputsNumber() int
 	String() string
 	Copy() ResourceController

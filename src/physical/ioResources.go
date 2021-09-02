@@ -21,7 +21,7 @@ type frame struct {
 type resource struct {
 	meta ioResourceMeta
 	IOdelegate
-	managed stringset.StringSet
+	managed stringset.Set
 }
 
 type IOResources struct {

@@ -15,8 +15,8 @@ import (
 type externalAction struct {
 	Condition      *ast.Expression
 	Actions        []ecarule.Action
-	CondWorkingSet stringset.StringSet
-	WorkingSets    []stringset.StringSet
+	CondWorkingSet stringset.Set
+	WorkingSets    []stringset.Set
 	Constants      map[string]interface{}
 	IntConstants   map[string]int64
 	dataContext    ast.IDataContext
@@ -27,10 +27,10 @@ func (a externalAction) String() string {
 	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), ecarule.ActionsToStr(a.Actions))
 }
 
-func (a externalAction) cullActions(localResources stringset.StringSet) []ecarule.Action {
+func (a externalAction) cullActions(localResources stringset.Set) []ecarule.Action {
 	var res []ecarule.Action
 	for i, action := range a.Actions {
-		if localResources.ContainsSet(a.WorkingSets[i]) {
+		if localResources.Contains(a.WorkingSets[i]) {
 			res = append(res, action)
 		}
 	}
@@ -51,20 +51,20 @@ func (a externalAction) preEvaluatedActions(actions []ecarule.Action) []ecarule.
 	return res
 }
 
-func (a externalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet stringset.StringSet) *ast.Assignment {
+func (a externalAction) preEvaluatedAssignment(assign *ast.Assignment, workingSet stringset.Set) *ast.Assignment {
 	res := assign.Clone(pkg.NewCloneTable())
-	a.partiallyEvalVariable(res.Variable, stringset.Make(""), false)
+	a.partiallyEvalVariable(res.Variable, stringset.Make(), false)
 	a.partiallyEvalExpression(res.Expression, workingSet, true)
 	return res
 }
 
-func (a externalAction) preEvaluatedExpression(exp *ast.Expression, workingSet stringset.StringSet) *ast.Expression {
+func (a externalAction) preEvaluatedExpression(exp *ast.Expression, workingSet stringset.Set) *ast.Expression {
 	res := exp.Clone(pkg.NewCloneTable())
 	a.partiallyEvalExpression(res, workingSet, true)
 	return res
 }
 
-func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet stringset.StringSet, eval bool) {
+func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet stringset.Set, eval bool) {
 	if e == nil {
 		return
 	}
@@ -74,7 +74,7 @@ func (a externalAction) partiallyEvalExpression(e *ast.Expression, workingSet st
 	a.partiallyEvalExpressionAtom(e.ExpressionAtom, workingSet, eval)
 }
 
-func (a externalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet stringset.StringSet, eval bool) {
+func (a externalAction) partiallyEvalExpressionAtom(e *ast.ExpressionAtom, workingSet stringset.Set, eval bool) {
 	if e == nil {
 		return
 	}
@@ -134,7 +134,7 @@ func (a externalAction) detach(key string, val reflect.Value) {
 	}
 }
 
-func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet stringset.StringSet, eval bool) {
+func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSet stringset.Set, eval bool) {
 	if e == nil {
 		return
 	}
@@ -143,7 +143,7 @@ func (a externalAction) partiallyEvalArgumentList(e *ast.ArgumentList, workingSe
 	}
 }
 
-func (a externalAction) partiallyEvalVariable(e *ast.Variable, workingSet stringset.StringSet, eval bool) {
+func (a externalAction) partiallyEvalVariable(e *ast.Variable, workingSet stringset.Set, eval bool) {
 	if e == nil {
 		return
 	}

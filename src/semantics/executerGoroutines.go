@@ -21,14 +21,14 @@ func (m *MuSteelExecuter) receiveInputs() {
 	var queue string = ""
 	var l int = 0
 	var timeout <-chan time.Time = nil
-	var queued stringset.StringSet = stringset.Make("")
+	var queued stringset.Set = stringset.Make()
 	for {
 		select {
 		case err := <-errors:
 			m.logger.Error("I/O error: "+err.Error(), zap.String("act", "io"))
 		case action := <-inputs:
 			resource := strings.TrimSpace(strings.Split(action, "=")[0])
-			if queued.Contains(resource) {
+			if queued.Has(resource) {
 				err := m.Input(queue)
 				if err != nil {
 					m.logger.Panic("Error in parsing I/O input actions: "+err.Error(),
@@ -37,7 +37,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 				queue = ""
 				l = 0
 				timeout = nil
-				queued = stringset.Make("")
+				queued = stringset.Make()
 			}
 			queue += action
 			l++
@@ -58,7 +58,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 		queue = ""
 		l = 0
 		timeout = nil
-		queued = stringset.Make("")
+		queued = stringset.Make()
 	}
 }
 
@@ -85,16 +85,16 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		return
 	}
 	var updates []Update
-	localResources := stringset.Make("")
+	localResources := stringset.Make()
 	for r := range m.types {
 		localResources.Insert(r)
 	}
-	workingSet := stringset.Make("")
+	workingSet := stringset.Make()
 	for _, eAction := range eActions {
-		if localResources.ContainsSet(eAction.CondWorkingSet) {
+		if localResources.Contains(eAction.CondWorkingSet) {
 			workingSet.Add(eAction.CondWorkingSet)
 			for _, ws := range eAction.WorkingSets {
-				if localResources.ContainsSet(ws) {
+				if localResources.Contains(ws) {
 					workingSet.Add(ws)
 				}
 			}
@@ -108,7 +108,7 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 		m.logger.Panic(err.Error())
 	}
 	for _, eAction := range eActions {
-		if localResources.ContainsSet(eAction.CondWorkingSet) {
+		if localResources.Contains(eAction.CondWorkingSet) {
 			actions := eAction.cullActions(localResources)
 			if len(actions) == 0 {
 				continue

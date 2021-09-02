@@ -33,13 +33,13 @@ func (t *transactionInfo) id() string {
 }
 
 func (t *transactionInfo) buryPartecipants(members []*memberlist.Node) {
-	alives := stringset.Make("")
+	alives := stringset.Make()
 	for _, member := range members {
 		alives.Insert(member.Name)
 	}
 	buried := 0
 	for i, partecipant := range t.Partecipants {
-		if !alives.Contains(partecipant) {
+		if !alives.Has(partecipant) {
 			t.Partecipants[i] = ""
 			buried++
 		}
@@ -131,7 +131,7 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 
 func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels, number int) ([]string, error) {
 	aborted := ""
-	waitFor := stringset.Make("")
+	waitFor := stringset.Make()
 	for _, member := range a.adapter.filterPartecipants(a.list.Members()) {
 		waitFor.Insert(member.Name)
 	}
@@ -139,7 +139,7 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan stringset.StringSet)
+		receiversCh := make(chan stringset.Set)
 		if a.test == TestsMidInterested {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
@@ -185,7 +185,7 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	if !ok {
 		a.logger.Panic("Could not marshal "+order.Type+" message", zap.String("act", "marshalling"), zap.String("obj", order.Type))
 	}
-	dests := stringset.Make("")
+	dests := stringset.Make()
 	for _, i := range interested {
 		dests.Insert(i)
 	}
@@ -203,7 +203,7 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	if !ok {
 		return errors.New("could not marshal can_commit? message")
 	}
-	receivers := stringset.Make("")
+	receivers := stringset.Make()
 	for _, nodeName := range tran.Partecipants {
 		receivers.Insert(nodeName)
 	}
@@ -250,12 +250,12 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	return res
 }
 
-func (a *MemberlistAgent) firstPhase(partecipants stringset.StringSet, msg []byte, channels transactionChannels) error {
+func (a *MemberlistAgent) firstPhase(partecipants stringset.Set, msg []byte, channels transactionChannels) error {
 	waitFor := partecipants.Clone()
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan stringset.StringSet)
+		receiversCh := make(chan stringset.Set)
 		if a.test == TestsMidFirst {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
@@ -294,11 +294,11 @@ func (a *MemberlistAgent) firstPhase(partecipants stringset.StringSet, msg []byt
 	return nil
 }
 
-func (a *MemberlistAgent) secondPhase(waitFor stringset.StringSet, msg []byte, responses <-chan string) {
+func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, responses <-chan string) {
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan stringset.StringSet)
+		receiversCh := make(chan stringset.Set)
 		if a.test == TestsMidSecond {
 			go a.testsPhaseSend(waitForCopy, msg, false, receiversCh, TestsMidSends)
 		} else {
@@ -324,10 +324,10 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.StringSet, msg []byte, r
 	}
 }
 
-func (a *MemberlistAgent) phaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet) {
-	newReceivers := stringset.Make("")
+func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliableSend bool, done chan<- stringset.Set) {
+	newReceivers := stringset.Make()
 	for _, member := range a.list.Members() {
-		if receivers.Contains(member.Name) {
+		if receivers.Has(member.Name) {
 			newReceivers.Insert(member.Name)
 			if a.test == TestsUnreliableSend && rand.Float32() < 0.1 {
 				continue
@@ -342,14 +342,14 @@ func (a *MemberlistAgent) phaseSend(receivers stringset.StringSet, msg []byte, r
 	done <- newReceivers
 }
 
-func (a *MemberlistAgent) testsPhaseSend(receivers stringset.StringSet, msg []byte, reliableSend bool, done chan<- stringset.StringSet, haltAfter int) {
+func (a *MemberlistAgent) testsPhaseSend(receivers stringset.Set, msg []byte, reliableSend bool, done chan<- stringset.Set, haltAfter int) {
 	selected := make([]*memberlist.Node, 0, haltAfter)
 	sent := 0
 	for _, member := range a.list.Members() {
 		if sent == haltAfter {
 			break
 		}
-		if receivers.Contains(member.Name) {
+		if receivers.Has(member.Name) {
 			selected = append(selected, member)
 			if reliableSend {
 				a.list.SendReliable(member, msg)

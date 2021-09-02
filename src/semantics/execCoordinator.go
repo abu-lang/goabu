@@ -5,12 +5,12 @@ import "steel-lang/stringset"
 type key int
 
 type execCoordinator interface {
-	requestRead(stringset.StringSet) key
+	requestRead(stringset.Set) key
 	confirmRead(key) bool
 	closeRead(key)
 
 	requestWrite(bool)
-	fixWorkingSetWrite(stringset.StringSet)
+	fixWorkingSetWrite(stringset.Set)
 	confirmWrite()
 	closeWrite()
 }

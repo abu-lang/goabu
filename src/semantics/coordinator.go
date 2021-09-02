@@ -7,13 +7,13 @@ import (
 )
 
 type reader struct {
-	workingSet stringset.StringSet
+	workingSet stringset.Set
 	status     string
 	blocking   bool
 }
 
 type writer struct {
-	workingSet   stringset.StringSet
+	workingSet   stringset.Set
 	optimistic   bool
 	awaiting     int
 	zeroAwaiting chan struct{}
@@ -36,7 +36,7 @@ func newCoordinator() *coordinator {
 	}
 }
 
-func (c *coordinator) requestRead(ws stringset.StringSet) key {
+func (c *coordinator) requestRead(ws stringset.Set) key {
 	var e *list.Element = nil
 	for {
 		c.mutex.Lock()
@@ -107,7 +107,7 @@ func (c *coordinator) requestWrite(optimistic bool) {
 	}
 }
 
-func (c *coordinator) fixWorkingSetWrite(ws stringset.StringSet) {
+func (c *coordinator) fixWorkingSetWrite(ws stringset.Set) {
 	if c.writing.optimistic {
 		c.startOptimistic(ws)
 	} else {
@@ -115,7 +115,7 @@ func (c *coordinator) fixWorkingSetWrite(ws stringset.StringSet) {
 	}
 }
 
-func (c *coordinator) startWrite(ws stringset.StringSet) {
+func (c *coordinator) startWrite(ws stringset.Set) {
 	var e *list.Element = nil
 	for {
 		c.mutex.Lock()
@@ -152,9 +152,9 @@ func (c *coordinator) startWrite(ws stringset.StringSet) {
 	}
 }
 
-func (c *coordinator) startOptimistic(ws stringset.StringSet) {
+func (c *coordinator) startOptimistic(ws stringset.Set) {
 	c.mutex.Lock()
-	cs := stringset.Make("")
+	cs := stringset.Make()
 	for r := range ws {
 		if c.readers[r] > 0 {
 			cs.Insert(r)
@@ -197,7 +197,7 @@ func (c *coordinator) confirmRead(k key) bool {
 func (c *coordinator) confirmWrite() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.writing.workingSet = stringset.Make("")
+	c.writing.workingSet = stringset.Make()
 	c.wakeNext()
 }
 

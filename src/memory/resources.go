@@ -45,39 +45,39 @@ func (r Resources) InputsNumber() int {
 }
 
 func (r Resources) HasDuplicates() bool {
-	atts := stringset.Make("")
+	atts := stringset.Make()
 	for a := range r.Bool {
-		if atts.Contains(a) {
+		if atts.Has(a) {
 			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Integer {
-		if atts.Contains(a) {
+		if atts.Has(a) {
 			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Float {
-		if atts.Contains(a) {
+		if atts.Has(a) {
 			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Text {
-		if atts.Contains(a) {
+		if atts.Has(a) {
 			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Time {
-		if atts.Contains(a) {
+		if atts.Has(a) {
 			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Other {
-		if atts.Contains(a) {
+		if atts.Has(a) {
 			return true
 		}
 		atts.Insert(a)
@@ -86,7 +86,7 @@ func (r Resources) HasDuplicates() bool {
 }
 
 func (r Resources) Has(resource string) bool {
-	return r.ResourceNames().Contains(resource)
+	return r.ResourceNames().Has(resource)
 }
 
 func (r Resources) GetTypes() map[string]string {
@@ -116,8 +116,8 @@ func (r Resources) GetResources() Resources {
 	return r
 }
 
-func (r Resources) ResourceNames() stringset.StringSet {
-	atts := stringset.Make("")
+func (r Resources) ResourceNames() stringset.Set {
+	atts := stringset.Make()
 	for a := range r.Bool {
 		atts.Insert(a)
 	}
@@ -139,35 +139,35 @@ func (r Resources) ResourceNames() stringset.StringSet {
 	return atts
 }
 
-func (r Resources) Extract(s stringset.StringSet) Resources {
+func (r Resources) Extract(s stringset.Set) Resources {
 	res := MakeResources()
 	for k, v := range r.Bool {
-		if s.Contains(k) {
+		if s.Has(k) {
 			res.Bool[k] = v
 		}
 	}
 	for k, v := range r.Integer {
-		if s.Contains(k) {
+		if s.Has(k) {
 			res.Integer[k] = v
 		}
 	}
 	for k, v := range r.Float {
-		if s.Contains(k) {
+		if s.Has(k) {
 			res.Float[k] = v
 		}
 	}
 	for k, v := range r.Text {
-		if s.Contains(k) {
+		if s.Has(k) {
 			res.Text[k] = v
 		}
 	}
 	for k, v := range r.Time {
-		if s.Contains(k) {
+		if s.Has(k) {
 			res.Time[k] = v
 		}
 	}
 	for k, v := range r.Other {
-		if s.Contains(k) {
+		if s.Has(k) {
 			res.Other[k] = v
 		}
 	}

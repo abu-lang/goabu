@@ -138,7 +138,7 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 
 func (m *MuSteelExecuter) GetState() State {
 	m.coordinator.requestWrite(false)
-	m.coordinator.fixWorkingSetWrite(stringset.Make(""))
+	m.coordinator.fixWorkingSetWrite(stringset.Make())
 	m.lockMemory.RLock()
 	memCopy := m.memory.Copy().GetResources()
 	m.lockMemory.RUnlock()
@@ -157,7 +157,7 @@ func (m *MuSteelExecuter) GetState() State {
 
 func (m *MuSteelExecuter) DoIfStable(f func()) bool {
 	m.coordinator.requestWrite(false)
-	m.coordinator.fixWorkingSetWrite(stringset.Make(""))
+	m.coordinator.fixWorkingSetWrite(stringset.Make())
 	m.lockPool.Lock()
 	stable := len(m.pool) == 0
 	if stable {
@@ -198,7 +198,7 @@ func (m *MuSteelExecuter) Exec() {
 	update, index := m.chooseUpdate()
 	m.lockPool.Unlock()
 	m.logger.Info(fmt.Sprintf("Exec: %v", update), zap.String("act", "exec"), zap.Array("update", updateLogger(update)))
-	workingSet := stringset.Make("")
+	workingSet := stringset.Make()
 	for _, action := range update {
 		workingSet.Insert(action.Resource)
 	}
@@ -216,7 +216,7 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	if err != nil {
 		return err
 	}
-	workingSet := stringset.Make("")
+	workingSet := stringset.Make()
 	for _, p := range parsed {
 		workingSet.Insert(p.Resource)
 	}
@@ -434,13 +434,13 @@ func (m *MuSteelExecuter) activeRules(u Update) (local, global ecarule.RuleDict)
 // Precondition: rule.Task.External
 func (m *MuSteelExecuter) preEvaluated(rule *ecarule.Rule) externalAction {
 	res := externalAction{
-		CondWorkingSet: stringset.Make(""),
+		CondWorkingSet: stringset.Make(),
 		Constants:      make(map[string]interface{}),
 		IntConstants:   make(map[string]int64),
 		dataContext:    m.dataContext,
 		workingMemory:  m.workingMemory,
 	}
-	res.WorkingSets = make([]stringset.StringSet, 0, len(rule.Task.Actions))
+	res.WorkingSets = make([]stringset.Set, 0, len(rule.Task.Actions))
 	for _, action := range rule.Task.Actions {
 		res.WorkingSets = append(res.WorkingSets, stringset.Make(action.Resource))
 	}
@@ -606,8 +606,8 @@ func (m *MuSteelExecuter) newEmptyGruleStructures(name string) (ast.IDataContext
 	return dataContext, knowledgeBase.WorkingMemory, nil
 }
 
-func validNames(names stringset.StringSet, lexer *antlr_parser.EcaruleLexer) error {
-	if len(names) == 0 {
+func validNames(names stringset.Set, lexer *antlr_parser.EcaruleLexer) error {
+	if names.Empty() {
 		return errors.New("no resource specified")
 	}
 	for n := range names {
