@@ -8,6 +8,7 @@ import (
 	"steel-lang/ecarule"
 	"steel-lang/memory"
 	"steel-lang/parser"
+	antlr_parser "steel-lang/parser/antlr"
 	"steel-lang/stringset"
 	"strconv"
 	"sync"
@@ -63,11 +64,17 @@ func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt IStee
 			},
 		},
 	}
-	if !res.memory.IsValid() {
-		return nil, errors.New("invalid Resources argument")
+	if res.memory.HasDuplicates() {
+		return nil, errors.New("multiple resources have the same name")
+	}
+	lp := res.lexerParserPool.Get().(*parser.EcaruleLexerParser)
+	defer res.lexerParserPool.Put(lp)
+	lp.Lexer.RemoveErrorListeners()
+	err := validNames(res.memory.ResourceNames(), lp.Lexer)
+	if err != nil {
+		return nil, err
 	}
 	res.types = res.memory.GetTypes()
-	var err error
 	res.dataContext, res.workingMemory, err = res.newEmptyGruleStructures("this")
 	if err != nil {
 		return nil, err
@@ -597,6 +604,25 @@ func (m *MuSteelExecuter) newEmptyGruleStructures(name string) (ast.IDataContext
 	}
 	knowledgeBase.InitializeContext(dataContext)
 	return dataContext, knowledgeBase.WorkingMemory, nil
+}
+
+func validNames(names stringset.StringSet, lexer *antlr_parser.EcaruleLexer) error {
+	if len(names) == 0 {
+		return errors.New("no resource specified")
+	}
+	for n := range names {
+		if n != "this" && n != "ext" {
+			lexer.SetInputStream(antlr.NewInputStream(n))
+			token := lexer.NextToken()
+			if token.GetLine() == 1 && token.GetColumn() == 0 &&
+				lexer.GetCharIndex() == len(n) &&
+				antlr_parser.EcaruleLexerSIMPLENAME == token.GetTokenType() {
+				continue
+			}
+		}
+		return fmt.Errorf(`invalid resource name: "%s"`, n)
+	}
+	return nil
 }
 
 func addList(strs []string, add func(string) error) error {

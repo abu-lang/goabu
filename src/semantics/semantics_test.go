@@ -2,6 +2,7 @@ package semantics
 
 import (
 	"flag"
+	"fmt"
 	"steel-lang/config"
 	"steel-lang/memory"
 	"testing"
@@ -10,13 +11,34 @@ import (
 
 var optimistic = flag.Bool("opt", false, "set optimistic concurrency control")
 
+func TestInvalidNames(t *testing.T) {
+	names := []string{"", "  abc", "def ", "ip sum", "this", "ext", "rule", "on", "default", "for", "FoR", "all", "do", "10sit",
+		"a,met", "=", "123", "."}
+	for _, n := range names {
+		test := fmt.Sprintf("TestInvalidNames#\"%s\"", n)
+		t.Run(test, func(t *testing.T) {
+			mem := memory.MakeResources()
+			mem.Integer[n] = 42
+			_, err := NewMuSteelExecuter(mem, nil, MakeMockAgent(), config.TestsLogConfig)
+			if err == nil {
+				t.Error(test + " failed")
+			}
+		})
+	}
+}
+
 func TestNewMuSteelExecuter(t *testing.T) {
+	empty := memory.MakeResources()
+	_, err := NewMuSteelExecuter(empty, nil, MakeMockAgent(), config.TestsLogConfig)
+	if err == nil {
+		t.Error("should return error with no resources")
+	}
 	invalid := memory.MakeResources()
 	invalid.Bool["lorem42"] = false
 	invalid.Float["lorem42"] = 3.14
-	_, err := NewMuSteelExecuter(invalid, nil, MakeMockAgent(), config.TestsLogConfig)
+	_, err = NewMuSteelExecuter(invalid, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err == nil {
-		t.Error("should return error with invalid memory")
+		t.Error("should return error with duplicated resources")
 	}
 	memory := memory.MakeResources()
 	memory.Integer["dolor"] = 42

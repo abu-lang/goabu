@@ -44,45 +44,45 @@ func (r Resources) InputsNumber() int {
 	return 0
 }
 
-func (r Resources) IsValid() bool {
+func (r Resources) HasDuplicates() bool {
 	atts := stringset.Make("")
 	for a := range r.Bool {
 		if atts.Contains(a) {
-			return false
+			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Integer {
 		if atts.Contains(a) {
-			return false
+			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Float {
 		if atts.Contains(a) {
-			return false
+			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Text {
 		if atts.Contains(a) {
-			return false
+			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Time {
 		if atts.Contains(a) {
-			return false
+			return true
 		}
 		atts.Insert(a)
 	}
 	for a := range r.Other {
 		if atts.Contains(a) {
-			return false
+			return true
 		}
 		atts.Insert(a)
 	}
-	return atts.AllMatch(`\A[a-zA-Z]+[a-zA-Z0-9_]*\z`)
+	return false
 }
 
 func (r Resources) Has(resource string) bool {

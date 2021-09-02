@@ -1,9 +1,6 @@
 package stringset
 
-import (
-	"regexp"
-	"strings"
-)
+import "strings"
 
 type StringSet map[string]bool
 
@@ -77,16 +74,6 @@ func (dst StringSet) Intersect(src StringSet) {
 			delete(dst, el)
 		}
 	}
-}
-
-func (set StringSet) AllMatch(reg string) bool {
-	var idMatcher = regexp.MustCompile(reg)
-	for el := range set {
-		if !idMatcher.MatchString(el) {
-			return false
-		}
-	}
-	return true
 }
 
 func (set StringSet) Clone() StringSet {
