@@ -31,7 +31,7 @@ func LogPreset(encoding string) interface{} {
 	}
 	return zap.Config{
 		Level:            zap.NewAtomicLevel(),
-		Development:      true,
+		Development:      !Production,
 		Encoding:         encoding,
 		EncoderConfig:    zapEnc,
 		OutputPaths:      []string{"stdout"},
