@@ -217,7 +217,12 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	defer m.coordinator.closeWrite()
 	m.coordinator.fixWorkingSetWrite(workingSet)
 	m.lockMemory.RLock()
-	update := evalActions(parsed, m.dataContext, m.workingMemory)
+	update, err := evalActions(parsed, m.dataContext, m.workingMemory)
+	if err != nil {
+		m.logger.Panic("Error during input actions evaluation: "+err.Error(),
+			zap.String("act", "eval"),
+			zap.String("obj", actions))
+	}
 	m.lockMemory.RUnlock()
 	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("update", updateLogger(update)))
 	m.execUpdate(update)
@@ -373,16 +378,33 @@ func (m *MuSteelExecuter) discovery(u Update) ([]Update, []externalAction) {
 	var extActions []externalAction
 	localRules, globalRules := m.activeRules(u)
 	for _, rule := range localRules {
-		var defaults Update
+		var defaults, tActions Update
+		var err error
 		if len(rule.DefaultActions) > 0 {
-			defaults = evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
+			defaults, err = evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
+			if err != nil {
+				m.logger.Panic("Error during default actions evaluation: "+err.Error(),
+					zap.String("act", "eval"),
+					zap.String("obj", "default actions"))
+			}
 		}
-		newpool = appendNonempty(newpool,
-			append(defaults, condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)...))
+		tActions, err = condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)
+		if err != nil {
+			m.logger.Panic("Error during actions evaluation: "+err.Error(),
+				zap.String("act", "eval"),
+				zap.String("obj", "actions"))
+		}
+		newpool = appendNonempty(newpool, append(defaults, tActions...))
 	}
 	for _, rule := range globalRules {
 		if len(rule.DefaultActions) > 0 {
-			newpool = append(newpool, evalActions(rule.DefaultActions, m.dataContext, m.workingMemory))
+			defaults, err := evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
+			if err != nil {
+				m.logger.Panic("Error during default actions evaluation: "+err.Error(),
+					zap.String("act", "eval"),
+					zap.String("obj", "default actions"))
+			}
+			newpool = append(newpool, defaults)
 		}
 		ext := m.preEvaluated(rule)
 		extActions = append(extActions, ext)
@@ -463,7 +485,11 @@ func (m *MuSteelExecuter) addActions(actions string) error {
 	if err != nil {
 		return err
 	}
-	m.pool = append(m.pool, evalActions(parsed, m.dataContext, m.workingMemory))
+	update, err := evalActions(parsed, m.dataContext, m.workingMemory)
+	if err != nil {
+		return err
+	}
+	m.pool = append(m.pool, update)
 	return nil
 }
 

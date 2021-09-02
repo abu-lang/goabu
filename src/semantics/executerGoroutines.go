@@ -1,7 +1,6 @@
 package semantics
 
 import (
-	"fmt"
 	"math"
 	"steel-lang/stringset"
 	"strings"
@@ -32,7 +31,8 @@ func (m *MuSteelExecuter) receiveInputs() {
 			if queued.Contains(resource) {
 				err := m.Input(queue)
 				if err != nil {
-					panic(err)
+					m.logger.Panic("Error in parsing I/O input actions: "+err.Error(),
+						zap.String("act", "io_parse"), zap.String("obj", queue))
 				}
 				queue = ""
 				l = 0
@@ -52,7 +52,8 @@ func (m *MuSteelExecuter) receiveInputs() {
 		}
 		err := m.Input(queue)
 		if err != nil {
-			m.logger.Panic(fmt.Sprintf("Could not process input %s: %s", queue, err.Error()), zap.String("act", "io"))
+			m.logger.Panic("Error in parsing I/O input actions: "+err.Error(),
+				zap.String("act", "io_parse"), zap.String("obj", queue))
 		}
 		queue = ""
 		l = 0
@@ -113,7 +114,13 @@ func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh c
 				continue
 			}
 			m.lockMemory.RLock()
-			updates = appendNonempty(updates, condEvalActions(eAction.Condition, actions, context, workMem))
+			update, err := condEvalActions(eAction.Condition, actions, context, workMem)
+			if err != nil {
+				m.logger.Panic("Error during external actions evaluation: "+err.Error(),
+					zap.String("act", "eval"),
+					zap.String("obj", "external actions"))
+			}
+			updates = appendNonempty(updates, update)
 			m.lockMemory.RUnlock()
 		}
 	}

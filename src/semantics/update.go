@@ -28,7 +28,7 @@ func appendNonempty(pool []Update, u Update) []Update {
 	return append(pool, u)
 }
 
-func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) Update {
+func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) (Update, error) {
 	res := make([]Assignment, 0)
 	for _, action := range actions {
 		assignment := action.Assignment
@@ -37,7 +37,7 @@ func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, working
 		rexpr = workingMemory.AddExpression(rexpr)
 		exprVal, err := rexpr.Evaluate(dataContext, workingMemory)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		res = append(res, Assignment{
 			Resource: action.Resource,
@@ -45,19 +45,19 @@ func evalActions(actions []ecarule.Action, dataContext ast.IDataContext, working
 			Value:    exprVal,
 		})
 	}
-	return res
+	return res, nil
 }
 
-func condEvalActions(exp *ast.Expression, actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) Update {
+func condEvalActions(exp *ast.Expression, actions []ecarule.Action, dataContext ast.IDataContext, workingMemory *ast.WorkingMemory) (Update, error) {
 	exp = workingMemory.AddExpression(exp)
 	val, err := exp.Evaluate(dataContext, workingMemory)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if val.Bool() {
 		return evalActions(actions, dataContext, workingMemory)
 	}
-	return nil
+	return nil, nil
 }
 
 //----------------------------------LOGGER------------------------------------
