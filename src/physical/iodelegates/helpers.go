@@ -1,4 +1,4 @@
-package delegates
+package iodelegates
 
 import "steel-lang/physical"
 

@@ -7,7 +7,7 @@ import (
 	"steel-lang/communication"
 	"steel-lang/config"
 	"steel-lang/physical"
-	"steel-lang/physical/delegates"
+	"steel-lang/physical/iodelegates"
 	"steel-lang/semantics"
 	"testing"
 	"time"
@@ -18,8 +18,8 @@ import (
 func TestLed2Buttons(t *testing.T) {
 	toggles := 6
 	var a physical.IOadaptor = raspi.NewAdaptor()
-	memLed := delegates.MakeIOresources(a)
-	memButtons := delegates.MakeIOresources(a)
+	memLed := iodelegates.MakeIOresources(a)
+	memButtons := iodelegates.MakeIOresources(a)
 	memLed.Add("DigitalPin", "led", "36")
 	memButtons.Add("Button", "button1", "38")
 	memButtons.Add("Button", "button2", "40")
@@ -51,7 +51,7 @@ func TestLed2Buttons(t *testing.T) {
 
 func TestMotor(t *testing.T) {
 	var a physical.IOadaptor = raspi.NewAdaptor()
-	mem := delegates.MakeIOresources(a)
+	mem := iodelegates.MakeIOresources(a)
 	mem.Add("Motor", "motor", "13", "11")
 	r1 := "rule R1 on motor for this.motor > 0 && this.motor < 255 do motor = this.motor + 60"
 	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0;"
