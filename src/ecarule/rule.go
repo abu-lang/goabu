@@ -80,14 +80,6 @@ func (a Action) String() string {
 	return a.Assignment.GetGrlText()
 }
 
-func ActionsToStr(actions []Action) string {
-	res := ""
-	for _, action := range actions {
-		res += action.String() + "; "
-	}
-	return res
-}
-
 func validAssignment(a *ast.Assignment) bool {
 	if a.Variable == nil ||
 		a.Variable.ArrayMapSelector == nil ||

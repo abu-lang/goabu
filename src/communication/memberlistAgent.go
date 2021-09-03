@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// TODO evaluate
 const (
 	// milliseconds
 	timeoutRegister = 1000

@@ -94,13 +94,13 @@ func TestAddRules(t *testing.T) {
 	if len(e.globalLibrary["trigger"]) != 1 {
 		t.Error("trigger global dict should have 1 rule")
 	}
-	if !e.localLibrary["trigger"].Contains("local") {
+	if !e.localLibrary["trigger"].Has("local") {
 		t.Error("trigger should contain local")
 	}
-	if !e.localLibrary["executed"].Contains("local") {
+	if !e.localLibrary["executed"].Has("local") {
 		t.Error("executed should contain local")
 	}
-	if !e.globalLibrary["trigger"].Contains("global") {
+	if !e.globalLibrary["trigger"].Has("global") {
 		t.Error("trigger should contain global")
 	}
 }

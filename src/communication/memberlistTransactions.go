@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// TODO evaluate
 const (
 	// milliseconds
 	timeoutPhaseResend = 6000

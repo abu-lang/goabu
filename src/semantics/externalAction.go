@@ -1,3 +1,5 @@
+// TODO redo using parser
+
 package semantics
 
 import (
@@ -24,7 +26,15 @@ type externalAction struct {
 }
 
 func (a externalAction) String() string {
-	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), ecarule.ActionsToStr(a.Actions))
+	return fmt.Sprintf("if %v do:\n  %v", a.Condition.GetGrlText(), actionsToString(a.Actions))
+}
+
+func actionsToString(actions []ecarule.Action) string {
+	res := ""
+	for _, action := range actions {
+		res += action.String() + "; "
+	}
+	return res
 }
 
 func (a externalAction) cullActions(localResources stringset.Set) []ecarule.Action {

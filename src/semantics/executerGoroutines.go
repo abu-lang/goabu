@@ -9,9 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// TODO evaluate
 const inputsRate float64 = 5.0
 
-// milliseconds
+// milliseconds, TODO evaluate
 const inputsFlush = 100
 
 func (m *MuSteelExecuter) receiveInputs() {

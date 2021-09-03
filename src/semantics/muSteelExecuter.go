@@ -451,12 +451,12 @@ func (m *MuSteelExecuter) preEvaluated(rule *ecarule.Rule) externalAction {
 
 func (m *MuSteelExecuter) hasRuleAux(name string) bool {
 	for _, d := range m.localLibrary {
-		if d.Contains(name) {
+		if d.Has(name) {
 			return true
 		}
 	}
 	for _, d := range m.globalLibrary {
-		if d.Contains(name) {
+		if d.Has(name) {
 			return true
 		}
 	}

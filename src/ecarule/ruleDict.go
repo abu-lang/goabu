@@ -6,7 +6,7 @@ func MakeRuleDict() RuleDict {
 	return make(map[string]*Rule)
 }
 
-func (rules RuleDict) Contains(name string) bool {
+func (rules RuleDict) Has(name string) bool {
 	_, present := rules[name]
 	return present
 }
