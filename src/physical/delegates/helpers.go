@@ -2,8 +2,8 @@ package delegates
 
 import "steel-lang/physical"
 
-func MakeIOResources(a physical.IOAdaptor) *physical.IOResources {
-	res := physical.MakeEmptyIOResources(a)
+func MakeIOresources(a physical.IOadaptor) *physical.IOresources {
+	res := physical.MakeEmptyIOresources(a)
 	res.AddOutputFrame("DigitalPin", MakeDigitalPin)
 	res.AddOutputFrame("Motor", MakeMotor)
 	res.AddInputFrame("Button", MakeButton)

@@ -10,25 +10,25 @@ import (
 )
 
 type Button struct {
-	name string
-	*gpio.ButtonDriver
+	name   string
+	driver *gpio.ButtonDriver
 }
 
-func MakeButton(adaptor physical.IOAdaptor, name string, args ...interface{}) (physical.IOdelegate, memory.Resources, error) {
+func MakeButton(adaptor physical.IOadaptor, name string, args ...interface{}) (physical.IOdelegate, memory.Resources, error) {
 	if len(args) != 1 {
-		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("button constructor invocation should have 3 arguments")
+		return nil, memory.MakeResources(), errors.New("button constructor invocation should have 3 arguments")
 	}
 	pin, ok := args[0].(string)
 	if !ok {
-		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("third argument of button constructor should be a string specifying a pin")
+		return nil, memory.MakeResources(), errors.New("third argument of button constructor should be a string specifying a pin")
 	}
 	resources := memory.MakeResources()
 	resources.Bool[name] = false
-	return Button{name: name, ButtonDriver: gpio.NewButtonDriver(adaptor, pin)}, resources, nil
+	return Button{name: name, driver: gpio.NewButtonDriver(adaptor, pin)}, resources, nil
 }
 
-func (b Button) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors chan<- error) error {
-	err := b.ButtonDriver.Start()
+func (b Button) Start(adaptor physical.IOadaptor, inputs chan<- string, errors chan<- error) error {
+	err := b.driver.Start()
 	if err != nil {
 		return err
 	}
@@ -36,12 +36,12 @@ func (b Button) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors c
 	return nil
 }
 
-func (b Button) Modified(adaptor physical.IOAdaptor, name string, resources memory.Resources, errors chan<- error) *memory.Resources {
+func (b Button) Modified(adaptor physical.IOadaptor, name string, resources memory.Resources, errors chan<- error) *memory.Resources {
 	return nil
 }
 
 func (b Button) getButtonInput(in chan<- string, errs chan<- error) {
-	events := b.Subscribe()
+	events := b.driver.Subscribe()
 	status := false
 	push := b.name + " = true;"
 	release := b.name + " = false;"

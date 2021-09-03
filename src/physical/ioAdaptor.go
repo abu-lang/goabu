@@ -6,7 +6,7 @@ import (
 )
 
 // check if sufficient
-type IOAdaptor interface {
+type IOadaptor interface {
 	gobot.Adaptor
 	gpio.DigitalReader
 	gpio.DigitalWriter

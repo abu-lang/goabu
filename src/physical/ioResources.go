@@ -14,7 +14,7 @@ type ioResourceMeta struct {
 }
 
 type frame struct {
-	constructor func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)
+	constructor func(IOadaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)
 	ioResourceMeta
 }
 
@@ -24,9 +24,9 @@ type resource struct {
 	managed stringset.Set
 }
 
-type IOResources struct {
+type IOresources struct {
 	memory.Resources
-	adaptor   IOAdaptor
+	adaptor   IOadaptor
 	inputs    chan string
 	errors    chan error
 	delegates []*resource
@@ -34,8 +34,8 @@ type IOResources struct {
 	frames    map[string]frame
 }
 
-func MakeEmptyIOResources(a IOAdaptor) *IOResources {
-	return &IOResources{
+func MakeEmptyIOresources(a IOadaptor) *IOresources {
+	return &IOresources{
 		Resources: memory.MakeResources(),
 		adaptor:   a,
 		inputs:    make(chan string),
@@ -45,7 +45,7 @@ func MakeEmptyIOResources(a IOAdaptor) *IOResources {
 	}
 }
 
-func (i *IOResources) Start() error {
+func (i *IOresources) Start() error {
 	err := i.adaptor.Connect()
 	if err != nil {
 		return err
@@ -59,15 +59,15 @@ func (i *IOResources) Start() error {
 	return nil
 }
 
-func (i *IOResources) Inputs() <-chan string {
+func (i *IOresources) Inputs() <-chan string {
 	return i.inputs
 }
 
-func (i *IOResources) Errors() <-chan error {
+func (i *IOresources) Errors() <-chan error {
 	return i.errors
 }
 
-func (i *IOResources) InputsNumber() int {
+func (i *IOresources) InputsNumber() int {
 	res := 0
 	for _, r := range i.delegates {
 		if r.meta.isInput {
@@ -77,7 +77,7 @@ func (i *IOResources) InputsNumber() int {
 	return res
 }
 
-func (i *IOResources) Modified(r string) {
+func (i *IOresources) Modified(r string) {
 	if !i.Has(r) {
 		return
 	}
@@ -91,8 +91,8 @@ func (i *IOResources) Modified(r string) {
 	}
 }
 
-func (i *IOResources) Copy() memory.ResourceController {
-	return &IOResources{
+func (i *IOresources) Copy() memory.ResourceController {
+	return &IOresources{
 		Resources: i.Resources.Copy().GetResources(),
 		adaptor:   i.adaptor,
 		inputs:    i.inputs,
@@ -102,19 +102,19 @@ func (i *IOResources) Copy() memory.ResourceController {
 	}
 }
 
-func (i *IOResources) AddInputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
+func (i *IOresources) AddInputFrame(t string, c func(IOadaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	return i.addFrame(true, false, t, c)
 }
 
-func (i *IOResources) AddOutputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
+func (i *IOresources) AddOutputFrame(t string, c func(IOadaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	return i.addFrame(false, true, t, c)
 }
 
-func (i *IOResources) AddInputOutputFrame(t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
+func (i *IOresources) AddInputOutputFrame(t string, c func(IOadaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	return i.addFrame(true, true, t, c)
 }
 
-func (i *IOResources) Add(t string, name string, args ...interface{}) error {
+func (i *IOresources) Add(t string, name string, args ...interface{}) error {
 	frame, present := i.frames[t]
 	if !present {
 		return fmt.Errorf("no frame for type %s", t)
@@ -125,6 +125,9 @@ func (i *IOResources) Add(t string, name string, args ...interface{}) error {
 	delegate, newResources, err := frame.constructor(i.adaptor, name, args...)
 	if err != nil {
 		return err
+	}
+	if delegate == nil {
+		return errors.New("created IOdelegate is nil")
 	}
 	newNames := newResources.ResourceNames()
 	if i.ResourceNames().IntersectsWith(newNames) {
@@ -140,7 +143,7 @@ func (i *IOResources) Add(t string, name string, args ...interface{}) error {
 	return nil
 }
 
-func (i *IOResources) addFrame(input, output bool, t string, c func(IOAdaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
+func (i *IOresources) addFrame(input, output bool, t string, c func(IOadaptor, string, ...interface{}) (IOdelegate, memory.Resources, error)) error {
 	_, present := i.frames[t]
 	if present {
 		return fmt.Errorf("there is already a frame for type %s", t)

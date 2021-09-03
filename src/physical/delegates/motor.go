@@ -8,33 +8,33 @@ import (
 	"gobot.io/x/gobot/drivers/gpio"
 )
 
-type motor struct {
+type Motor struct {
 	forwardPin  string
 	backwardPin string
 }
 
-func MakeMotor(adaptor physical.IOAdaptor, name string, args ...interface{}) (physical.IOdelegate, memory.Resources, error) {
+func MakeMotor(adaptor physical.IOadaptor, name string, args ...interface{}) (physical.IOdelegate, memory.Resources, error) {
 	if len(args) != 2 {
-		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("motor constructor invocation should have 4 arguments")
+		return nil, memory.MakeResources(), errors.New("motor constructor invocation should have 4 arguments")
 	}
 	forward, ok := args[0].(string)
 	if !ok {
-		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("third argument of motor constructor should be a string specifying a pin")
+		return nil, memory.MakeResources(), errors.New("third argument of motor constructor should be a string specifying a pin")
 	}
 	backward, ok := args[1].(string)
 	if !ok {
-		return physical.MakeLazyDelegate(), memory.MakeResources(), errors.New("fourth argument of motor constructor should be a string specifying a pin")
+		return nil, memory.MakeResources(), errors.New("fourth argument of motor constructor should be a string specifying a pin")
 	}
 	resources := memory.MakeResources()
 	resources.Integer[name] = 0
-	return motor{forwardPin: forward, backwardPin: backward}, resources, nil
+	return Motor{forwardPin: forward, backwardPin: backward}, resources, nil
 }
 
-func (m motor) Start(adaptor physical.IOAdaptor, inputs chan<- string, errors chan<- error) error {
+func (m Motor) Start(adaptor physical.IOadaptor, inputs chan<- string, errors chan<- error) error {
 	return nil
 }
 
-func (m motor) Modified(adaptor physical.IOAdaptor, name string, resources memory.Resources, errors chan<- error) *memory.Resources {
+func (m Motor) Modified(adaptor physical.IOadaptor, name string, resources memory.Resources, errors chan<- error) *memory.Resources {
 	speed := resources.Integer[name]
 	forward := speed >= 0
 	if !forward {
@@ -50,7 +50,7 @@ func (m motor) Modified(adaptor physical.IOAdaptor, name string, resources memor
 	return nil
 }
 
-func (m motor) set(writer gpio.PwmWriter, speed byte, forward bool) error {
+func (m Motor) set(writer gpio.PwmWriter, speed byte, forward bool) error {
 	err := writer.PwmWrite(m.forwardPin, 0)
 	if err != nil {
 		return err
