@@ -1,41 +1,45 @@
 @startuml
 hide empty members
 
-package delegates {
+package iodelegates {
     class DigitalPin
     class Button
     class Motor
 }
 
 package physical {
-    class IOResources {
-        adaptor : IOAdaptor
+    class IOresources {
+        adaptor : IOadaptor
     }
-    hide IOResources attributes
-    interface IOAdaptor
+    hide IOresources attributes
+    interface IOadaptor
     interface IOdelegate {
-        Start(IOAdaptor, chan<- string) error
-        Modified(IOAdaptor, string, Resources) *Resources
+        Start(IOadaptor, chan<- string, chan<- error) error
+        Modified(IOadaptor, string, Resources, chan<- error) *Resources
     }
-    IOResources o-- "1" IOAdaptor
-    IOdelegate "*" -* IOResources
+    IOresources o-- "1" IOadaptor
+    IOdelegate "*" -* IOresources
 }
 
-package datastructure {
+package ecarule {
     class Rule
     class RuleDict
+}
+
+package memory {
     interface ResourceController {
         Start() error
 	    Inputs() <-chan string
+        Errors() <-chan error
 	    Modified(string) error
-	    IsValid() bool
+	    HasDuplicates() bool
 	    Has(string) bool
-	    GetTypes() map[string]string
+	    Types() map[string]string
 	    GetResources() Resources
-	    ResourceNames() StringSet
+	    ResourceNames() []string
 	    InputsNumber() int
 	    String() string
-	    Clone() ResourceController
+	    Copy() ResourceController
     }
     class Resources {
         Bool : string->bool
@@ -50,31 +54,37 @@ package datastructure {
     ResourceController -- Resources
 }
 
-package semantics {
+package steel {
     class State {
         Memory : Resources
-	    Pool : [][]SemanticAction
+	    Pool : []Update
     }
-    class MuSteelExecuter {
+    class Executer {
         memory : ResourceController
-        pool : [][]SemanticAction
-        agent : ISteelAgent
+        pool : []Update
+        agent : Agent
         localLibrary : string->RuleDict
         globalLibrary : string->RuleDict
 
-        StartAgent() error
-        StopAgent() error
-        SetAgent(ISteelAgent) error
-        GetState() State
-        IsStable() bool
-        HasRule(string) bool
-        AddRule(string) error
-        AddRules([]string) error
+        TakeState() State
+        DoIfStable(func ()) bool
         Exec()
         Input(string) error
+
+        StartAgent() error
+        StopAgent() error
+        SetAgent(Agent) error
+        HasRule(string) bool
+        AddRules(...string) error
+        LogLevel() int
+        SetLogLevel(int)
+        HasOptimisticExec() bool
+        HasOptimisticInput() bool
+        SetOptimisticExec(bool)
+        SetOptimisticInput(bool)
     }
-    hide MuSteelExecuter attributes
-    interface ISteelAgent {
+    hide Executer attributes
+    interface Agent {
         Start() error
 	    Join() error
 	    ForAll([]byte) error
@@ -82,21 +92,20 @@ package semantics {
 	    Stop() error
 	    IsRunning() bool
     }
-    class SemanticAction {
+    class Assignment {
         Resource : string
-        Variable : *Variable
         Value : Value
     }
     class externalAction
 
-    MuSteelExecuter "1" o-- "1" ISteelAgent
-    MuSteelExecuter *-- "*" SemanticAction
-    MuSteelExecuter -- externalAction
-    MuSteelExecuter -- State
+    Executer "1" o-- "1" Agent
+    Executer *-- "*" Assignment
+    Executer -- externalAction
+    Executer -- State
 }
 
 package communication {
-    class memberlistAgent
+    class MemberlistAgent
     class transactionInfo {
 	    Initiator : string
 	    Number : int
@@ -106,19 +115,19 @@ package communication {
 	    coordinated : bool
 	    commands : chan string
     }
-    memberlistAgent o-- "1" transactionInfo
+    MemberlistAgent o-- "1" transactionInfo
 }
 
 DigitalPin ..|> IOdelegate
 Button ..|> IOdelegate
 Motor ..|> IOdelegate
 
-IOResources ..|> ResourceController
-IOResources --|> Resources
+IOresources ..|> ResourceController
+IOresources --|> Resources
 
-MuSteelExecuter "1" o-- "1" ResourceController
-MuSteelExecuter "1" o-- "2" RuleDict
-MuSteelExecuter -- Rule
+Executer "1" o-- "1" ResourceController
+Executer "1" o-- "2" RuleDict
+Executer -- Rule
 
-memberlistAgent ..|> ISteelAgent
+MemberlistAgent ..|> Agent
 @enduml

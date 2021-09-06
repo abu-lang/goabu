@@ -1,24 +1,21 @@
 @startuml
 
-[*] --> unknown
-
-state choice_int <<choice>>
-unknown --> choice_int : interested?
-choice_int --> unknown : [in another transaction]/!"interested?" @me
-
-choice_int --> new : [not in another transaction]
+[*] --> new : interested?
 new : ask executer
-new : get executer response
+new --> evaluating
 
-state choice_resp <<choice>>
-new --> choice_resp
+evaluating --> aborted : _aborted_/!"aborted"
+aborted : do_abort/!"aborted"
+aborted : can_commit?/!"aborted"
+aborted : get_decision/!"do_abort"
+aborted --> [*]
 
-choice_resp --> not_interested : [response = not_interested]/!"not_interested"
+evaluating --> not_interested : _not_interested_/!"not_interested"
 not_interested : interested?/!"not_interested"
 not_interested --> [*]
 
 state par_start <<fork>>
-choice_resp --> par_start : [response = interested]/!"interested"
+evaluating --> par_start : _interested_/!"interested"
 
 par_start --> interested
 interested : interested?/!"interested"
@@ -45,10 +42,6 @@ state par_commit <<fork>>
 prepared --> par_commit : do_commit/commit; !"committed"
 
 par_abort --> aborted
-aborted : do_abort/!"aborted"
-aborted : can_commit?/!"aborted"
-aborted : get_decision/!"do_abort"
-aborted --> [*]
 
 par_commit --> committed
 committed : do_commit/!"committed"
