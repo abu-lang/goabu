@@ -74,7 +74,7 @@ func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt IStee
 	if err != nil {
 		return nil, err
 	}
-	res.types = res.memory.GetTypes()
+	res.types = res.memory.Types()
 	res.dataContext, res.workingMemory, err = res.newEmptyGruleStructures("this")
 	if err != nil {
 		return nil, err
@@ -606,11 +606,11 @@ func (m *MuSteelExecuter) newEmptyGruleStructures(name string) (ast.IDataContext
 	return dataContext, knowledgeBase.WorkingMemory, nil
 }
 
-func validNames(names stringset.Set, lexer *antlr_parser.EcaruleLexer) error {
-	if names.Empty() {
+func validNames(names []string, lexer *antlr_parser.EcaruleLexer) error {
+	if len(names) == 0 {
 		return errors.New("no resource specified")
 	}
-	for n := range names {
+	for _, n := range names {
 		if n != "this" && n != "ext" {
 			lexer.SetInputStream(antlr.NewInputStream(n))
 			token := lexer.NextToken()

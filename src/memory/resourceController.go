@@ -1,7 +1,5 @@
 package memory
 
-import "steel-lang/stringset"
-
 type ResourceController interface {
 	Start() error
 	Inputs() <-chan string
@@ -9,9 +7,9 @@ type ResourceController interface {
 	Modified(string)
 	HasDuplicates() bool
 	Has(string) bool
-	GetTypes() map[string]string
+	Types() map[string]string
 	GetResources() Resources
-	ResourceNames() stringset.Set
+	ResourceNames() []string
 	InputsNumber() int
 	String() string
 	Copy() ResourceController

@@ -70,6 +70,14 @@ func (dst Set) Intersect(src Set) {
 	}
 }
 
+func (set Set) Slice() []string {
+	res := make([]string, 0, len(set))
+	for el := range set {
+		res = append(res, el)
+	}
+	return res
+}
+
 func (set Set) Clone() Set {
 	res := Make()
 	for el := range set {

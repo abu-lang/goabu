@@ -86,10 +86,31 @@ func (r Resources) HasDuplicates() bool {
 }
 
 func (r Resources) Has(resource string) bool {
-	return r.ResourceNames().Has(resource)
+	_, present := r.Bool[resource]
+	if present {
+		return true
+	}
+	_, present = r.Integer[resource]
+	if present {
+		return true
+	}
+	_, present = r.Float[resource]
+	if present {
+		return true
+	}
+	_, present = r.Text[resource]
+	if present {
+		return true
+	}
+	_, present = r.Time[resource]
+	if present {
+		return true
+	}
+	_, present = r.Other[resource]
+	return present
 }
 
-func (r Resources) GetTypes() map[string]string {
+func (r Resources) Types() map[string]string {
 	res := make(map[string]string)
 	for a := range r.Bool {
 		res[a] = "Bool"
@@ -116,7 +137,7 @@ func (r Resources) GetResources() Resources {
 	return r
 }
 
-func (r Resources) ResourceNames() stringset.Set {
+func (r Resources) ResourceNames() []string {
 	atts := stringset.Make()
 	for a := range r.Bool {
 		atts.Insert(a)
@@ -136,10 +157,11 @@ func (r Resources) ResourceNames() stringset.Set {
 	for a := range r.Other {
 		atts.Insert(a)
 	}
-	return atts
+	return atts.Slice()
 }
 
-func (r Resources) Extract(s stringset.Set) Resources {
+func (r Resources) Extract(resources []string) Resources {
+	s := stringset.Make(resources...)
 	res := MakeResources()
 	for k, v := range r.Bool {
 		if s.Has(k) {

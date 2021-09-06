@@ -21,7 +21,7 @@ type frame struct {
 type resource struct {
 	meta ioResourceMeta
 	IOdelegate
-	managed stringset.Set
+	managed []string
 }
 
 type IOresources struct {
@@ -129,15 +129,18 @@ func (i *IOresources) Add(t string, name string, args ...interface{}) error {
 	if delegate == nil {
 		return errors.New("created IOdelegate is nil")
 	}
-	newNames := newResources.ResourceNames()
-	if i.ResourceNames().IntersectsWith(newNames) {
-		return errors.New("conflict in resource names")
+	managed := newResources.ResourceNames()
+	newNames := stringset.Make(managed...)
+	for _, r := range i.ResourceNames() {
+		if newNames.Has(r) {
+			return errors.New("conflict in resource names")
+		}
 	}
 	i.Enclose(newResources)
 	resource.IOdelegate = delegate
-	resource.managed = newNames
+	resource.managed = managed
 	i.delegates = append(i.delegates, resource)
-	for k := range newNames {
+	for _, k := range managed {
 		i.managers[k] = resource
 	}
 	return nil

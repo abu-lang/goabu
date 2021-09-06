@@ -236,7 +236,7 @@ func TestReceiveExternalActions(t *testing.T) {
 	mem := e.memory.GetResources()
 	delete(mem.Bool, "labore")
 	delete(mem.Text, "incididunt")
-	e.types = e.memory.GetTypes()
+	e.types = e.memory.Types()
 
 	e.addActions("elit = 100.0;")
 	e.addActions("consectetur = -2;")
