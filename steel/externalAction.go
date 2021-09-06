@@ -1,6 +1,6 @@
 // TODO redo using parser
 
-package semantics
+package steel
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package semantics
+package steel
 
 type Agent interface {
 	Start() error

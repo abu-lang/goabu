@@ -1,28 +1,25 @@
-package main_test
+package steel_test
 
 import (
-	"flag"
 	"fmt"
+	"steel"
 	"steel/communication"
 	"steel/config"
 	"steel/memory"
-	"steel/semantics"
 	"testing"
 )
-
-var optimistic = flag.Bool("opt", false, "set optimistic concurrency control")
 
 func TestSingleNode(t *testing.T) {
 	memory := memory.MakeResources()
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
-	e, err := semantics.NewExecuter(memory, nil, communication.NewMemberlistAgent(8000, config.TestsLogConfig), config.TestsLogConfig)
+	e, err := steel.NewExecuter(memory, nil, communication.NewMemberlistAgent(8000, config.TestsLogConfig), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.SetOptimisticExec(*optimistic)
-	e.SetOptimisticInput(*optimistic)
+	e.SetOptimisticExec(*steel.Optimistic)
+	e.SetOptimisticInput(*steel.Optimistic)
 	r1 := "rule r1 on start default magna = 123 + this.magna; for this.aliqua do this.magna = -123;"
 	r2 := "rule r2 on magna for this.magna >= this.magna do this.magna = 2 * this.magna + this.magna;"
 	e.AddRules(r1)
@@ -53,12 +50,12 @@ func TestTwoNodes(t *testing.T) {
 	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
 	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
-		e1, err := semantics.NewExecuter(memory, rules, communication.NewMemberlistAgent(9001, config.TestsLogConfig), config.TestsLogConfig)
+		e1, err := steel.NewExecuter(memory, rules, communication.NewMemberlistAgent(9001, config.TestsLogConfig), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
-		e1.SetOptimisticExec(*optimistic)
-		e1.SetOptimisticInput(*optimistic)
+		e1.SetOptimisticExec(*steel.Optimistic)
+		e1.SetOptimisticInput(*steel.Optimistic)
 		t.Parallel()
 		for e1.DoIfStable(func() {}) {
 		}
@@ -73,12 +70,12 @@ func TestTwoNodes(t *testing.T) {
 	})
 	t.Run("TestTwoNodes#2", func(t *testing.T) {
 		t.Parallel()
-		e2, err := semantics.NewExecuter(memory, rules, communication.NewMemberlistAgent(9002, config.TestsLogConfig, "127.0.0.1:9001"), config.TestsLogConfig)
+		e2, err := steel.NewExecuter(memory, rules, communication.NewMemberlistAgent(9002, config.TestsLogConfig, "127.0.0.1:9001"), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
-		e2.SetOptimisticExec(*optimistic)
-		e2.SetOptimisticInput(*optimistic)
+		e2.SetOptimisticExec(*steel.Optimistic)
+		e2.SetOptimisticInput(*steel.Optimistic)
 		e2.Input("lorem = 10; ")
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
@@ -98,12 +95,12 @@ func TestThreeNodes(t *testing.T) {
 	r2 := "rule r2 on involved for all involved && ipsum > ext.ipsum do ipsum = this.ipsum"
 	rules := []string{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
-		e1, err := semantics.NewExecuter(memory, rules, communication.NewMemberlistAgent(10001, config.TestsLogConfig), config.TestsLogConfig)
+		e1, err := steel.NewExecuter(memory, rules, communication.NewMemberlistAgent(10001, config.TestsLogConfig), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
-		e1.SetOptimisticExec(*optimistic)
-		e1.SetOptimisticInput(*optimistic)
+		e1.SetOptimisticExec(*steel.Optimistic)
+		e1.SetOptimisticInput(*steel.Optimistic)
 		t.Parallel()
 		for e1.TakeState().Memory.Float["ipsum"] != 6.5 {
 			e1.Exec()
@@ -114,12 +111,12 @@ func TestThreeNodes(t *testing.T) {
 	})
 	t.Run("TestThreeNodes#2", func(t *testing.T) {
 		memory.Float["ipsum"] = 6.5
-		e2, err := semantics.NewExecuter(memory, rules, communication.NewMemberlistAgent(10002, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
+		e2, err := steel.NewExecuter(memory, rules, communication.NewMemberlistAgent(10002, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
-		e2.SetOptimisticExec(*optimistic)
-		e2.SetOptimisticInput(*optimistic)
+		e2.SetOptimisticExec(*steel.Optimistic)
+		e2.SetOptimisticInput(*steel.Optimistic)
 		t.Parallel()
 		for e2.DoIfStable(func() {}) {
 		}
@@ -135,12 +132,12 @@ func TestThreeNodes(t *testing.T) {
 	t.Run("TestThreeNodes#3", func(t *testing.T) {
 		t.Parallel()
 		memory.Float["ipsum"] = 3.0
-		e3, err := semantics.NewExecuter(memory, rules, communication.NewMemberlistAgent(10003, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
+		e3, err := steel.NewExecuter(memory, rules, communication.NewMemberlistAgent(10003, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
-		e3.SetOptimisticExec(*optimistic)
-		e3.SetOptimisticInput(*optimistic)
+		e3.SetOptimisticExec(*steel.Optimistic)
+		e3.SetOptimisticInput(*steel.Optimistic)
 		e3.Input("ipsum = 6.0;")
 		for e3.TakeState().Memory.Float["ipsum"] != 6.5 {
 			e3.Exec()
@@ -161,7 +158,7 @@ func TestInc(t *testing.T) {
 	memory := memory.MakeResources()
 	memory.Integer["A"] = 0
 	rules := []string{fmt.Sprintf("rule INC on A for all A < %d && ext.A < %d do A = this.A + 1", m, m)}
-	agts := make([]*semantics.Executer, 0, k)
+	agts := make([]*steel.Executer, 0, k)
 	for i := 0; i < k; i++ {
 		t.Run(fmt.Sprintf("TestInc#%d", i+1), func(t *testing.T) {
 			cfg := config.TestsLogConfig
@@ -171,12 +168,12 @@ func TestInc(t *testing.T) {
 				cfg.Level = config.LogWarning
 				prec = []string{fmt.Sprintf("127.0.0.1:%d", 11000+i)}
 			}
-			e, err := semantics.NewExecuter(memory, rules, communication.NewMemberlistAgent(11000+i+1, cfg, prec...), cfg)
+			e, err := steel.NewExecuter(memory, rules, communication.NewMemberlistAgent(11000+i+1, cfg, prec...), cfg)
 			if err != nil {
 				t.Fatal(err)
 			}
-			e.SetOptimisticExec(*optimistic)
-			e.SetOptimisticInput(*optimistic)
+			e.SetOptimisticExec(*steel.Optimistic)
+			e.SetOptimisticInput(*steel.Optimistic)
 			agts = append(agts, e)
 		})
 	}
@@ -189,7 +186,7 @@ func TestInc(t *testing.T) {
 	}
 }
 
-func incNode(m int64, e *semantics.Executer) <-chan struct{} {
+func incNode(m int64, e *steel.Executer) <-chan struct{} {
 	res := make(chan struct{})
 	go func() {
 		e.Input("A = 1")

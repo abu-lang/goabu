@@ -1,4 +1,4 @@
-package semantics
+package steel
 
 import (
 	"flag"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var optimistic = flag.Bool("opt", false, "set optimistic concurrency control")
+var Optimistic = flag.Bool("opt", false, "set optimistic concurrency control")
 
 func TestInvalidNames(t *testing.T) {
 	names := []string{"", "  abc", "def ", "ip sum", "this", "ext", "rule", "on", "default", "for", "FoR", "all", "do", "10sit",
@@ -115,8 +115,8 @@ func TestAddPool(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.SetOptimisticExec(*optimistic)
-	e.SetOptimisticInput(*optimistic)
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
 	e.addPool([]string{
 		"elit = 2.71828;",
 		`consectetur = this.consectetur * 7; adipiscing = "";`,
@@ -171,8 +171,8 @@ func TestLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.SetOptimisticExec(*optimistic)
-	e.SetOptimisticInput(*optimistic)
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
 	err = e.StopAgent()
 	if err != nil {
 		t.Fatal(err.Error())
@@ -227,8 +227,8 @@ func TestReceiveExternalActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.SetOptimisticExec(*optimistic)
-	e.SetOptimisticInput(*optimistic)
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
 	e.AddRules(r1)
 	e.AddRules(r2)
 
@@ -271,8 +271,8 @@ func TestForall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e.SetOptimisticExec(*optimistic)
-	e.SetOptimisticInput(*optimistic)
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
 	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
 	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
 	e.AddRules(r1)
