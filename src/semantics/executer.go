@@ -24,7 +24,7 @@ type State struct {
 	Pool   []Update
 }
 
-type MuSteelExecuter struct {
+type Executer struct {
 	memory        memory.ResourceController
 	lockMemory    sync.RWMutex
 	types         map[string]string
@@ -40,7 +40,8 @@ type MuSteelExecuter struct {
 
 	lexerParserPool sync.Pool
 
-	agent ISteelAgent
+	agent     Agent
+	lockAgent sync.Mutex
 
 	logLevel zap.AtomicLevel
 	logger   *zap.Logger
@@ -50,8 +51,8 @@ type MuSteelExecuter struct {
 	lockOptimistic sync.Mutex
 }
 
-func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt ISteelAgent, lc config.LogConfig) (*MuSteelExecuter, error) {
-	res := &MuSteelExecuter{
+func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc config.LogConfig) (*Executer, error) {
+	res := &Executer{
 		memory:        mem.Copy(),
 		pool:          make([]Update, 0),
 		coordinator:   newCoordinator(),
@@ -95,7 +96,7 @@ func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt IStee
 		return nil, err
 	}
 	res.SetLogLevel(lc.Level)
-	err = res.AddRules(rules)
+	err = res.AddRules(rules...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +112,9 @@ func NewMuSteelExecuter(mem memory.ResourceController, rules []string, agt IStee
 	return res, nil
 }
 
-func (m *MuSteelExecuter) StartAgent() error {
+func (m *Executer) StartAgent() error {
+	m.lockAgent.Lock()
+	defer m.lockAgent.Unlock()
 	err := m.agent.Start()
 	if err != nil {
 		return err
@@ -124,11 +127,15 @@ func (m *MuSteelExecuter) StartAgent() error {
 	return nil
 }
 
-func (m *MuSteelExecuter) StopAgent() error {
+func (m *Executer) StopAgent() error {
+	m.lockAgent.Lock()
+	defer m.lockAgent.Unlock()
 	return m.agent.Stop()
 }
 
-func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
+func (m *Executer) SetAgent(agt Agent) error {
+	m.lockAgent.Lock()
+	defer m.lockAgent.Unlock()
 	if m.agent.IsRunning() {
 		return errors.New("agent is still running")
 	}
@@ -136,7 +143,7 @@ func (m *MuSteelExecuter) SetAgent(agt ISteelAgent) error {
 	return nil
 }
 
-func (m *MuSteelExecuter) GetState() State {
+func (m *Executer) TakeState() State {
 	m.coordinator.requestWrite(false)
 	m.coordinator.fixWorkingSetWrite(stringset.Make())
 	m.lockMemory.RLock()
@@ -155,7 +162,7 @@ func (m *MuSteelExecuter) GetState() State {
 	return State{Memory: memCopy, Pool: poolCopy}
 }
 
-func (m *MuSteelExecuter) DoIfStable(f func()) bool {
+func (m *Executer) DoIfStable(f func()) bool {
 	m.coordinator.requestWrite(false)
 	m.coordinator.fixWorkingSetWrite(stringset.Make())
 	m.lockPool.Lock()
@@ -169,25 +176,25 @@ func (m *MuSteelExecuter) DoIfStable(f func()) bool {
 	return stable
 }
 
-func (m *MuSteelExecuter) HasRule(name string) bool {
+func (m *Executer) HasRule(name string) bool {
 	m.lockRules.Lock()
 	defer m.lockRules.Unlock()
 	return m.hasRuleAux(name)
 }
 
-func (m *MuSteelExecuter) AddRule(r string) error {
+func (m *Executer) AddRules(rules ...string) error {
+	if len(rules) == 0 {
+		return nil
+	}
 	m.lockRules.Lock()
 	defer m.lockRules.Unlock()
-	return m.addRuleAux(r)
-}
-
-func (m *MuSteelExecuter) AddRules(rules []string) error {
-	m.lockRules.Lock()
-	defer m.lockRules.Unlock()
+	if len(rules) == 1 {
+		return m.addRuleAux(rules[0])
+	}
 	return addList(rules, m.addRuleAux)
 }
 
-func (m *MuSteelExecuter) Exec() {
+func (m *Executer) Exec() {
 	m.coordinator.requestWrite(m.HasOptimisticExec())
 	defer m.coordinator.closeWrite()
 	m.lockPool.Lock()
@@ -211,7 +218,7 @@ func (m *MuSteelExecuter) Exec() {
 	m.logger.Sync()
 }
 
-func (m *MuSteelExecuter) Input(actions string) error {
+func (m *Executer) Input(actions string) error {
 	parsed, err := m.parseActions(actions)
 	if err != nil {
 		return err
@@ -238,7 +245,7 @@ func (m *MuSteelExecuter) Input(actions string) error {
 	return nil
 }
 
-func (m *MuSteelExecuter) LogLevel() int {
+func (m *Executer) LogLevel() int {
 	switch m.logLevel.Level() {
 	case zapcore.DebugLevel:
 		return config.LogDebug
@@ -255,7 +262,7 @@ func (m *MuSteelExecuter) LogLevel() int {
 	return -2
 }
 
-func (m *MuSteelExecuter) SetLogLevel(l int) {
+func (m *Executer) SetLogLevel(l int) {
 	m.agent.SetLogLevel(l)
 	if l < config.LogDebug {
 		l = config.LogDebug
@@ -276,36 +283,36 @@ func (m *MuSteelExecuter) SetLogLevel(l int) {
 	m.logLevel.SetLevel(zapLevel)
 }
 
-func (m *MuSteelExecuter) SetOptimisticExec(b bool) {
+func (m *Executer) SetOptimisticExec(b bool) {
 	m.lockOptimistic.Lock()
 	m.optimistExec = b
 	m.lockOptimistic.Unlock()
 }
 
-func (m *MuSteelExecuter) SetOptimisticInput(b bool) {
+func (m *Executer) SetOptimisticInput(b bool) {
 	m.lockOptimistic.Lock()
 	m.optimistInput = b
 	m.lockOptimistic.Unlock()
 }
 
-func (m *MuSteelExecuter) HasOptimisticExec() bool {
+func (m *Executer) HasOptimisticExec() bool {
 	m.lockOptimistic.Lock()
 	defer m.lockOptimistic.Unlock()
 	return m.optimistExec
 }
 
-func (m *MuSteelExecuter) HasOptimisticInput() bool {
+func (m *Executer) HasOptimisticInput() bool {
 	m.lockOptimistic.Lock()
 	defer m.lockOptimistic.Unlock()
 	return m.optimistInput
 }
 
-func (m *MuSteelExecuter) chooseUpdate() (Update, int) {
+func (m *Executer) chooseUpdate() (Update, int) {
 	// TODO: implement other strategies
 	return m.pool[0], 0
 }
 
-func (m *MuSteelExecuter) execUpdate(update Update) {
+func (m *Executer) execUpdate(update Update) {
 	var executed Update
 	m.lockMemory.Lock()
 	for _, action := range update {
@@ -376,11 +383,11 @@ func (m *MuSteelExecuter) execUpdate(update Update) {
 	}
 }
 
-func (m *MuSteelExecuter) removeUpdate(index int) {
+func (m *Executer) removeUpdate(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *MuSteelExecuter) discovery(u Update) ([]Update, []externalAction) {
+func (m *Executer) discovery(u Update) ([]Update, []externalAction) {
 	var newpool []Update
 	var extActions []externalAction
 	localRules, globalRules := m.activeRules(u)
@@ -419,7 +426,7 @@ func (m *MuSteelExecuter) discovery(u Update) ([]Update, []externalAction) {
 	return newpool, extActions
 }
 
-func (m *MuSteelExecuter) activeRules(u Update) (local, global ecarule.RuleDict) {
+func (m *Executer) activeRules(u Update) (local, global ecarule.RuleDict) {
 	local = ecarule.MakeRuleDict()
 	global = ecarule.MakeRuleDict()
 	m.lockRules.Lock()
@@ -432,7 +439,7 @@ func (m *MuSteelExecuter) activeRules(u Update) (local, global ecarule.RuleDict)
 }
 
 // Precondition: rule.Task.External
-func (m *MuSteelExecuter) preEvaluated(rule *ecarule.Rule) externalAction {
+func (m *Executer) preEvaluated(rule *ecarule.Rule) externalAction {
 	res := externalAction{
 		CondWorkingSet: stringset.Make(),
 		Constants:      make(map[string]interface{}),
@@ -449,7 +456,7 @@ func (m *MuSteelExecuter) preEvaluated(rule *ecarule.Rule) externalAction {
 	return res
 }
 
-func (m *MuSteelExecuter) hasRuleAux(name string) bool {
+func (m *Executer) hasRuleAux(name string) bool {
 	for _, d := range m.localLibrary {
 		if d.Has(name) {
 			return true
@@ -463,7 +470,7 @@ func (m *MuSteelExecuter) hasRuleAux(name string) bool {
 	return false
 }
 
-func (m *MuSteelExecuter) addRuleAux(r string) error {
+func (m *Executer) addRuleAux(r string) error {
 	rule, err := m.parseRule(r)
 	if err != nil {
 		return err
@@ -487,7 +494,7 @@ func (m *MuSteelExecuter) addRuleAux(r string) error {
 	return nil
 }
 
-func (m *MuSteelExecuter) addActions(actions string) error {
+func (m *Executer) addActions(actions string) error {
 	parsed, err := m.parseActions(actions)
 	if err != nil {
 		return err
@@ -500,11 +507,11 @@ func (m *MuSteelExecuter) addActions(actions string) error {
 	return nil
 }
 
-func (m *MuSteelExecuter) addPool(pl []string) error {
+func (m *Executer) addPool(pl []string) error {
 	return addList(pl, m.addActions)
 }
 
-func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
+func (m *Executer) parseRule(r string) (*ecarule.Rule, error) {
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	lp.Reset(r)
@@ -541,7 +548,7 @@ func (m *MuSteelExecuter) parseRule(r string) (*ecarule.Rule, error) {
 	return listener.Rule, nil
 }
 
-func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error) {
+func (m *Executer) parseActions(actions string) ([]ecarule.Action, error) {
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	lp.Reset(actions)
@@ -578,7 +585,7 @@ func (m *MuSteelExecuter) parseActions(actions string) ([]ecarule.Action, error)
 	return listener.Rule.DefaultActions, nil
 }
 
-func (m *MuSteelExecuter) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
+func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
 	dataContext := ast.NewDataContext()
 	resources := m.memory.GetResources()
 	err := dataContext.Add(name, &(resources))

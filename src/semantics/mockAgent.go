@@ -10,7 +10,7 @@ type MockAgent struct {
 	operationCommands chan chan string
 }
 
-func MakeMockAgent() ISteelAgent {
+func MakeMockAgent() Agent {
 	return &MockAgent{
 		running:           false,
 		operations:        make(chan chan []byte),

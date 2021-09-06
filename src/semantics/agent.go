@@ -1,6 +1,6 @@
 package semantics
 
-type ISteelAgent interface {
+type Agent interface {
 	Start() error
 	Join() error
 	ForAll([]byte) error

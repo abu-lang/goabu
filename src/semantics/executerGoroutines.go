@@ -15,7 +15,7 @@ const inputsRate float64 = 5.0
 // milliseconds, TODO evaluate
 const inputsFlush = 100
 
-func (m *MuSteelExecuter) receiveInputs() {
+func (m *Executer) receiveInputs() {
 	inputs := m.memory.Inputs()
 	errors := m.memory.Errors()
 	queueSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
@@ -63,7 +63,7 @@ func (m *MuSteelExecuter) receiveInputs() {
 	}
 }
 
-func (m *MuSteelExecuter) receiveExternalActions() {
+func (m *Executer) receiveExternalActions() {
 	requests, commandRequests := m.agent.ReceivedActions()
 	for {
 		actionsCh := <-requests
@@ -75,7 +75,7 @@ func (m *MuSteelExecuter) receiveExternalActions() {
 	}
 }
 
-func (m *MuSteelExecuter) serveTransaction(actionsCh <-chan []byte, commandsCh chan string) {
+func (m *Executer) serveTransaction(actionsCh <-chan []byte, commandsCh chan string) {
 	defer m.logger.Sync()
 	eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
 	if err != nil {

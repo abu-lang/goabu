@@ -24,23 +24,23 @@ func TestLed2Buttons(t *testing.T) {
 	memButtons.Add("Button", "button1", "38")
 	memButtons.Add("Button", "button2", "40")
 	r1 := "rule R1 on button2 for all this.button1 && this.button2 do ext.led = !ext.led"
-	eLed, err := semantics.NewMuSteelExecuter(memLed, nil, communication.NewMemberlistAgent(8100, config.TestsLogConfig), config.TestsLogConfig)
+	eLed, err := semantics.NewExecuter(memLed, nil, communication.NewMemberlistAgent(8100, config.TestsLogConfig), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 	eLed.SetOptimisticExec(*optimistic)
 	eLed.SetOptimisticInput(*optimistic)
-	dummy, err := semantics.NewMuSteelExecuter(memButtons, []string{r1}, communication.NewMemberlistAgent(8101, config.TestsLogConfig, "127.0.0.1:8100"), config.TestsLogConfig)
+	dummy, err := semantics.NewExecuter(memButtons, []string{r1}, communication.NewMemberlistAgent(8101, config.TestsLogConfig, "127.0.0.1:8100"), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 	dummy.SetOptimisticExec(*optimistic)
 	dummy.SetOptimisticInput(*optimistic)
-	ledStatus := eLed.GetState().Memory.Bool["led"]
+	ledStatus := eLed.TakeState().Memory.Bool["led"]
 	for toggles > 0 {
 		time.Sleep(time.Millisecond)
 		eLed.Exec()
-		status := eLed.GetState().Memory.Bool["led"]
+		status := eLed.TakeState().Memory.Bool["led"]
 		if ledStatus != status {
 			ledStatus = status
 			toggles--
@@ -55,7 +55,7 @@ func TestMotor(t *testing.T) {
 	mem.Add("Motor", "motor", "13", "11")
 	r1 := "rule R1 on motor for this.motor > 0 && this.motor < 255 do motor = this.motor + 60"
 	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0;"
-	e, err := semantics.NewMuSteelExecuter(mem, []string{r1, r2}, semantics.MakeMockAgent(), config.TestsLogConfig)
+	e, err := semantics.NewExecuter(mem, []string{r1, r2}, semantics.MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestMotor(t *testing.T) {
 	for {
 		time.Sleep(8 * time.Second)
 		e.Exec()
-		if e.GetState().Memory.Integer["motor"] == 0 {
+		if e.TakeState().Memory.Integer["motor"] == 0 {
 			break
 		}
 	}

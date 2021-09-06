@@ -19,7 +19,7 @@ func TestInvalidNames(t *testing.T) {
 		t.Run(test, func(t *testing.T) {
 			mem := memory.MakeResources()
 			mem.Integer[n] = 42
-			_, err := NewMuSteelExecuter(mem, nil, MakeMockAgent(), config.TestsLogConfig)
+			_, err := NewExecuter(mem, nil, MakeMockAgent(), config.TestsLogConfig)
 			if err == nil {
 				t.Error(test + " failed")
 			}
@@ -27,16 +27,16 @@ func TestInvalidNames(t *testing.T) {
 	}
 }
 
-func TestNewMuSteelExecuter(t *testing.T) {
+func TestNewExecuter(t *testing.T) {
 	empty := memory.MakeResources()
-	_, err := NewMuSteelExecuter(empty, nil, MakeMockAgent(), config.TestsLogConfig)
+	_, err := NewExecuter(empty, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err == nil {
 		t.Error("should return error with no resources")
 	}
 	invalid := memory.MakeResources()
 	invalid.Bool["lorem42"] = false
 	invalid.Float["lorem42"] = 3.14
-	_, err = NewMuSteelExecuter(invalid, nil, MakeMockAgent(), config.TestsLogConfig)
+	_, err = NewExecuter(invalid, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err == nil {
 		t.Error("should return error with duplicated resources")
 	}
@@ -45,11 +45,11 @@ func TestNewMuSteelExecuter(t *testing.T) {
 	memory.Text["sit"] = "amet"
 	started := MakeMockAgent()
 	started.Start()
-	_, err = NewMuSteelExecuter(invalid, nil, started, config.TestsLogConfig)
+	_, err = NewExecuter(invalid, nil, started, config.TestsLogConfig)
 	if err == nil {
 		t.Error("should return error with started agent")
 	}
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
+	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -74,11 +74,11 @@ func TestAddRules(t *testing.T) {
 	memory := memory.MakeResources()
 	memory.Bool["executed"] = false
 	memory.Text["trigger"] = "activable"
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
+	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.AddRules([]string{local, global})
+	e.AddRules(local, global)
 	if len(e.localLibrary) != 2 {
 		t.Error("localLibrary should have 2 dicts")
 	}
@@ -111,7 +111,7 @@ func TestAddPool(t *testing.T) {
 	memory.Integer["consectetur"] = 5
 	memory.Text["adipiscing"] = "eiusmod"
 	memory.Time["tempor"] = time.Unix(0, 0)
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
+	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -167,7 +167,7 @@ func TestLocal(t *testing.T) {
 	memory.Integer["counter"] = 42
 	memory.Bool["cooling"] = false
 	memory.Text["temperature"] = "low"
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
+	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -177,7 +177,7 @@ func TestLocal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	e.AddRules([]string{startCooling, counter, stopCooling})
+	e.AddRules(startCooling, counter, stopCooling)
 	e.addActions(`temperature = "high"`)
 	execs := 0
 	for !e.DoIfStable(func() {}) {
@@ -223,14 +223,14 @@ func TestReceiveExternalActions(t *testing.T) {
 
 	memory.Text["incididunt"] = "ut"
 	memory.Bool["labore"] = true
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
+	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	e.SetOptimisticExec(*optimistic)
 	e.SetOptimisticInput(*optimistic)
-	e.AddRule(r1)
-	e.AddRule(r2)
+	e.AddRules(r1)
+	e.AddRules(r2)
 
 	// remove some resources
 	mem := e.memory.GetResources()
@@ -267,7 +267,7 @@ func TestForall(t *testing.T) {
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
-	e, err := NewMuSteelExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
+	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,8 +275,8 @@ func TestForall(t *testing.T) {
 	e.SetOptimisticInput(*optimistic)
 	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
 	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
-	e.AddRule(r1)
-	e.AddRule(r2)
+	e.AddRules(r1)
+	e.AddRules(r2)
 	e.Input("start = true;")
 	magnas := []int64{123, 369, 1107}
 	mem := e.memory.GetResources()
