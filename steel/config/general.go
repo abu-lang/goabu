@@ -1,3 +1,3 @@
 package config
 
-var Production = false
+var Production = true
