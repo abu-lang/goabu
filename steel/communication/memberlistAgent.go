@@ -356,8 +356,6 @@ func (a *MemberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 		delegate:             d,
 		members: BaseMembers{
 			Config:          a.config,
-			Terminated:      a.terminated,
-			Transactions:    a.transactions,
 			ListeningPort:   a.listeningPort,
 			Logger:          a.logger,
 			ReceivedActions: a.ReceivedActions,

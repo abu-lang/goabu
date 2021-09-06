@@ -8,8 +8,6 @@ import (
 type BaseMembers struct {
 	List            *memberlist.Memberlist
 	Config          *memberlist.Config
-	Terminated      map[string]string
-	Transactions    map[string]*transactionInfo
 	ListeningPort   int
 	ReceivedActions func() (<-chan chan []byte, <-chan chan string)
 	Logger          *zap.Logger

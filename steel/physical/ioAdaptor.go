@@ -5,7 +5,7 @@ import (
 	"gobot.io/x/gobot/drivers/gpio"
 )
 
-// check if sufficient
+// TODO check if sufficient
 type IOadaptor interface {
 	gobot.Adaptor
 	gpio.DigitalReader
