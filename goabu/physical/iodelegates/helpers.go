@@ -1,3 +1,4 @@
+// Package iodelegates implements the behaviour of some GoAbU I/O related resources.
 package iodelegates
 
 import "github.com/abu-lang/goabu/physical"

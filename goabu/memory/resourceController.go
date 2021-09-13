@@ -1,3 +1,4 @@
+// Package memory implements GoAbU logical resources.
 package memory
 
 type ResourceController interface {

@@ -1,3 +1,4 @@
+// Package physical implements GoAbU resources associated with sensors and actuators.
 package physical
 
 import (

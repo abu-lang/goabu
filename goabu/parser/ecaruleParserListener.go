@@ -1,3 +1,4 @@
+// Package parser implements a parser for GoAbU ECA rules.
 package parser
 
 import (

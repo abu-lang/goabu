@@ -1,3 +1,4 @@
+// Package goabu implements a distributed Event-Condition-Action engine with attribute-based interaction.
 package goabu
 
 import (

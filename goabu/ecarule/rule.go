@@ -1,3 +1,4 @@
+// Package ecarule defines GoAbU ECA rules.
 package ecarule
 
 import (

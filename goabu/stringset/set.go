@@ -1,3 +1,4 @@
+// package stringset is a simple implementation of finite sets of strings.
 package stringset
 
 type Set map[string]bool

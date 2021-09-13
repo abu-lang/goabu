@@ -1,3 +1,4 @@
+// Package communication provides means for transactional communication.
 package communication
 
 import (
