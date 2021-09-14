@@ -22,7 +22,7 @@ $ go get github.com/abu-lang/goabu
 
 ## Simulator
 
-Try GoAbU on [AbU Simulator](https://github.com/abu-lang/abu-simulator) our Docker-based simulator.
+Try GoAbU on our Docker-based [simulator](https://github.com/abu-lang/abusim).
 
 # Quick Start
 
