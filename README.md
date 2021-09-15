@@ -1,9 +1,9 @@
-# GoAbU
+# GoAbU [![Go Reference](https://pkg.go.dev/badge/github.com/abu-lang/goabu.svg)](https://pkg.go.dev/github.com/abu-lang/goabu) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/abu-lang/goabu/blob/main/LICENSE)
 
 Implementation of a distributed ECA engine with attribute-based interaction
 
 This project makes use of:
-- some packages and the parser from Grule rule engine v1.10.1, released on [github](https://github.com/hyperjumptech/grule-rule-engine) and [licensed](https://raw.githubusercontent.com/hyperjumptech/grule-rule-engine/master/LICENSE.txt) by hyperjump.tech under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
+- some packages, the ANTLR v4 grammar and the parser from Grule rule engine v1.10.1, released on [github](https://github.com/hyperjumptech/grule-rule-engine) and [licensed](https://raw.githubusercontent.com/hyperjumptech/grule-rule-engine/master/LICENSE.txt) by hyperjump.tech under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
 - the ANTLR v4 parser generator, released on [github](https://github.com/antlr/antlr4) and [licensed](https://raw.githubusercontent.com/antlr/antlr4/master/LICENSE.txt) by The ANTLR Project under the BSD-3-Clause License
 - the memberlist library, released on [github](https://github.com/hashicorp/memberlist) and [licensed](https://raw.githubusercontent.com/hashicorp/memberlist/master/LICENSE) by HashiCorp under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)
 - the uuid package, released on [github](https://github.com/google/uuid) and [licensed](https://raw.githubusercontent.com/google/uuid/master/LICENSE) by Google under the BSD-3-Clause License
@@ -87,7 +87,7 @@ globalRule := `rule MyGlobalRule on foo for all this.foo >= ext.foo do ext.foo =
 Note that the keyword **all** distinguish between local rules and global ones.
 
 This rule specifies that when the value of the local resource foo changes then some update should be performed on all the other nodes that have foo which is less or equal than the value of foo on the current node.
-In particular theese nodes should change their foo with the sum of their value of foo with the value of foo from the node that fired the rule.
+In particular these nodes should change their foo with the sum of their value of foo with the value of foo from the node that fired the rule.
 
 Note that to distinguish between local and external resources the prefixes "this." and "ext." are used.
 This can be a little verbose but on every assignment LHS the resource type can be inferred and if no prefix is specified then it is assumed that "this." was the intended one.
@@ -233,7 +233,7 @@ But to add and use other devices it is sufficient to implement the physical.IOde
 Both local and global rules can also have some default actions that are performed on the rule activation regardless of the rule condition.
 
 ```go
-r := `rule R on foo default baz = 0.0; bar = "octocat" for all foo < 0 do foo = ext.foo * -1`
+r := `rule R on foo default baz = 0.0; bar = "octocat" for all ext.foo < 0 do foo = ext.foo * -1`
 ```
 
 **NOTE** that default actions are **always** performed on the current node and can access only local resources.
