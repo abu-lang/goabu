@@ -1,6 +1,11 @@
 # GoAbU [![Go Reference](https://pkg.go.dev/badge/github.com/abu-lang/goabu.svg)](https://pkg.go.dev/github.com/abu-lang/goabu) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/abu-lang/goabu/blob/main/LICENSE)
 
-Implementation of a distributed ECA engine with attribute-based interaction
+Golang implementation of the AbU calculus. 
+
+The theoretical foundation of GoAbU has been presented in the peer-reviewed publication:
+> Marino Miculan and Michele Pasqua. "A Calculus for Attribute-Based Memory Updates". In Antonio Cerone and Peter Ölveczky, editors, *Proceedings of the 18th international colloquium on theoretical aspects of computing, ICTAC 2021*, volume 12819 of *Lecture Notes in Computer Science*. Springer, 2021. 
+
+You can access the pubblication on the Publisher website (here is the [DOI](http://dx.doi.org/10.1007/978-3-030-85315-0_21)).
 
 This project makes use of:
 - some packages, the ANTLR v4 grammar and the parser from Grule rule engine v1.10.1, released on [github](https://github.com/hyperjumptech/grule-rule-engine) and [licensed](https://raw.githubusercontent.com/hyperjumptech/grule-rule-engine/master/LICENSE.txt) by hyperjump.tech under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
