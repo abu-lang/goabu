@@ -1,4 +1,7 @@
-# GoAbU [![Go Reference](https://pkg.go.dev/badge/github.com/abu-lang/goabu.svg)](https://pkg.go.dev/github.com/abu-lang/goabu) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/abu-lang/goabu/blob/main/LICENSE)
+# GoAbU
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/abu-lang/goabu.svg)](https://pkg.go.dev/github.com/abu-lang/goabu)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/abu-lang/goabu/blob/main/LICENSE)
 
 Golang implementation of the AbU calculus. 
 
