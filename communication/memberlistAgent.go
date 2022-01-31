@@ -219,12 +219,12 @@ func (a *MemberlistAgent) ForAll(payload []byte) error {
 	}
 	a.initiatedTransactions++
 	var err error
-	info.Partecipants, err = a.interested(info)
+	info.Participants, err = a.interested(info)
 	if err != nil {
 		return err
 	}
-	if len(info.Partecipants) == 0 {
-		a.logger.Debug("Terminated transaction: none interested", zap.String("act", "end_tran"), zap.Int("partecipants", 0))
+	if len(info.Participants) == 0 {
+		a.logger.Debug("Terminated transaction: none interested", zap.String("act", "end_tran"), zap.Int("participants", 0))
 		return nil
 	}
 	return a.coordinateTransaction(info)

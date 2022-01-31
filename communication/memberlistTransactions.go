@@ -24,7 +24,7 @@ type transactionInfo struct {
 	Initiator    string
 	Number       int
 	Payload      []byte
-	Partecipants []string
+	Participants []string
 	stopMonitor  chan bool
 	coordinated  bool
 	commands     chan string
@@ -34,30 +34,30 @@ func (t *transactionInfo) id() string {
 	return fmt.Sprintf("%s->%d", t.Initiator, t.Number)
 }
 
-func (t *transactionInfo) buryPartecipants(members []*memberlist.Node) {
+func (t *transactionInfo) buryParticipants(members []*memberlist.Node) {
 	alives := stringset.Make()
 	for _, member := range members {
 		alives.Insert(member.Name)
 	}
 	buried := 0
-	for i, partecipant := range t.Partecipants {
-		if !alives.Has(partecipant) {
-			t.Partecipants[i] = ""
+	for i, participant := range t.Participants {
+		if !alives.Has(participant) {
+			t.Participants[i] = ""
 			buried++
 		}
 	}
-	remaining := len(t.Partecipants) - buried
+	remaining := len(t.Participants) - buried
 	j := 1
 	for i := 0; i < remaining; i++ {
-		if t.Partecipants[i] == "" {
-			for t.Partecipants[j] == "" {
+		if t.Participants[i] == "" {
+			for t.Participants[j] == "" {
 				j++
 			}
-			t.Partecipants[i], t.Partecipants[j] = t.Partecipants[j], t.Partecipants[i]
+			t.Participants[i], t.Participants[j] = t.Participants[j], t.Participants[i]
 		}
 		j++
 	}
-	t.Partecipants = t.Partecipants[:remaining]
+	t.Participants = t.Participants[:remaining]
 }
 
 type transactionChannels struct {
@@ -134,7 +134,7 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels, number int) ([]string, error) {
 	aborted := ""
 	waitFor := stringset.Make()
-	for _, member := range a.adapter.filterPartecipants(a.list.Members()) {
+	for _, member := range a.adapter.filterParticipants(a.list.Members()) {
 		waitFor.Insert(member.Name)
 	}
 	var interested []string
@@ -154,10 +154,10 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 			case receivers := <-receiversCh:
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
 				waitFor.Intersect(receivers)
-			case partecipant := <-channels.areInterested:
+			case participant := <-channels.areInterested:
 				received++
-				interested = append(interested, partecipant)
-				delete(waitFor, partecipant)
+				interested = append(interested, participant)
+				delete(waitFor, participant)
 			case uninterested := <-channels.areUninterested:
 				received++
 				delete(waitFor, uninterested)
@@ -206,7 +206,7 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 		return errors.New("could not marshal can_commit? message")
 	}
 	receivers := stringset.Make()
-	for _, nodeName := range tran.Partecipants {
+	for _, nodeName := range tran.Participants {
 		receivers.Insert(nodeName)
 	}
 	channels := makeTransactionChannels(tran)
@@ -216,12 +216,12 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	a.logger.Debug("Started transaction",
 		zap.String("subj", canCommit.Sender.Name),
 		zap.String("act", "start_tran"),
-		zap.Int("partecipants", receivers.Size()))
+		zap.Int("participants", receivers.Size()))
 	res := a.firstPhase(receivers, msg, channels)
 	a.logger.Debug("Terminated first phase",
 		zap.String("subj", canCommit.Sender.Name),
 		zap.String("act", "end_1_phase"),
-		zap.Int("partecipants", receivers.Size()))
+		zap.Int("participants", receivers.Size()))
 	a.testsHaltIf(TestsAfterFirst)
 	responses := channels.haveCommitted
 	action := "do_commit"
@@ -252,8 +252,8 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	return res
 }
 
-func (a *MemberlistAgent) firstPhase(partecipants stringset.Set, msg []byte, channels transactionChannels) error {
-	waitFor := partecipants.Clone()
+func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, channels transactionChannels) error {
+	waitFor := participants.Clone()
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
@@ -481,7 +481,7 @@ func (a *MemberlistAgent) handleTransactions() {
 					tran := &transactionInfo{}
 					*tran = message.Transaction
 					tran.Payload = nil
-					tran.Partecipants = nil
+					tran.Participants = nil
 					go func(tran transactionInfo) {
 						a.transactionMessages <- messageUnion{
 							Sender:      a.list.LocalNode(),
@@ -524,7 +524,7 @@ func (a *MemberlistAgent) handleTransactions() {
 						a.terminated[id] = "aborted"
 						delete(a.transactions, id)
 					} else {
-						tran.Partecipants = message.Transaction.Partecipants
+						tran.Participants = message.Transaction.Participants
 					}
 				default:
 					response.Type = status
@@ -601,7 +601,7 @@ func (a *MemberlistAgent) handleTransactions() {
 					}
 					if tran.coordinated {
 						message.Transaction.Payload = nil
-						message.Transaction.Partecipants = nil
+						message.Transaction.Participants = nil
 						message.Type = "prepared"
 						select {
 						case a.transactionResponses <- message:
@@ -609,11 +609,11 @@ func (a *MemberlistAgent) handleTransactions() {
 						}
 						break
 					}
-					tran.buryPartecipants(a.list.Members())
-					if len(tran.Partecipants) == 0 {
-						a.logger.Panic("Empty partecipant list")
+					tran.buryParticipants(a.list.Members())
+					if len(tran.Participants) == 0 {
+						a.logger.Panic("Empty participant list")
 					}
-					head := tran.Partecipants[0]
+					head := tran.Participants[0]
 					if head == a.list.LocalNode().Name {
 						a.logger.Debug("Initiator is dead: becoming new coordinator",
 							zap.String("subj", head),
@@ -679,7 +679,7 @@ func (a *MemberlistAgent) getStatus(id string) string {
 	if tran.stopMonitor == nil {
 		return "evaluating"
 	}
-	if len(tran.Partecipants) == 0 {
+	if len(tran.Participants) == 0 {
 		return "interested"
 	}
 	return "prepared"

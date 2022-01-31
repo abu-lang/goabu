@@ -340,7 +340,7 @@ func (m *Executer) execUpdate(update Update) {
 		} else {
 			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
 			if err != nil {
-				m.logger.Panic("Could not perform assingment: "+err.Error(),
+				m.logger.Panic("Could not perform assignment: "+err.Error(),
 					zap.String("act", "assign"),
 					zap.Object("action", assignmentLogger(action)))
 			}

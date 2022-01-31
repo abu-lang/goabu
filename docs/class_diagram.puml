@@ -110,7 +110,7 @@ package communication {
 	    Initiator : string
 	    Number : int
 	    Payload : []byte
-	    Partecipants : []string
+	    Participants : []string
 	    stopMonitor : chan bool
 	    coordinated : bool
 	    commands : chan string
