@@ -543,7 +543,7 @@ func (a *MemberlistAgent) handleTransactions() {
 					default:
 					}
 					respond = false
-				case "commited", "new", "not_interested":
+				case "committed", "new", "not_interested":
 					a.logger.Panic("Received do_abort for a committed, new or uninteresting transaction",
 						zap.String("act", "recv"),
 						zap.String("obj", "do_abort"),
