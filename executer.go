@@ -35,6 +35,7 @@ type Executer struct {
 	localLibrary  map[string]ecarule.RuleDict
 	globalLibrary map[string]ecarule.RuleDict
 	lockRules     sync.Mutex
+	invariants    []*ast.Expression
 
 	workingMemory *ast.WorkingMemory
 	dataContext   ast.IDataContext
@@ -214,7 +215,28 @@ func (m *Executer) Exec() {
 	m.lockPool.Lock()
 	m.removeUpdate(index)
 	m.lockPool.Unlock()
-	m.execUpdate(update)
+	m.lockMemory.Lock()
+	var modified stringset.Set
+	if len(m.invariants) > 0 {
+		copy := m.memory.Extract(workingSet.Slice())
+		modified = m.applyUpdate(update, false)
+		if !m.invariantsOk() {
+			m.memory.Enclose(copy)
+			for _, action := range update {
+				if modified.Has(action.Resource) {
+					modified.Remove(action.Resource)
+					m.workingMemory.ResetVariable(action.variable)
+				}
+			}
+			m.lockMemory.Unlock()
+			m.coordinator.confirmWrite()
+			return
+		}
+	} else {
+		modified = m.applyUpdate(update, false)
+	}
+	m.signalModified(modified)
+	m.discovery(modified)
 	m.logger.Debug("Terminated Exec", zap.String("act", "exec"))
 	m.logger.Sync()
 }
@@ -240,7 +262,8 @@ func (m *Executer) Input(actions string) error {
 	}
 	m.lockMemory.RUnlock()
 	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("update", updateLogger(update)))
-	m.execUpdate(update)
+	m.lockMemory.Lock()
+	m.discovery(m.applyUpdate(update, true))
 	m.logger.Debug("Processed input", zap.String("act", "input"))
 	m.logger.Sync()
 	return nil
@@ -313,9 +336,12 @@ func (m *Executer) chooseUpdate() (Update, int) {
 	return m.pool[0], 0
 }
 
-func (m *Executer) execUpdate(update Update) {
+func (m *Executer) removeUpdate(index int) {
+	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
+}
+
+func (m *Executer) applyUpdate(update Update, input bool) stringset.Set {
 	modified := stringset.Make()
-	m.lockMemory.Lock()
 	for _, action := range update {
 		variable := action.variable
 		variable = m.workingMemory.AddVariable(variable)
@@ -344,16 +370,54 @@ func (m *Executer) execUpdate(update Update) {
 					zap.String("act", "assign"),
 					zap.Object("action", assignmentLogger(action)))
 			}
-			m.memory.Modified(action.Resource)
 			modified.Insert(action.Resource)
-			m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", action.Resource),
-				zap.String("act", "assign"),
-				zap.String("typ", m.types[action.Resource]),
-				zap.String("res", action.Resource),
-				zap.String("val", fmt.Sprint(action.Value.Interface())))
+			if input {
+				m.memory.Modified(action.Resource)
+				m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", action.Resource),
+					zap.String("act", "assign"),
+					zap.String("typ", m.types[action.Resource]),
+					zap.String("res", action.Resource),
+					zap.String("val", fmt.Sprint(action.Value.Interface())))
+			}
 		}
 	}
-	updates, eActions := m.discovery(modified)
+	return modified
+}
+
+func (m *Executer) invariantsOk() bool {
+	for _, inv := range m.invariants {
+		expr := m.workingMemory.AddExpression(inv)
+		val, err := expr.Evaluate(m.dataContext, m.workingMemory)
+		if err != nil {
+			m.logger.Panic("Could not evaluate invariant "+err.Error(),
+				zap.String("act", "eval_inv"),
+				zap.String("obj", expr.GetGrlText()))
+		}
+		if !val.Bool() {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Executer) signalModified(modified stringset.Set) {
+	for r := range modified {
+		m.memory.Modified(r)
+		m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", r),
+			zap.String("act", "assign"),
+			zap.String("typ", m.types[r]),
+			zap.String("res", r),
+			zap.String("val", fmt.Sprint(m.resourceValue(r).Interface())))
+	}
+}
+
+func (m *Executer) resourceValue(resource string) reflect.Value {
+	// TODO: Simplify resource access
+	return reflect.ValueOf(m.memory.GetResources()).FieldByName(m.types[resource]).MapIndex(reflect.ValueOf(resource))
+}
+
+func (m *Executer) discovery(modified stringset.Set) {
+	updates, eActions := m.triggeredActions(modified)
 	m.lockMemory.Unlock()
 	m.lockPool.Lock()
 	m.pool = append(m.pool, updates...)
@@ -385,11 +449,7 @@ func (m *Executer) execUpdate(update Update) {
 	}
 }
 
-func (m *Executer) removeUpdate(index int) {
-	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
-}
-
-func (m *Executer) discovery(modified stringset.Set) ([]Update, []externalAction) {
+func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externalAction) {
 	var newpool []Update
 	var extActions []externalAction
 	localRules, globalRules := m.activeRules(modified)
