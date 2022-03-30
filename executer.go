@@ -314,7 +314,7 @@ func (m *Executer) chooseUpdate() (Update, int) {
 }
 
 func (m *Executer) execUpdate(update Update) {
-	var executed Update
+	modified := stringset.Make()
 	m.lockMemory.Lock()
 	for _, action := range update {
 		variable := action.variable
@@ -345,14 +345,14 @@ func (m *Executer) execUpdate(update Update) {
 					zap.Object("action", assignmentLogger(action)))
 			}
 			m.memory.Modified(action.Resource)
-			executed = append(executed, action)
+			modified.Insert(action.Resource)
 			m.logger.Debug("Executed action: "+action.String(),
 				zap.String("act", "assign"),
 				zap.Object("action", assignmentLogger(action)),
 				zap.String("evt", action.Resource))
 		}
 	}
-	updates, eActions := m.discovery(executed)
+	updates, eActions := m.discovery(modified)
 	m.lockMemory.Unlock()
 	m.lockPool.Lock()
 	m.pool = append(m.pool, updates...)
@@ -388,10 +388,10 @@ func (m *Executer) removeUpdate(index int) {
 	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
 }
 
-func (m *Executer) discovery(u Update) ([]Update, []externalAction) {
+func (m *Executer) discovery(modified stringset.Set) ([]Update, []externalAction) {
 	var newpool []Update
 	var extActions []externalAction
-	localRules, globalRules := m.activeRules(u)
+	localRules, globalRules := m.activeRules(modified)
 	for _, rule := range localRules {
 		var defaults, tActions Update
 		var err error
@@ -427,13 +427,13 @@ func (m *Executer) discovery(u Update) ([]Update, []externalAction) {
 	return newpool, extActions
 }
 
-func (m *Executer) activeRules(u Update) (local, global ecarule.RuleDict) {
+func (m *Executer) activeRules(modified stringset.Set) (local, global ecarule.RuleDict) {
 	local = ecarule.MakeRuleDict()
 	global = ecarule.MakeRuleDict()
 	m.lockRules.Lock()
-	for _, act := range u {
-		local.Add(m.localLibrary[act.Resource])
-		global.Add(m.globalLibrary[act.Resource])
+	for resource := range modified {
+		local.Add(m.localLibrary[resource])
+		global.Add(m.globalLibrary[resource])
 	}
 	m.lockRules.Unlock()
 	return local, global
