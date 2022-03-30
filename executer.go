@@ -346,10 +346,11 @@ func (m *Executer) execUpdate(update Update) {
 			}
 			m.memory.Modified(action.Resource)
 			modified.Insert(action.Resource)
-			m.logger.Debug("Executed action: "+action.String(),
+			m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", action.Resource),
 				zap.String("act", "assign"),
-				zap.Object("action", assignmentLogger(action)),
-				zap.String("evt", action.Resource))
+				zap.String("typ", m.types[action.Resource]),
+				zap.String("res", action.Resource),
+				zap.String("val", fmt.Sprint(action.Value.Interface())))
 		}
 	}
 	updates, eActions := m.discovery(modified)
