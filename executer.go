@@ -53,13 +53,20 @@ type Executer struct {
 	lockOptimistic sync.Mutex
 }
 
-func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc config.LogConfig) (*Executer, error) {
+func NewExecuter(
+	mem memory.ResourceController,
+	rules []string,
+	agt Agent,
+	lc config.LogConfig,
+	invariants ...string) (*Executer, error) {
+
 	res := &Executer{
 		memory:        mem.Copy(),
 		pool:          make([]Update, 0),
 		coordinator:   newCoordinator(),
 		localLibrary:  make(map[string]ecarule.RuleDict),
 		globalLibrary: make(map[string]ecarule.RuleDict),
+		invariants:    make([]*ast.Expression, 0, len(invariants)),
 		agent:         agt,
 		lexerParserPool: sync.Pool{
 			New: func() interface{} {
@@ -97,6 +104,10 @@ func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc co
 		return nil, err
 	}
 	res.SetLogLevel(lc.Level)
+	err = res.parseInvariants(invariants...)
+	if err != nil {
+		return nil, err
+	}
 	err = res.AddRules(rules...)
 	if err != nil {
 		return nil, err
@@ -385,12 +396,11 @@ func (m *Executer) applyUpdate(update Update, input bool) stringset.Set {
 
 func (m *Executer) invariantsOk() bool {
 	for _, inv := range m.invariants {
-		expr := m.workingMemory.AddExpression(inv)
-		val, err := expr.Evaluate(m.dataContext, m.workingMemory)
+		val, err := inv.Evaluate(m.dataContext, m.workingMemory)
 		if err != nil {
-			m.logger.Panic("Could not evaluate invariant "+err.Error(),
+			m.logger.Panic("Could not evaluate invariant: "+err.Error(),
 				zap.String("act", "eval_inv"),
-				zap.String("obj", expr.GetGrlText()))
+				zap.String("obj", inv.GetGrlText()))
 		}
 		if !val.Bool() {
 			return false
@@ -570,6 +580,62 @@ func (m *Executer) addActions(actions string) error {
 
 func (m *Executer) addPool(pl []string) error {
 	return addList(pl, m.addActions)
+}
+
+func (m *Executer) parseInvariants(invs ...string) error {
+	if len(invs) == 0 {
+		return nil
+	}
+	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
+	defer m.lexerParserPool.Put(lp)
+	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
+	listener.Stack.Push(&listener.Rule.Task)
+	for i, inv := range invs {
+		lp.Reset(inv)
+		tree := lp.Parser.Expression()
+		errs := lp.Errors()
+		if len(errs) > 0 {
+			for _, err := range errs {
+				m.logger.Error("error during parsing: "+err.Error(),
+					zap.String("act", "parse"),
+					zap.String("obj", inv))
+			}
+			m.logger.Sync()
+			return errs[0]
+		}
+
+		antlr.ParseTreeWalkerDefault.Walk(listener, tree)
+		// update WorkingMemory
+		m.workingMemory.IndexVariables()
+
+		errs = listener.Errors()
+		if len(errs) > 0 {
+			for _, err := range errs {
+				m.logger.Error("error during parsing: "+err.Error(),
+					zap.String("act", "parse"),
+					zap.String("obj", inv))
+			}
+			m.logger.Sync()
+			return errs[0]
+		}
+		exp := listener.Rule.Task.Condition
+		listener.Rule.Task.Condition = nil
+		val, err := exp.Evaluate(m.dataContext, m.workingMemory)
+		if err != nil {
+			m.logger.Error("Could not evaluate invariant: "+err.Error(),
+				zap.String("act", "eval_inv"),
+				zap.String("obj", inv))
+			return err
+		}
+		if val.Kind() != reflect.Bool {
+			m.logger.Error("Invariant with non-boolean type",
+				zap.String("act", "add_inv"),
+				zap.String("obj", inv))
+			return fmt.Errorf("type of invariant #%d is not boolean", i)
+		}
+		m.invariants = append(m.invariants, exp)
+	}
+	return nil
 }
 
 func (m *Executer) parseRule(r string) (*ecarule.Rule, error) {
