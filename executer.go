@@ -70,10 +70,9 @@ func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc co
 	if res.memory.HasDuplicates() {
 		return nil, errors.New("multiple resources have the same name")
 	}
-	lp := res.lexerParserPool.Get().(*parser.EcaruleLexerParser)
-	defer res.lexerParserPool.Put(lp)
-	lp.Lexer.RemoveErrorListeners()
-	err := validNames(res.memory.ResourceNames(), lp.Lexer)
+	lex := antlr_parser.NewEcaruleLexer(antlr.NewInputStream(""))
+	lex.RemoveErrorListeners()
+	err := validNames(res.memory.ResourceNames(), lex)
 	if err != nil {
 		return nil, err
 	}
