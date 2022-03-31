@@ -69,9 +69,7 @@ func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc co
 	if res.memory.HasDuplicates() {
 		return nil, errors.New("multiple resources have the same name")
 	}
-	lex := antlr_parser.NewEcaruleLexer(antlr.NewInputStream(""))
-	lex.RemoveErrorListeners()
-	err := validNames(res.memory.ResourceNames(), lex)
+	err := validNames(res.memory.ResourceNames())
 	if err != nil {
 		return nil, err
 	}
@@ -614,10 +612,12 @@ func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.
 	return dataContext, knowledgeBase.WorkingMemory, nil
 }
 
-func validNames(names []string, lexer *antlr_parser.EcaruleLexer) error {
+func validNames(names []string) error {
 	if len(names) == 0 {
 		return errors.New("no resource specified")
 	}
+	lexer := antlr_parser.NewEcaruleLexer(antlr.NewInputStream(""))
+	lexer.RemoveErrorListeners()
 	for _, n := range names {
 		if n != "this" && n != "ext" {
 			lexer.SetInputStream(antlr.NewInputStream(n))
