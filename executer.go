@@ -240,6 +240,9 @@ func (m *Executer) Exec() {
 			}
 			m.lockMemory.Unlock()
 			m.coordinator.confirmWrite()
+			m.logger.Info(fmt.Sprintf("Exec-Fail: %v would violate the invariants", update),
+				zap.String("act", "exec-fail"),
+				zap.Array("update", updateLogger(update)))
 			return
 		}
 	} else {
