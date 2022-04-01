@@ -244,6 +244,18 @@ r := `rule R on foo default baz = 0.0; bar = "octocat" for all ext.foo < 0 do fo
 
 **NOTE** that default actions are **always** performed on the current node and can access only local resources.
 
+## Invariants
+
+An Executer can have some invariants that indicate the correct states of its resources.
+In particular if a call to Exec selects an update (discovered locally or received from another node) that would violate the invariants then that update is removed from the pool but no resource is modified.
+
+These invariants can be specified as optional arguments upon the executer's construction:
+
+```go
+executer, err := goabu.NewExecuter(mem, []string{localRule}, agent, config.LogConfig{},
+	"foo > -273", "bar == \"octocat\" || bar == \"gopher\"")
+```
+
 ## Full Example
 
 ```go

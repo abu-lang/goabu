@@ -6,6 +6,8 @@ type ResourceController interface {
 	Inputs() <-chan string
 	Errors() <-chan error
 	Modified(string)
+	Extract([]string) Resources
+	Enclose(Resources)
 	HasDuplicates() bool
 	Has(string) bool
 	Types() map[string]string
