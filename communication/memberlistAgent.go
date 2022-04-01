@@ -265,7 +265,7 @@ func (a *MemberlistAgent) Stop() error {
 	}
 
 	a.logger.Debug("Leaving group...", zap.String("act", "leave"))
-	err = a.list.Shutdown() // v0.2.4 always returns nil
+	err = a.list.Shutdown() // always returns nil in memberlist v0.3.1
 	if err != nil {
 		a.logger.Error("Error in leaving group: "+err.Error(), zap.String("act", "leave"))
 	} else {
