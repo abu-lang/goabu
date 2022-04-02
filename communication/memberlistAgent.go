@@ -219,12 +219,12 @@ func (a *MemberlistAgent) ForAll(payload []byte) error {
 	}
 	a.initiatedTransactions++
 	var err error
-	info.Partecipants, err = a.interested(info)
+	info.Participants, err = a.interested(info)
 	if err != nil {
 		return err
 	}
-	if len(info.Partecipants) == 0 {
-		a.logger.Debug("Terminated transaction: none interested", zap.String("act", "end_tran"), zap.Int("partecipants", 0))
+	if len(info.Participants) == 0 {
+		a.logger.Debug("Terminated transaction: none interested", zap.String("act", "end_tran"), zap.Int("participants", 0))
 		return nil
 	}
 	return a.coordinateTransaction(info)
@@ -265,7 +265,7 @@ func (a *MemberlistAgent) Stop() error {
 	}
 
 	a.logger.Debug("Leaving group...", zap.String("act", "leave"))
-	err = a.list.Shutdown() // v0.2.4 always returns nil
+	err = a.list.Shutdown() // always returns nil in memberlist v0.3.1
 	if err != nil {
 		a.logger.Error("Error in leaving group: "+err.Error(), zap.String("act", "leave"))
 	} else {

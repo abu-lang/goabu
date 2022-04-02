@@ -16,7 +16,7 @@ type BaseMembers struct {
 type MemberlistDelegate interface {
 	Start(BaseMembers)
 	Stop(BaseMembers)
-	FilterPartecipants(BaseMembers, []*memberlist.Node) []*memberlist.Node
+	FilterParticipants(BaseMembers, []*memberlist.Node) []*memberlist.Node
 
 	NodeMeta(BaseMembers, int) []byte
 	NotifyMsg(BaseMembers, []byte)

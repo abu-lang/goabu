@@ -11,7 +11,7 @@ func (d delegateDefault) Start(b BaseMembers) {}
 
 func (d delegateDefault) Stop(b BaseMembers) {}
 
-func (d delegateDefault) FilterPartecipants(b BaseMembers, nodes []*memberlist.Node) []*memberlist.Node {
+func (d delegateDefault) FilterParticipants(b BaseMembers, nodes []*memberlist.Node) []*memberlist.Node {
 	res := make([]*memberlist.Node, 0, len(nodes))
 	myName := b.List.LocalNode().Name
 	for _, n := range nodes {

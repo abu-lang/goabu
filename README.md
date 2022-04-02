@@ -1,4 +1,7 @@
-# GoAbU [![Go Reference](https://pkg.go.dev/badge/github.com/abu-lang/goabu.svg)](https://pkg.go.dev/github.com/abu-lang/goabu) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/abu-lang/goabu/blob/main/LICENSE)
+# GoAbU
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/abu-lang/goabu.svg)](https://pkg.go.dev/github.com/abu-lang/goabu)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/abu-lang/goabu/blob/main/LICENSE)
 
 Golang implementation of the AbU calculus. 
 
@@ -8,14 +11,12 @@ The theoretical foundation of GoAbU has been presented in the peer-reviewed publ
 You can access the pubblication on the Publisher website (here is the [DOI](http://dx.doi.org/10.1007/978-3-030-85315-0_21)).
 
 This project makes use of:
-- some packages, the ANTLR v4 grammar and the parser from Grule rule engine v1.10.1, released on [github](https://github.com/hyperjumptech/grule-rule-engine) and [licensed](https://raw.githubusercontent.com/hyperjumptech/grule-rule-engine/master/LICENSE.txt) by hyperjump.tech under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
+- some packages, the ANTLR v4 grammar and the parser from the Grule rule engine, released on [github](https://github.com/hyperjumptech/grule-rule-engine) and [licensed](https://raw.githubusercontent.com/hyperjumptech/grule-rule-engine/master/LICENSE.txt) by hyperjump.tech under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
 - the ANTLR v4 parser generator, released on [github](https://github.com/antlr/antlr4) and [licensed](https://raw.githubusercontent.com/antlr/antlr4/master/LICENSE.txt) by The ANTLR Project under the BSD-3-Clause License
 - the memberlist library, released on [github](https://github.com/hashicorp/memberlist) and [licensed](https://raw.githubusercontent.com/hashicorp/memberlist/master/LICENSE) by HashiCorp under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/)
 - the uuid package, released on [github](https://github.com/google/uuid) and [licensed](https://raw.githubusercontent.com/google/uuid/master/LICENSE) by Google under the BSD-3-Clause License
 - the Gobot framework, released on [github](https://github.com/hybridgroup/gobot/) and [licensed](https://raw.githubusercontent.com/hybridgroup/gobot/release/LICENSE.txt) by The Hybrid Group under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
 - the zap logger, released on [github](https://github.com/uber-go/zap) and [licensed](https://raw.githubusercontent.com/uber-go/zap/master/LICENSE.txt) by Uber Technologies, Inc. under the MIT License
-
-Note that v1.10.1 is the only currently supported version for Grule.
 
 # Installation
 
@@ -242,6 +243,18 @@ r := `rule R on foo default baz = 0.0; bar = "octocat" for all ext.foo < 0 do fo
 ```
 
 **NOTE** that default actions are **always** performed on the current node and can access only local resources.
+
+## Invariants
+
+An Executer can have some invariants that indicate the correct states of its resources.
+In particular if a call to Exec selects an update (discovered locally or received from another node) that would violate the invariants then that update is removed from the pool but no resource is modified.
+
+These invariants can be specified as optional arguments upon the executer's construction:
+
+```go
+executer, err := goabu.NewExecuter(mem, []string{localRule}, agent, config.LogConfig{},
+	"foo > -273", "bar == \"octocat\" || bar == \"gopher\"")
+```
 
 ## Full Example
 

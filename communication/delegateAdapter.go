@@ -32,8 +32,8 @@ func (d delegateAdapter) stop() {
 	d.delegate.Stop(d.delegateMembers())
 }
 
-func (d delegateAdapter) filterPartecipants(nodes []*memberlist.Node) []*memberlist.Node {
-	return d.delegate.FilterPartecipants(d.delegateMembers(), nodes)
+func (d delegateAdapter) filterParticipants(nodes []*memberlist.Node) []*memberlist.Node {
+	return d.delegate.FilterParticipants(d.delegateMembers(), nodes)
 }
 
 func (d delegateAdapter) register() (*sync.WaitGroup, error) {

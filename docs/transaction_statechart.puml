@@ -32,7 +32,7 @@ state choice_can_commit <<choice>>
 interested --> choice_can_commit : can_commit?
 choice_can_commit --> par_abort : [abort]/abort; !"aborted"
 
-choice_can_commit --> prepared : [continue]/add partecipants; !"prepared"
+choice_can_commit --> prepared : [continue]/add participants; !"prepared"
 prepared : can_commit?/!"prepared"
 prepared : get_decision/[me = 1° alive]coordinate
 prepared : get_decision/[me != 1° alive]!"get_decision" @1°

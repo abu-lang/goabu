@@ -505,7 +505,7 @@ func transactionHelper(t *testing.T, agents []*MemberlistAgent, payload []byte, 
 	detectors := make([]<-chan bool, 0, len(agents)-1)
 	agentIds := make(map[<-chan int]int)
 	for i, agt := range agents {
-		t.Run(fmt.Sprintf("PartecipantStart#%d", i+1), func(t *testing.T) {
+		t.Run(fmt.Sprintf("ParticipantStart#%d", i+1), func(t *testing.T) {
 			start(t, agt, agt.listeningPort)
 		})
 		if i == 0 {
@@ -517,12 +517,12 @@ func transactionHelper(t *testing.T, agents []*MemberlistAgent, payload []byte, 
 			agentIds[r] = i
 			results = append(results, r)
 		} else {
-			d := startPartecipantDetector(payload, agt)
+			d := startParticipantDetector(payload, agt)
 			detectors = append(detectors, d)
 		}
 	}
 	for i, agt := range agents {
-		t.Run(fmt.Sprintf("PartecipantJoin#%d", i+1), func(t *testing.T) {
+		t.Run(fmt.Sprintf("ParticipantJoin#%d", i+1), func(t *testing.T) {
 			err := agt.Join()
 			if err != nil {
 				t.Fatal(err.Error())
@@ -571,7 +571,7 @@ func transactionHelper(t *testing.T, agents []*MemberlistAgent, payload []byte, 
 	}
 }
 
-func startPartecipantDetector(payload []byte, a *MemberlistAgent) <-chan bool {
+func startParticipantDetector(payload []byte, a *MemberlistAgent) <-chan bool {
 	res := make(chan bool)
 	go func() {
 		halted := make(chan bool)

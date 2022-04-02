@@ -35,6 +35,7 @@ type Executer struct {
 	localLibrary  map[string]ecarule.RuleDict
 	globalLibrary map[string]ecarule.RuleDict
 	lockRules     sync.Mutex
+	invariants    []*ast.Expression
 
 	workingMemory *ast.WorkingMemory
 	dataContext   ast.IDataContext
@@ -52,13 +53,20 @@ type Executer struct {
 	lockOptimistic sync.Mutex
 }
 
-func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc config.LogConfig) (*Executer, error) {
+func NewExecuter(
+	mem memory.ResourceController,
+	rules []string,
+	agt Agent,
+	lc config.LogConfig,
+	invariants ...string) (*Executer, error) {
+
 	res := &Executer{
 		memory:        mem.Copy(),
 		pool:          make([]Update, 0),
 		coordinator:   newCoordinator(),
 		localLibrary:  make(map[string]ecarule.RuleDict),
 		globalLibrary: make(map[string]ecarule.RuleDict),
+		invariants:    make([]*ast.Expression, 0, len(invariants)),
 		agent:         agt,
 		lexerParserPool: sync.Pool{
 			New: func() interface{} {
@@ -69,10 +77,7 @@ func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc co
 	if res.memory.HasDuplicates() {
 		return nil, errors.New("multiple resources have the same name")
 	}
-	lp := res.lexerParserPool.Get().(*parser.EcaruleLexerParser)
-	defer res.lexerParserPool.Put(lp)
-	lp.Lexer.RemoveErrorListeners()
-	err := validNames(res.memory.ResourceNames(), lp.Lexer)
+	err := validNames(res.memory.ResourceNames())
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +102,10 @@ func NewExecuter(mem memory.ResourceController, rules []string, agt Agent, lc co
 		return nil, err
 	}
 	res.SetLogLevel(lc.Level)
+	err = res.parseInvariants(invariants...)
+	if err != nil {
+		return nil, err
+	}
 	err = res.AddRules(rules...)
 	if err != nil {
 		return nil, err
@@ -214,7 +223,31 @@ func (m *Executer) Exec() {
 	m.lockPool.Lock()
 	m.removeUpdate(index)
 	m.lockPool.Unlock()
-	m.execUpdate(update)
+	m.lockMemory.Lock()
+	var modified stringset.Set
+	if len(m.invariants) > 0 {
+		copy := m.memory.Extract(workingSet.Slice())
+		modified = m.applyUpdate(update, false)
+		if !m.invariantsOk() {
+			m.memory.Enclose(copy)
+			for _, action := range update {
+				if modified.Has(action.Resource) {
+					modified.Remove(action.Resource)
+					m.workingMemory.ResetVariable(action.variable)
+				}
+			}
+			m.lockMemory.Unlock()
+			m.coordinator.confirmWrite()
+			m.logger.Info(fmt.Sprintf("Exec-Fail: %v would violate the invariants", update),
+				zap.String("act", "exec-fail"),
+				zap.Array("update", updateLogger(update)))
+			return
+		}
+	} else {
+		modified = m.applyUpdate(update, false)
+	}
+	m.signalModified(modified)
+	m.discovery(modified)
 	m.logger.Debug("Terminated Exec", zap.String("act", "exec"))
 	m.logger.Sync()
 }
@@ -240,7 +273,8 @@ func (m *Executer) Input(actions string) error {
 	}
 	m.lockMemory.RUnlock()
 	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("update", updateLogger(update)))
-	m.execUpdate(update)
+	m.lockMemory.Lock()
+	m.discovery(m.applyUpdate(update, true))
 	m.logger.Debug("Processed input", zap.String("act", "input"))
 	m.logger.Sync()
 	return nil
@@ -313,9 +347,12 @@ func (m *Executer) chooseUpdate() (Update, int) {
 	return m.pool[0], 0
 }
 
-func (m *Executer) execUpdate(update Update) {
-	var executed Update
-	m.lockMemory.Lock()
+func (m *Executer) removeUpdate(index int) {
+	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
+}
+
+func (m *Executer) applyUpdate(update Update, input bool) stringset.Set {
+	modified := stringset.Make()
 	for _, action := range update {
 		variable := action.variable
 		variable = m.workingMemory.AddVariable(variable)
@@ -340,19 +377,57 @@ func (m *Executer) execUpdate(update Update) {
 		} else {
 			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
 			if err != nil {
-				m.logger.Panic("Could not perform assingment: "+err.Error(),
+				m.logger.Panic("Could not perform assignment: "+err.Error(),
 					zap.String("act", "assign"),
 					zap.Object("action", assignmentLogger(action)))
 			}
-			m.memory.Modified(action.Resource)
-			executed = append(executed, action)
-			m.logger.Debug("Executed action: "+action.String(),
-				zap.String("act", "assign"),
-				zap.Object("action", assignmentLogger(action)),
-				zap.String("evt", action.Resource))
+			modified.Insert(action.Resource)
+			if input {
+				m.memory.Modified(action.Resource)
+				m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", action.Resource),
+					zap.String("act", "assign"),
+					zap.String("typ", m.types[action.Resource]),
+					zap.String("res", action.Resource),
+					zap.String("val", fmt.Sprint(action.Value.Interface())))
+			}
 		}
 	}
-	updates, eActions := m.discovery(executed)
+	return modified
+}
+
+func (m *Executer) invariantsOk() bool {
+	for _, inv := range m.invariants {
+		val, err := inv.Evaluate(m.dataContext, m.workingMemory)
+		if err != nil {
+			m.logger.Panic("Could not evaluate invariant: "+err.Error(),
+				zap.String("act", "eval_inv"),
+				zap.String("obj", inv.GetGrlText()))
+		}
+		if !val.Bool() {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Executer) signalModified(modified stringset.Set) {
+	for r := range modified {
+		m.memory.Modified(r)
+		m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", r),
+			zap.String("act", "assign"),
+			zap.String("typ", m.types[r]),
+			zap.String("res", r),
+			zap.String("val", fmt.Sprint(m.resourceValue(r).Interface())))
+	}
+}
+
+func (m *Executer) resourceValue(resource string) reflect.Value {
+	// TODO: Simplify resource access
+	return reflect.ValueOf(m.memory.GetResources()).FieldByName(m.types[resource]).MapIndex(reflect.ValueOf(resource))
+}
+
+func (m *Executer) discovery(modified stringset.Set) {
+	updates, eActions := m.triggeredActions(modified)
 	m.lockMemory.Unlock()
 	m.lockPool.Lock()
 	m.pool = append(m.pool, updates...)
@@ -384,14 +459,10 @@ func (m *Executer) execUpdate(update Update) {
 	}
 }
 
-func (m *Executer) removeUpdate(index int) {
-	m.pool = append(m.pool[:index], m.pool[index+1:len(m.pool)]...)
-}
-
-func (m *Executer) discovery(u Update) ([]Update, []externalAction) {
+func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externalAction) {
 	var newpool []Update
 	var extActions []externalAction
-	localRules, globalRules := m.activeRules(u)
+	localRules, globalRules := m.activeRules(modified)
 	for _, rule := range localRules {
 		var defaults, tActions Update
 		var err error
@@ -427,13 +498,13 @@ func (m *Executer) discovery(u Update) ([]Update, []externalAction) {
 	return newpool, extActions
 }
 
-func (m *Executer) activeRules(u Update) (local, global ecarule.RuleDict) {
+func (m *Executer) activeRules(modified stringset.Set) (local, global ecarule.RuleDict) {
 	local = ecarule.MakeRuleDict()
 	global = ecarule.MakeRuleDict()
 	m.lockRules.Lock()
-	for _, act := range u {
-		local.Add(m.localLibrary[act.Resource])
-		global.Add(m.globalLibrary[act.Resource])
+	for resource := range modified {
+		local.Add(m.localLibrary[resource])
+		global.Add(m.globalLibrary[resource])
 	}
 	m.lockRules.Unlock()
 	return local, global
@@ -510,6 +581,62 @@ func (m *Executer) addActions(actions string) error {
 
 func (m *Executer) addPool(pl []string) error {
 	return addList(pl, m.addActions)
+}
+
+func (m *Executer) parseInvariants(invs ...string) error {
+	if len(invs) == 0 {
+		return nil
+	}
+	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
+	defer m.lexerParserPool.Put(lp)
+	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
+	listener.Stack.Push(&listener.Rule.Task)
+	for i, inv := range invs {
+		lp.Reset(inv)
+		tree := lp.Parser.Expression()
+		errs := lp.Errors()
+		if len(errs) > 0 {
+			for _, err := range errs {
+				m.logger.Error("error during parsing: "+err.Error(),
+					zap.String("act", "parse"),
+					zap.String("obj", inv))
+			}
+			m.logger.Sync()
+			return errs[0]
+		}
+
+		antlr.ParseTreeWalkerDefault.Walk(listener, tree)
+		// update WorkingMemory
+		m.workingMemory.IndexVariables()
+
+		errs = listener.Errors()
+		if len(errs) > 0 {
+			for _, err := range errs {
+				m.logger.Error("error during parsing: "+err.Error(),
+					zap.String("act", "parse"),
+					zap.String("obj", inv))
+			}
+			m.logger.Sync()
+			return errs[0]
+		}
+		exp := listener.Rule.Task.Condition
+		listener.Rule.Task.Condition = nil
+		val, err := exp.Evaluate(m.dataContext, m.workingMemory)
+		if err != nil {
+			m.logger.Error("Could not evaluate invariant: "+err.Error(),
+				zap.String("act", "eval_inv"),
+				zap.String("obj", inv))
+			return err
+		}
+		if val.Kind() != reflect.Bool {
+			m.logger.Error("Invariant with non-boolean type",
+				zap.String("act", "add_inv"),
+				zap.String("obj", inv))
+			return fmt.Errorf("type of invariant #%d is not boolean", i)
+		}
+		m.invariants = append(m.invariants, exp)
+	}
+	return nil
 }
 
 func (m *Executer) parseRule(r string) (*ecarule.Rule, error) {
@@ -614,10 +741,12 @@ func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.
 	return dataContext, knowledgeBase.WorkingMemory, nil
 }
 
-func validNames(names []string, lexer *antlr_parser.EcaruleLexer) error {
+func validNames(names []string) error {
 	if len(names) == 0 {
 		return errors.New("no resource specified")
 	}
+	lexer := antlr_parser.NewEcaruleLexer(antlr.NewInputStream(""))
+	lexer.RemoveErrorListeners()
 	for _, n := range names {
 		if n != "this" && n != "ext" {
 			lexer.SetInputStream(antlr.NewInputStream(n))
