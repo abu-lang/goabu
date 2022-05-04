@@ -361,10 +361,12 @@ func (a *MemberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 		transactionResponses: a.transactionResponses,
 		delegate:             d,
 		members: BaseMembers{
-			Config:          a.config,
+			AgentID:         a.id,
 			ListeningPort:   a.listeningPort,
-			Logger:          a.logger,
+			List:            nil,
+			Config:          a.config,
 			ReceivedActions: a.ReceivedActions,
+			Logger:          a.logger,
 		},
 	}
 }

@@ -6,9 +6,11 @@ import (
 )
 
 type BaseMembers struct {
+	// AgentID is the agent's identifier.
+	AgentID         string
+	ListeningPort   int
 	List            *memberlist.Memberlist
 	Config          *memberlist.Config
-	ListeningPort   int
 	ReceivedActions func() (<-chan chan []byte, <-chan chan string)
 	Logger          *zap.Logger
 }
@@ -18,7 +20,6 @@ type MemberlistDelegate interface {
 	Stop(BaseMembers)
 	FilterParticipants(BaseMembers, []*memberlist.Node) []*memberlist.Node
 
-	NodeMeta(BaseMembers, int) []byte
 	NotifyMsg(BaseMembers, []byte)
 	GetBroadcasts(BaseMembers, int, int) [][]byte
 	LocalState(BaseMembers, bool) []byte

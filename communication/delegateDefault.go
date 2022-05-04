@@ -22,10 +22,6 @@ func (d delegateDefault) FilterParticipants(b BaseMembers, nodes []*memberlist.N
 	return res
 }
 
-func (d delegateDefault) NodeMeta(b BaseMembers, limit int) []byte {
-	return []byte{}
-}
-
 func (d delegateDefault) NotifyMsg(b BaseMembers, m []byte) {
 	b.Logger.Error("Unsupported message",
 		zap.String("act", "recv"),

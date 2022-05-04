@@ -46,6 +46,8 @@ func (d delegateAdapter) register() (*sync.WaitGroup, error) {
 	}
 }
 
+// NodeMeta implements memberlist.Delegate.NodeMeta.
+// It returns the id of the agent as a possibly truncated []byte.
 func (d delegateAdapter) NodeMeta(limit int) []byte {
 	group, err := d.register()
 	if err != nil {
@@ -54,9 +56,17 @@ func (d delegateAdapter) NodeMeta(limit int) []byte {
 	}
 	defer group.Done()
 
-	return d.delegate.NodeMeta(d.delegateMembers(), limit)
+	res := []byte(d.members.AgentID)
+	if len(res) > limit {
+		res = res[0:limit:limit]
+	}
+	return res
 }
 
+// NotifyMsg implements memberlist.Delegate.NotifyMsg.
+// If the agent is running it sends m to the agent if m is a message of the
+// transaction handling protocol otherwise if the agent is running and m is
+// a different message then the delegate's NotifyMsg is called.
 func (d delegateAdapter) NotifyMsg(m []byte) {
 	group, err := d.register()
 	if err != nil {
@@ -95,6 +105,9 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 	d.delegate.NotifyMsg(d.delegateMembers(), m)
 }
 
+// GetBroadcasts implements memberlist.Delegate.GetBroadcasts.
+// If the agent is still running it returns the result of the invocation
+// of the delegate's GetBroadcast otherwise [][]byte{} is returned.
 func (d delegateAdapter) GetBroadcasts(overhead, limit int) [][]byte {
 	group, err := d.register()
 	if err != nil {
@@ -106,6 +119,9 @@ func (d delegateAdapter) GetBroadcasts(overhead, limit int) [][]byte {
 	return d.delegate.GetBroadcasts(d.delegateMembers(), overhead, limit)
 }
 
+// LocalState implements memberlist.Delegate.LocalState.
+// If the agent is still running it returns the result of the invocation
+// of the delegate's LocalState otherwise []byte{} is returned.
 func (d delegateAdapter) LocalState(join bool) []byte {
 	group, err := d.register()
 	if err != nil {
@@ -117,6 +133,8 @@ func (d delegateAdapter) LocalState(join bool) []byte {
 	return d.delegate.LocalState(d.delegateMembers(), join)
 }
 
+// MergeRemoteState implements memberlist.Delegate.MergeRemoteState.
+// If the agent is still running it calls the delegate's MergeRemoteState.
 func (d delegateAdapter) MergeRemoteState(buf []byte, join bool) {
 	group, err := d.register()
 	if err != nil {
@@ -128,6 +146,8 @@ func (d delegateAdapter) MergeRemoteState(buf []byte, join bool) {
 	d.delegate.MergeRemoteState(d.delegateMembers(), buf, join)
 }
 
+// NotifyJoin implements memberlist.EventDelegate.NotifyJoin.
+// If the agent is still running it calls the delegate's NotifyJoin.
 func (d delegateAdapter) NotifyJoin(node *memberlist.Node) {
 	group, err := d.register()
 	if err != nil {
@@ -155,6 +175,8 @@ func (d delegateAdapter) NotifyLeave(node *memberlist.Node) {
 	d.delegate.NotifyLeave(d.delegateMembers(), node)
 }
 
+// NotifyUpdate implements memberlist.EventDelegate.NotifyUpdate.
+// If the agent is still running it calls the delegate's NotifyUpdate.
 func (d delegateAdapter) NotifyUpdate(node *memberlist.Node) {
 	group, err := d.register()
 	if err != nil {
