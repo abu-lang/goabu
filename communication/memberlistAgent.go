@@ -59,6 +59,7 @@ func (m *messageUnion) unmarshal(bs []byte) bool {
 }
 
 type MemberlistAgent struct {
+	id           string
 	initialNodes []string
 	terminated   map[string]string
 	transactions map[string]*transactionInfo
@@ -102,6 +103,9 @@ func NewMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *Memb
 		initiatedTransactions: 0,
 		operations:            make(chan chan []byte),
 		operationCommands:     make(chan chan string),
+	}
+	if res.id == "" {
+		res.id = uuid.New().String() + "/agent"
 	}
 	if cfg != nil {
 		res.initialConfig = cfg
