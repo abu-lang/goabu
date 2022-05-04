@@ -86,7 +86,7 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 				d.members.Logger.Warn("Dicarded transaction response",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction response"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(message.Sender)))
 			}
 			return
 		case "interested?", "can_commit?", "do_commit", "do_abort", "get_decision":
@@ -96,7 +96,7 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 				d.members.Logger.Warn("Dicarded incoming transaction message",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction message"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(message.Sender)))
 			}
 			return
 		}
@@ -159,6 +159,8 @@ func (d delegateAdapter) NotifyJoin(node *memberlist.Node) {
 	d.delegate.NotifyJoin(d.delegateMembers(), node)
 }
 
+// NotifyLeave implements memberlist.EventDelegate.NotifyLeave.
+// If the agent is still running it calls the delegate's NotifyLeave.
 func (d delegateAdapter) NotifyLeave(node *memberlist.Node) {
 	group, err := d.register()
 	if err != nil {
@@ -166,11 +168,6 @@ func (d delegateAdapter) NotifyLeave(node *memberlist.Node) {
 		return
 	}
 	defer group.Done()
-
-	d.members.Logger.Info("Node "+node.Name+" has left",
-		zap.String("act", "leave"),
-		zap.String("subj", node.Name))
-	defer d.members.Logger.Sync()
 
 	d.delegate.NotifyLeave(d.delegateMembers(), node)
 }

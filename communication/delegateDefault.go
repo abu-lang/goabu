@@ -1,6 +1,8 @@
 package communication
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/memberlist"
 	"go.uber.org/zap"
 )
@@ -40,6 +42,10 @@ func (d delegateDefault) MergeRemoteState(b BaseMembers, buf []byte, join bool) 
 
 func (d delegateDefault) NotifyJoin(b BaseMembers, node *memberlist.Node) {}
 
-func (d delegateDefault) NotifyLeave(b BaseMembers, node *memberlist.Node) {}
+func (d delegateDefault) NotifyLeave(b BaseMembers, node *memberlist.Node) {
+	b.Logger.Info(fmt.Sprintf("Agent \"%s\" has left", agentID(node)),
+		zap.String("act", "leave"),
+		zap.String("subj", agentID(node)))
+}
 
 func (d delegateDefault) NotifyUpdate(b BaseMembers, node *memberlist.Node) {}

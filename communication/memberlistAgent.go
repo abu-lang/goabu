@@ -281,7 +281,7 @@ func (a *MemberlistAgent) Stop() error {
 	a.quitGossip <- replyCh
 	<-replyCh
 	a.logStopped("gossip handling")
-	a.logger.Info("Stopped agent", zap.String("act", "stop"), zap.String("obj", a.config.Name))
+	a.logger.Info("Stopped agent", zap.String("act", "stop"), zap.String("subj", a.id))
 	a.logger.Sync()
 
 	// preserve delegate
