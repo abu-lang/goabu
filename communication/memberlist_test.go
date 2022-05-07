@@ -20,20 +20,25 @@ const (
 func TestNewMemberlistAgent(t *testing.T) {
 	tests := []struct {
 		index int
+		id    string
 		port  int
 		nodes []string
 	}{
-		//  {_, port, nodes},
-		{1, 0, nil},
-		{2, 8100, []string{}},
-		{3, 8101, []string{"127.0.0.1:8150"}},
-		{4, 8102, []string{"127.0.0.1:8150,127.0.0.1:8151"}},
+		//  {_, id, port, nodes},
+		{1, "agent", 0, nil},
+		{2, "Alice", 8100, []string{}},
+		{3, "bob", 8101, []string{"127.0.0.1:8150"}},
+		{4, "12345678", 8102, []string{"127.0.0.1:8150,127.0.0.1:8151"}},
+		{5, "", 8103, []string{"127.0.0.1:8151"}},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestNewMemberlistAgent#%d", test.index), func(t *testing.T) {
-			agt := NewMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
+			agt := NewMemberlistAgent(test.id, test.port, config.TestsLogConfig, test.nodes...)
 			if agt.IsRunning() {
 				t.Error("agent should not be running")
+			}
+			if agt.id == "" {
+				t.Error("id should not be \"\"")
 			}
 			if agt.initiatedTransactions != 0 {
 				t.Error("initiatedTransactions should be 0")
@@ -75,7 +80,7 @@ func TestStart(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("TestStart#%d", test.index), func(t *testing.T) {
-			agt := NewMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...)
+			agt := NewMemberlistAgent(t.Name(), test.port, config.TestsLogConfig, test.nodes...)
 			start(t, agt, test.port)
 			err := agt.Start()
 			if err == nil {
@@ -109,7 +114,7 @@ func TestJoin(t *testing.T) {
 	dummy := make([]*MemberlistAgent, 0, len(tests))
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("TestJoin#%d", test.index), func(t *testing.T) {
-			dummy = append(dummy, NewMemberlistAgent(test.port, config.TestsLogConfig, test.nodes...))
+			dummy = append(dummy, NewMemberlistAgent(t.Name(), test.port, config.TestsLogConfig, test.nodes...))
 			agt := dummy[i]
 			if test.start {
 				start(t, agt, test.port)
@@ -139,7 +144,7 @@ func TestJoin(t *testing.T) {
 
 func TestForAll(t *testing.T) {
 	const port = 0
-	a := NewMemberlistAgent(port, config.TestsLogConfig)
+	a := NewMemberlistAgent("TestForAll", port, config.TestsLogConfig)
 	checkCorrectStop(t, a)
 	err := a.ForAll([]byte(`lorem`))
 	if err == nil {
@@ -160,7 +165,7 @@ func TestForAll(t *testing.T) {
 
 func TestStop(t *testing.T) {
 	const port = 11100
-	a := NewMemberlistAgent(port, config.TestsLogConfig)
+	a := NewMemberlistAgent("TestStop", port, config.TestsLogConfig)
 	if a.Stop() == nil {
 		t.Error("should return error when agent is not running")
 	}
@@ -194,7 +199,7 @@ func TestAborted(t *testing.T) {
 		{port: 12103, join: []int{12101}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte("commodo"), TestResAbort)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte("commodo"), TestResAbort)
 }
 
 func TestUnreliable(t *testing.T) {
@@ -214,7 +219,7 @@ func TestUnreliable(t *testing.T) {
 		{port: 13104, join: []int{13102}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte(". Duis aute123"), TestResCommit)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte(". Duis aute123"), TestResCommit)
 }
 
 func TestInterestedMid(t *testing.T) {
@@ -234,7 +239,7 @@ func TestInterestedMid(t *testing.T) {
 		{port: 14104, join: []int{14100}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte("456reprehenderit in"), TestResAbort)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte("456reprehenderit in"), TestResAbort)
 }
 
 func TestInterestedAfter(t *testing.T) {
@@ -253,7 +258,7 @@ func TestInterestedAfter(t *testing.T) {
 		{port: 15103, join: []int{15101}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte("velit esse.....@#"), TestResAbort)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte("velit esse.....@#"), TestResAbort)
 }
 
 func TestFirstMid(t *testing.T) {
@@ -272,7 +277,7 @@ func TestFirstMid(t *testing.T) {
 		{port: 16103, join: []int{16100, 16102}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte("nulla pariatur. +-+-"), TestResAgree)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte("nulla pariatur. +-+-"), TestResAgree)
 }
 
 func TestFirstAfter(t *testing.T) {
@@ -291,7 +296,7 @@ func TestFirstAfter(t *testing.T) {
 		{port: 17103, join: []int{17100}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte("**!sint occaecat"), TestResCommit)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte("**!sint occaecat"), TestResCommit)
 }
 
 func TestSecondMid(t *testing.T) {
@@ -310,7 +315,7 @@ func TestSecondMid(t *testing.T) {
 		{port: 18103, join: []int{18102}},
 	}
 
-	transactionHelper(t, makeAgents(argsList), []byte("proident, sunt in"), TestResCommit)
+	transactionHelper(t, makeAgents(t.Name(), argsList), []byte("proident, sunt in"), TestResCommit)
 }
 
 func TestDeadlockExample(t *testing.T) {
@@ -327,7 +332,7 @@ func TestDeadlockExample(t *testing.T) {
 		{port: 19103, join: []int{19102}},
 		{port: 19104, join: []int{19103}},
 	}
-	agents := makeAgents(argsList)
+	agents := makeAgents(t.Name(), argsList)
 	for i, agt := range agents {
 		t.Run(fmt.Sprintf("ClusterMemberStart#%d", i+1), func(t *testing.T) {
 			start(t, agt, agt.listeningPort)
@@ -425,6 +430,9 @@ func checkCorrectStart(t *testing.T, a *MemberlistAgent, p int) {
 	if a.list.LocalNode().Name != a.config.Name || a.list.NumMembers() < 1 {
 		t.Error("memberlist should be created")
 	}
+	if a.config.Name == a.id {
+		t.Error("memberlist name shuld be different from agent id")
+	}
 	switch {
 	case a.terminated == nil:
 		t.Error("terminated should not be nil")
@@ -480,18 +488,18 @@ func checkCorrectStop(t *testing.T, a *MemberlistAgent) {
 	}
 }
 
-func makeAgents(argsList []struct {
+func makeAgents(test string, argsList []struct {
 	port int
 	join []int
 	test int
 }) []*MemberlistAgent {
 	res := make([]*MemberlistAgent, 0, len(argsList))
-	for _, args := range argsList {
+	for i, args := range argsList {
 		nodes := make([]string, 0, len(args.join))
 		for _, p := range args.join {
 			nodes = append(nodes, fmt.Sprintf("127.0.0.1:%d", p))
 		}
-		res = append(res, TestsNewMemberlistAgent(args.port, args.test, nodes...))
+		res = append(res, TestsNewMemberlistAgent(fmt.Sprintf("%s#%d", test, i+1), args.port, args.test, nodes...))
 	}
 	return res
 }

@@ -15,7 +15,7 @@ func TestSingleNode(t *testing.T) {
 	memory.Bool["start"] = false
 	memory.Bool["aliqua"] = false
 	memory.Integer["magna"] = 0
-	e, err := goabu.NewExecuter(memory, nil, communication.NewMemberlistAgent(8000, config.TestsLogConfig), config.TestsLogConfig)
+	e, err := goabu.NewExecuter(memory, nil, communication.NewMemberlistAgent(t.Name(), 8000, config.TestsLogConfig), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestTwoNodes(t *testing.T) {
 	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
 	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
-		e1, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(9001, config.TestsLogConfig), config.TestsLogConfig)
+		e1, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 9001, config.TestsLogConfig), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -71,7 +71,7 @@ func TestTwoNodes(t *testing.T) {
 	})
 	t.Run("TestTwoNodes#2", func(t *testing.T) {
 		t.Parallel()
-		e2, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(9002, config.TestsLogConfig, "127.0.0.1:9001"), config.TestsLogConfig)
+		e2, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 9002, config.TestsLogConfig, "127.0.0.1:9001"), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -96,7 +96,7 @@ func TestThreeNodes(t *testing.T) {
 	r2 := "rule r2 on involved for all involved && ipsum > ext.ipsum do ipsum = this.ipsum"
 	rules := []string{r1, r2}
 	t.Run("TestThreeNodes#1", func(t *testing.T) {
-		e1, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(10001, config.TestsLogConfig), config.TestsLogConfig)
+		e1, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 10001, config.TestsLogConfig), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -112,7 +112,7 @@ func TestThreeNodes(t *testing.T) {
 	})
 	t.Run("TestThreeNodes#2", func(t *testing.T) {
 		memory.Float["ipsum"] = 6.5
-		e2, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(10002, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
+		e2, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 10002, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,7 +133,7 @@ func TestThreeNodes(t *testing.T) {
 	t.Run("TestThreeNodes#3", func(t *testing.T) {
 		t.Parallel()
 		memory.Float["ipsum"] = 3.0
-		e3, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(10003, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
+		e3, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 10003, config.TestsLogConfig, "127.0.0.1:10001"), config.TestsLogConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,7 +169,7 @@ func TestInc(t *testing.T) {
 				cfg.Level = config.LogWarning
 				prec = []string{fmt.Sprintf("127.0.0.1:%d", 11000+i)}
 			}
-			e, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(11000+i+1, cfg, prec...), cfg)
+			e, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 11000+i+1, cfg, prec...), cfg)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -215,7 +215,7 @@ func TestInvariants(t *testing.T) {
 	m1.Integer["odd"] = 5
 	r1 := "rule A on odd for all true do ext.even = ext.even + this.odd; "
 	t.Run("TestInvariants#1", func(t *testing.T) {
-		e1, err := goabu.NewExecuter(m1, []string{r1}, communication.NewMemberlistAgent(12001, config.TestsLogConfig),
+		e1, err := goabu.NewExecuter(m1, []string{r1}, communication.NewMemberlistAgent(t.Name(), 12001, config.TestsLogConfig),
 			config.TestsLogConfig, "odd % 2 == 1")
 		if err != nil {
 			t.Fatal(err)
@@ -240,7 +240,7 @@ func TestInvariants(t *testing.T) {
 	t.Run("TestInvariants#2", func(t *testing.T) {
 		t.Parallel()
 		e2, err := goabu.NewExecuter(m2, []string{r2},
-			communication.NewMemberlistAgent(12002, config.TestsLogConfig, "127.0.0.1:12001"), config.TestsLogConfig,
+			communication.NewMemberlistAgent(t.Name(), 12002, config.TestsLogConfig, "127.0.0.1:12001"), config.TestsLogConfig,
 			"even > 0", "even % 2 == 0")
 		if err != nil {
 			t.Fatal(err)
