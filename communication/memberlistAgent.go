@@ -59,6 +59,7 @@ func (m *messageUnion) unmarshal(bs []byte) bool {
 }
 
 type MemberlistAgent struct {
+	id           string
 	initialNodes []string
 	terminated   map[string]string
 	transactions map[string]*transactionInfo
@@ -89,12 +90,31 @@ type MemberlistAgent struct {
 	lockHalted *sync.Mutex
 }
 
-func NewMemberlistAgent(port int, lc config.LogConfig, nodes ...string) *MemberlistAgent {
-	return NewMemberlistAgentAdvanced(port, nil, nil, lc, nodes...)
+// NewMemberlistAgent creates a stopped MemberlistAgent which implements the goabu.Agent interface.
+//
+// id must be a string uniquely identifying the new MemberlistAgent or "", if id == "" then a random
+// identifier is arbitrarily chosen in its place.
+//
+// port specifies on which port should the created MemberlistAgent listen for join request coming from
+// other MemberlistAgents.
+//
+// nodes is a list of strings of the form "host:port" and indicates to whom the created MemberlistAgent
+// should send join request when the Join method is called.
+func NewMemberlistAgent(id string, port int, lc config.LogConfig, nodes ...string) *MemberlistAgent {
+	return NewMemberlistAgentAdvanced(id, port, nil, nil, lc, nodes...)
 }
 
-func NewMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *MemberlistDelegate, lc config.LogConfig, nodes ...string) *MemberlistAgent {
+// NewMemberlistAgentAdvanced creates a stopped MemberlistAgent which implements the goabu.Agent interface.
+// It is a more verbose and configurable version of NewMemberlistAgent.
+//
+// cfg specifies the configuration of the underlying memberlist.Memberlist.
+//
+// delegate consents to override the handling of the memberlist.Memberlist events, see file delegateDefault.go
+// for the default implementation.
+func NewMemberlistAgentAdvanced(id string, port int, cfg *memberlist.Config, delegate *MemberlistDelegate,
+	lc config.LogConfig, nodes ...string) *MemberlistAgent {
 	res := &MemberlistAgent{
+		id:                    id,
 		running:               false,
 		listeningPort:         port,
 		config:                &memberlist.Config{},
@@ -102,6 +122,9 @@ func NewMemberlistAgentAdvanced(port int, cfg *memberlist.Config, delegate *Memb
 		initiatedTransactions: 0,
 		operations:            make(chan chan []byte),
 		operationCommands:     make(chan chan string),
+	}
+	if res.id == "" {
+		res.id = uuid.New().String() + "/agent"
 	}
 	if cfg != nil {
 		res.initialConfig = cfg
@@ -277,7 +300,7 @@ func (a *MemberlistAgent) Stop() error {
 	a.quitGossip <- replyCh
 	<-replyCh
 	a.logStopped("gossip handling")
-	a.logger.Info("Stopped agent", zap.String("act", "stop"), zap.String("obj", a.config.Name))
+	a.logger.Info("Stopped agent", zap.String("act", "stop"), zap.String("subj", a.id))
 	a.logger.Sync()
 
 	// preserve delegate
@@ -357,18 +380,25 @@ func (a *MemberlistAgent) makeAdapter(d MemberlistDelegate) delegateAdapter {
 		transactionResponses: a.transactionResponses,
 		delegate:             d,
 		members: BaseMembers{
-			Config:          a.config,
+			AgentID:         a.id,
 			ListeningPort:   a.listeningPort,
-			Logger:          a.logger,
+			List:            nil,
+			Config:          a.config,
 			ReceivedActions: a.ReceivedActions,
+			Logger:          a.logger,
 		},
 	}
 }
 
 //----------------------------------TESTING-----------------------------------
 
-func TestsNewMemberlistAgent(port int, test int, nodes ...string) *MemberlistAgent {
-	res := NewMemberlistAgent(port, config.TestsLogConfig, nodes...)
+// TestsNewMemberlistAgent is used for testing purposes.
+//
+// It behaves like NewMemberlistAgent when config.TestsLogConfig is passed as the lc
+// argument with the difference that the returned MemberlistAgent simulates a crash failure
+// upon the happening of a particular event specified through the test argument.
+func TestsNewMemberlistAgent(id string, port int, test int, nodes ...string) *MemberlistAgent {
+	res := NewMemberlistAgent(id, port, config.TestsLogConfig, nodes...)
 	res.test = test
 	res.lockHalted = &sync.Mutex{}
 	return res
