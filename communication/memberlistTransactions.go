@@ -126,7 +126,7 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 	channelsCh := make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- channels
-	nodes, err := a.interestPhase(msg, channels, tran.Number)
+	nodes, err := a.interestPhase(msg, channels)
 	a.testsHaltIf(TestsAfterInterested)
 	if len(nodes) == 0 {
 		channelsCh := make(chan transactionChannels)
@@ -139,7 +139,13 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 	return nodes, err
 }
 
-func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels, number int) ([]string, error) {
+// interestPhase sends msg to all nodes selected by the MemberlistDelegate filterPartecipants method.
+// It returns a slice containing the names of the nodes that responded with "interested" if no node
+// responded with "aborted" otherwise it aborts the transaction and returns an error.
+//
+// Testing: If a.test == TestsMidInterested it simulates a crash failure of the agent after having
+// received TestsMidSends responses.
+func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels) ([]string, error) {
 	aborted := ""
 	waitFor := stringset.Make()
 	for _, member := range a.adapter.filterParticipants(a.list.Members()) {
@@ -187,8 +193,8 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 		Type:   "do_abort",
 		Sender: a.list.LocalNode(),
 		Transaction: transactionInfo{
-			Initiator: a.list.LocalNode().Name,
-			Number:    number,
+			Initiator: channels.Initiator,
+			Number:    channels.Number,
 		},
 	}
 	abrt, ok := order.marshal(order.Type, a.logger)
