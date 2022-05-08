@@ -159,7 +159,7 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 		if a.test == TestsMidInterested {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
-			go a.phaseSend(waitForCopy, msg, true, receiversCh)
+			go a.phaseSend(waitForCopy, msg, true, channels.id(), receiversCh)
 		}
 		received := 0
 	INTERESTED:
@@ -205,7 +205,7 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	for _, i := range interested {
 		dests.Insert(i)
 	}
-	a.secondPhase(dests, abrt, channels.haveAborted)
+	a.secondPhase(dests, abrt, channels.haveAborted, channels.id())
 	return nil, fmt.Errorf("%s has aborted", aborted)
 }
 
@@ -255,7 +255,7 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	if !ok {
 		a.logger.Panic("Could not marshal "+order.Type+" message", zap.String("act", "marshalling"), zap.String("obj", order.Type))
 	}
-	a.secondPhase(receivers, msg, responses)
+	a.secondPhase(receivers, msg, responses, tran.id())
 	channelsCh = make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- transactionChannels{
@@ -275,7 +275,7 @@ func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, cha
 		if a.test == TestsMidFirst {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
-			go a.phaseSend(waitForCopy, msg, true, receiversCh)
+			go a.phaseSend(waitForCopy, msg, true, channels.id(), receiversCh)
 		}
 		received := 0
 	GET_RESPONSES_1:
@@ -310,7 +310,12 @@ func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, cha
 	return nil
 }
 
-func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, responses <-chan string) {
+// secondPhase sends msg to waitFor with best effort and awaits the responses.
+// After having performed the sends if after timeoutPhaseResend milliseconds some node has not
+// responded then msg is resended to those nodes and the timeout is restarted.
+//
+// responses is a channel that must pass the name of a node when a response from that node is received.
+func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, responses <-chan string, tranID string) {
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
@@ -318,7 +323,7 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, respons
 		if a.test == TestsMidSecond {
 			go a.testsPhaseSend(waitForCopy, msg, false, receiversCh, TestsMidSends)
 		} else {
-			go a.phaseSend(waitForCopy, msg, false, receiversCh)
+			go a.phaseSend(waitForCopy, msg, false, tranID, receiversCh)
 		}
 		received := 0
 	GET_RESPONSES_2:
@@ -340,7 +345,14 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, respons
 	}
 }
 
-func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliableSend bool, done chan<- stringset.Set) {
+// phaseSend sends msg to all alive nodes in receivers.
+//
+// reliableSend indicates wheter to use a reliable transport protocol or not.
+//
+// done will pass the nodes that were alive during the execution of phaseSend.
+//
+// Testing: if a.test == TestsUnreliable about 10% of the sends aren't performed.
+func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliableSend bool, tranID string, done chan<- stringset.Set) {
 	newReceivers := stringset.Make()
 	for _, member := range a.list.Members() {
 		if receivers.Has(member.Name) {
@@ -353,6 +365,12 @@ func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliabl
 			} else {
 				a.list.SendBestEffort(member, msg)
 			}
+			a.logger.Debug(fmt.Sprintf("Sent message to \"%s\"", agentID(member)),
+				zap.String("subj", a.id),
+				zap.String("tran", tranID),
+				zap.String("act", "send"),
+				zap.Int("size", len(msg)),
+				zap.String("to", agentID(member)))
 		}
 	}
 	done <- newReceivers
@@ -650,6 +668,12 @@ func (a *MemberlistAgent) handleTransactions() {
 						for _, member := range a.list.Members() {
 							if member.Name == head {
 								a.list.SendReliable(member, deflected)
+								a.logger.Debug(fmt.Sprintf("Sent message to \"%s\"", agentID(member)),
+									zap.String("subj", a.id),
+									zap.String("tran", id),
+									zap.String("act", "send"),
+									zap.Int("size", len(deflected)),
+									zap.String("to", agentID(member)))
 								break
 							}
 						}
@@ -678,6 +702,12 @@ func (a *MemberlistAgent) handleTransactions() {
 				responseMsg, ok := response.marshal("response", a.logger)
 				if ok {
 					a.list.SendBestEffort(message.Sender, responseMsg)
+					a.logger.Debug(fmt.Sprintf("Sent message to \"%s\"", agentID(message.Sender)),
+						zap.String("subj", a.id),
+						zap.String("tran", id),
+						zap.String("act", "send"),
+						zap.Int("size", len(responseMsg)),
+						zap.String("to", agentID(message.Sender)))
 				}
 			}
 			a.logger.Sync()
