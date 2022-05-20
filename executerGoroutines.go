@@ -16,6 +16,17 @@ const inputsRate float64 = 5.0
 // milliseconds, TODO evaluate
 const inputsFlush = 100
 
+// preparedUpdates represents a list of Updates that will possibly be
+// appended to the execution pool.
+type preparedUpdates struct {
+	// updates is the []Update that will possibly be added to the pool.
+	updates []Update
+
+	// confirm is a channel over which arrives a bool indicating if
+	// updates are to be added to the pool or not.
+	confirm <-chan bool
+}
+
 func (m *Executer) receiveInputs() {
 	inputs := m.memory.Inputs()
 	errors := m.memory.Errors()
@@ -65,6 +76,7 @@ func (m *Executer) receiveInputs() {
 }
 
 func (m *Executer) receiveExternalActions() {
+	updRecv := m.startUpdateReceiver()
 	requests, commandRequests := m.agent.ReceivedActions()
 	for {
 		actionsCh := <-requests
@@ -72,11 +84,12 @@ func (m *Executer) receiveExternalActions() {
 			return
 		}
 		commandsCh := <-commandRequests
-		go m.serveTransaction(actionsCh, commandsCh)
+		go m.serveTransaction(actionsCh, commandsCh, updRecv)
 	}
 }
 
-func (m *Executer) serveTransaction(actionsCh <-chan []byte, commandsCh chan string) {
+// serveTransaction interacts with the Agent in order to possibly receive and append a list of Updates to m.pool.
+func (m *Executer) serveTransaction(actionsCh <-chan []byte, commandsCh chan string, updRecv chan<- preparedUpdates) {
 	defer m.logger.Sync()
 	eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
 	if err != nil {
@@ -137,9 +150,11 @@ func (m *Executer) serveTransaction(actionsCh <-chan []byte, commandsCh chan str
 		return
 	}
 	commandsCh <- "interested"
+	confirm := make(chan bool)
 	switch <-commandsCh {
 	case "can_commit?":
 		if m.coordinator.confirmRead(k) {
+			updRecv <- preparedUpdates{updates: updates, confirm: confirm}
 			commandsCh <- "prepared"
 		} else {
 			m.coordinator.closeRead(k)
@@ -152,15 +167,49 @@ func (m *Executer) serveTransaction(actionsCh <-chan []byte, commandsCh chan str
 		commandsCh <- "done"
 		return
 	}
+	ok := false
 	switch <-commandsCh {
 	case "do_commit":
-		m.lockPool.Lock()
-		m.pool = append(m.pool, updates...)
-		m.lockPool.Unlock()
-		m.logger.Info("Added external actions", zap.String("act", "add_updates"), zap.Array("updates", poolLogger(updates)))
+		ok = true
 		fallthrough
 	case "do_abort":
 		m.coordinator.closeRead(k)
 		commandsCh <- "done"
 	}
+	confirm <- ok
+}
+
+// startUpdateReceiver starts a goroutine responsible for appending received Updates to m.pool.
+// This goroutine takes preparedUpdates over the channel returned by startUpdateReceiver and
+// appends their Updates to m.pool following their arrival order but waits for a bool on their
+// confirm channel before proceeding. If true is sent over the confirm channel then the related
+// Updates are appended otherwise they are discarded.
+func (m *Executer) startUpdateReceiver() chan<- preparedUpdates {
+	res := make(chan preparedUpdates)
+	go func(updates <-chan preparedUpdates) {
+		var queue []preparedUpdates
+		var confirm <-chan bool = nil
+		for {
+			select {
+			case ok := <-confirm:
+				if ok {
+					m.lockPool.Lock()
+					m.pool = append(m.pool, queue[0].updates...)
+					m.lockPool.Unlock()
+					m.logger.Info("Added external actions",
+						zap.String("act", "add_updates"),
+						zap.Array("updates", poolLogger(queue[0].updates)))
+				}
+				queue = queue[1:]
+			case u := <-updates:
+				queue = append(queue, u)
+			}
+			if len(queue) == 0 {
+				confirm = nil
+			} else {
+				confirm = queue[0].confirm
+			}
+		}
+	}(res)
+	return res
 }
