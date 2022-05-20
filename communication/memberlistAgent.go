@@ -35,14 +35,14 @@ const (
 
 var TestsMidSends = 2
 
-type messageUnion struct {
-	Type   string
-	Sender *memberlist.Node
-
+// message dictates the structure of any message exchanged by MemberlistAgents
+type message struct {
+	Type        string
+	Sender      *memberlist.Node
 	Transaction transactionInfo
 }
 
-func (m *messageUnion) marshal(obj string, logger *zap.Logger) ([]byte, bool) {
+func (m *message) marshal(obj string, logger *zap.Logger) ([]byte, bool) {
 	res, err := json.Marshal(*m)
 	if err != nil {
 		logger.Error("Error during marshalling: "+err.Error(),
@@ -53,7 +53,7 @@ func (m *messageUnion) marshal(obj string, logger *zap.Logger) ([]byte, bool) {
 	return res, true
 }
 
-func (m *messageUnion) unmarshal(bs []byte) bool {
+func (m *message) unmarshal(bs []byte) bool {
 	err := json.Unmarshal(bs, m)
 	return err == nil
 }
@@ -75,8 +75,8 @@ type MemberlistAgent struct {
 	quitTransactions      chan chan bool
 	quitGossip            chan chan bool
 	quitDemux             chan chan bool
-	transactionMessages   chan messageUnion
-	transactionResponses  chan messageUnion
+	transactionMessages   chan message
+	transactionResponses  chan message
 	coordinatedChannels   chan chan transactionChannels
 	trackGossip           chan chan *sync.WaitGroup
 	initiatedTransactions int
@@ -184,8 +184,8 @@ func (a *MemberlistAgent) Start() error {
 	a.quitTransactions = make(chan chan bool)
 	a.quitGossip = make(chan chan bool)
 	a.quitDemux = make(chan chan bool)
-	a.transactionMessages = make(chan messageUnion, msgBuffLen)
-	a.transactionResponses = make(chan messageUnion, msgBuffLen)
+	a.transactionMessages = make(chan message, msgBuffLen)
+	a.transactionResponses = make(chan message, msgBuffLen)
 	a.coordinatedChannels = make(chan chan transactionChannels)
 	a.trackGossip = make(chan chan *sync.WaitGroup)
 

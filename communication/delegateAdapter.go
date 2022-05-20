@@ -12,8 +12,8 @@ import (
 type delegateAdapter struct {
 	listPtr              **memberlist.Memberlist
 	trackGossip          chan chan *sync.WaitGroup
-	transactionMessages  chan messageUnion
-	transactionResponses chan messageUnion
+	transactionMessages  chan message
+	transactionResponses chan message
 	members              BaseMembers
 	delegate             MemberlistDelegate
 }
@@ -75,28 +75,28 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 	}
 	defer group.Done()
 
-	var message messageUnion
-	ok := message.unmarshal(m)
+	var msg message
+	ok := msg.unmarshal(m)
 	if ok {
-		switch message.Type { // intercept transaction messages
+		switch msg.Type { // intercept transaction messages
 		case "interested", "not_interested", "prepared", "aborted", "committed":
 			select {
-			case d.transactionResponses <- message:
+			case d.transactionResponses <- msg:
 			default:
 				d.members.Logger.Warn("Dicarded transaction response",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction response"),
-					zap.String("from", agentID(message.Sender)))
+					zap.String("from", agentID(msg.Sender)))
 			}
 			return
 		case "interested?", "can_commit?", "do_commit", "do_abort", "get_decision":
 			select {
-			case d.transactionMessages <- message:
+			case d.transactionMessages <- msg:
 			default:
 				d.members.Logger.Warn("Dicarded incoming transaction message",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction message"),
-					zap.String("from", agentID(message.Sender)))
+					zap.String("from", agentID(msg.Sender)))
 			}
 			return
 		}
