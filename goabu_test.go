@@ -283,6 +283,8 @@ func TestForall(t *testing.T) {
 	mem := e.memory.GetResources()
 	for i := 0; i < 3; i++ {
 		e.Exec()
+		for e.DoIfStable(func() {}) {
+		}
 		if len(e.pool) != 1 {
 			t.Error("pool should have length 1")
 		}
