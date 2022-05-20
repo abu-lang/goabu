@@ -1,4 +1,5 @@
 @startuml
+skin rose
 hide empty members
 
 package iodelegates {
@@ -118,7 +119,7 @@ package communication {
         coordinated : bool
         commands : chan string
     }
-    MemberlistAgent o-- "1" transactionInfo
+    MemberlistAgent o-- "*" transactionInfo
 }
 
 DigitalPin ..|> IOdelegate
