@@ -157,7 +157,6 @@ func (m *Executer) SetAgent(agt Agent) error {
 
 func (m *Executer) TakeState() State {
 	m.coordinator.requestWrite(false)
-	m.coordinator.fixWorkingSetWrite(stringset.Make())
 	m.lockMemory.RLock()
 	memCopy := m.memory.Copy().GetResources()
 	m.lockMemory.RUnlock()
@@ -171,14 +170,12 @@ func (m *Executer) TakeState() State {
 		poolCopy = append(poolCopy, updateCopy)
 	}
 	<-lock
-	m.coordinator.confirmWrite()
 	m.coordinator.closeWrite()
 	return State{Memory: memCopy, Pool: poolCopy}
 }
 
 func (m *Executer) DoIfStable(f func()) bool {
 	m.coordinator.requestWrite(false)
-	m.coordinator.fixWorkingSetWrite(stringset.Make())
 	lock := make(chan bool)
 	m.updateReceiver <- preparedUpdates{confirm: lock}
 	lock <- false // no updates are added
@@ -187,7 +184,6 @@ func (m *Executer) DoIfStable(f func()) bool {
 		f()
 	}
 	<-lock
-	m.coordinator.confirmWrite()
 	m.coordinator.closeWrite()
 	return stable
 }
