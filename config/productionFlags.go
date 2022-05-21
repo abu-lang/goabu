@@ -1,4 +1,4 @@
 // Package config contains GoAbU's global configuration.
 package config
 
-var Production = false // v0.1.0 (development)
+var Production = true // v0.2.0 (production)
