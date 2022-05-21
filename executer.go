@@ -26,16 +26,17 @@ type State struct {
 }
 
 type Executer struct {
-	memory        memory.ResourceController
-	lockMemory    sync.RWMutex
-	types         map[string]string
-	pool          []Update
-	coordinator   execCoordinator
-	lockPool      sync.Mutex
-	localLibrary  map[string]ecarule.RuleDict
-	globalLibrary map[string]ecarule.RuleDict
-	lockRules     sync.Mutex
-	invariants    []*ast.Expression
+	memory         memory.ResourceController
+	lockMemory     sync.RWMutex
+	types          map[string]string
+	pool           []Update
+	coordinator    execCoordinator
+	updateReceiver chan<- preparedUpdates
+	lockPool       sync.Mutex
+	localLibrary   map[string]ecarule.RuleDict
+	globalLibrary  map[string]ecarule.RuleDict
+	lockRules      sync.Mutex
+	invariants     []*ast.Expression
 
 	workingMemory *ast.WorkingMemory
 	dataContext   ast.IDataContext
@@ -110,6 +111,7 @@ func NewExecuter(
 	if err != nil {
 		return nil, err
 	}
+	res.updateReceiver = res.startUpdateReceiver()
 	err = mem.Start()
 	if err != nil {
 		return nil, err
@@ -159,14 +161,16 @@ func (m *Executer) TakeState() State {
 	m.lockMemory.RLock()
 	memCopy := m.memory.Copy().GetResources()
 	m.lockMemory.RUnlock()
-	m.lockPool.Lock()
+	lock := make(chan bool)
+	m.updateReceiver <- preparedUpdates{confirm: lock}
+	lock <- false // no updates are added
 	poolCopy := make([]Update, 0, len(m.pool))
 	for _, update := range m.pool {
 		var updateCopy Update = make([]Assignment, len(update))
 		copy(updateCopy, update)
 		poolCopy = append(poolCopy, updateCopy)
 	}
-	m.lockPool.Unlock()
+	<-lock
 	m.coordinator.confirmWrite()
 	m.coordinator.closeWrite()
 	return State{Memory: memCopy, Pool: poolCopy}
@@ -175,12 +179,14 @@ func (m *Executer) TakeState() State {
 func (m *Executer) DoIfStable(f func()) bool {
 	m.coordinator.requestWrite(false)
 	m.coordinator.fixWorkingSetWrite(stringset.Make())
-	m.lockPool.Lock()
+	lock := make(chan bool)
+	m.updateReceiver <- preparedUpdates{confirm: lock}
+	lock <- false // no updates are added
 	stable := len(m.pool) == 0
 	if stable {
 		f()
 	}
-	m.lockPool.Unlock()
+	<-lock
 	m.coordinator.confirmWrite()
 	m.coordinator.closeWrite()
 	return stable
@@ -429,9 +435,10 @@ func (m *Executer) resourceValue(resource string) reflect.Value {
 func (m *Executer) discovery(modified stringset.Set) {
 	updates, eActions := m.triggeredActions(modified)
 	m.lockMemory.Unlock()
-	m.lockPool.Lock()
-	m.pool = append(m.pool, updates...)
-	m.lockPool.Unlock()
+	ok := make(chan bool)
+	m.updateReceiver <- preparedUpdates{updates: updates, confirm: ok}
+	ok <- true
+	<-ok
 	m.coordinator.confirmWrite()
 	m.logger.Info(fmt.Sprintf("Discovery found %d updates", len(updates)),
 		zap.String("act", "discovery"),
