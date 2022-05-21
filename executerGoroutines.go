@@ -11,7 +11,7 @@ import (
 )
 
 // TODO evaluate
-const inputsRate float64 = 5.0
+const inputsRate float64 = 1.0
 
 // milliseconds, TODO evaluate
 const inputsFlush = 100
@@ -30,48 +30,43 @@ type preparedUpdates struct {
 func (m *Executer) receiveInputs() {
 	inputs := m.memory.Inputs()
 	errors := m.memory.Errors()
-	queueSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
-	var queue string = ""
+	bufferSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
+	var buffer string = ""
 	var l int = 0
 	var timeout <-chan time.Time = nil
-	var queued stringset.Set = stringset.Make()
+	var inBuffer stringset.Set = stringset.Make()
+	flush := func() {
+		err := m.Input(buffer)
+		if err != nil {
+			m.logger.Panic("Error in parsing I/O input actions: "+err.Error(),
+				zap.String("act", "io_parse"), zap.String("obj", buffer))
+		}
+		buffer = ""
+		l = 0
+		inBuffer = stringset.Make()
+		timeout = nil
+	}
 	for {
 		select {
 		case err := <-errors:
 			m.logger.Error("I/O error: "+err.Error(), zap.String("act", "io"))
-		case action := <-inputs:
-			resource := strings.TrimSpace(strings.Split(action, "=")[0])
-			if queued.Has(resource) {
-				err := m.Input(queue)
-				if err != nil {
-					m.logger.Panic("Error in parsing I/O input actions: "+err.Error(),
-						zap.String("act", "io_parse"), zap.String("obj", queue))
-				}
-				queue = ""
-				l = 0
-				timeout = nil
-				queued = stringset.Make()
+		case input := <-inputs:
+			resource := strings.TrimSpace(strings.Split(input, "=")[0])
+			if inBuffer.Has(resource) {
+				flush()
 			}
-			queue += action
+			buffer += input
 			l++
-			queued.Insert(resource)
+			inBuffer.Insert(resource)
 			if l == 1 {
 				timeout = time.After(inputsFlush * time.Millisecond)
 			}
-			if l < queueSize {
+			if l < bufferSize {
 				continue
 			}
 		case <-timeout:
 		}
-		err := m.Input(queue)
-		if err != nil {
-			m.logger.Panic("Error in parsing I/O input actions: "+err.Error(),
-				zap.String("act", "io_parse"), zap.String("obj", queue))
-		}
-		queue = ""
-		l = 0
-		timeout = nil
-		queued = stringset.Make()
+		flush()
 	}
 }
 
