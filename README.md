@@ -110,23 +110,23 @@ This also explain why local rules as the one seen before do not require prefixes
 
 To perform the communication required by the global rules we have to create an Agent which is an interface that abstracts the communication between the various nodes.
 
-Currently the package communication has an implementation called *MemberlistAgent based on [memberlist](https://github.com/hashicorp/memberlist).
+Currently the package communication has an implementation called MemberlistAgent based on [memberlist](https://github.com/hashicorp/memberlist).
 
-An *MemberlistAgent can be created by the function NewMemberlistAgent which takes an int that specifies the listening port and optionally a variadic list of strings of the type "address:port" that indicate the nodes to join:
+A MemberlistAgent can be created by the function NewMemberlistAgent which takes an identifier for the Agent, an int that specifies the listening port and optionally a variadic list of strings of the type "host:port" that indicate the other MemberlistAgents to join:
 
 ```go
-agent := communication.NewMemberlistAgent(5000, config.LogConfig{})
+agent := communication.NewMemberlistAgent("Agent", 5000, config.LogConfig{})
 ```
 
 ## Creating the Executer
 
 Finally we are ready to start our node.
-A node is represented by an *Executer that will contain the Resources struct, a knowledgebase of GoAbU rules and an Agent.
+A node is represented by an Executer that will contain the Resources struct, a knowledgebase of GoAbU rules and an Agent.
 The Executer specifies the ECA rule execution model. It uses the knowledgebase to apply the required updates to the resources and to send the updates request to the other nodes by relying on the Agent for the communication.
 
 The Executer can be constructed using the NewExecuter function:
 
-**Note** that for simplicity in the tutorial we will not check for returned errors, when using GoAbU errors should be checked.
+**NOTE** that for simplicity in the tutorial we will not check for returned errors, when using GoAbU errors should be checked.
 
 ```go
 executer, _ := goabu.NewExecuter(mem, []string{localRule}, agent, config.LogConfig{})
@@ -148,7 +148,7 @@ mem2 := memory.MakeResources()
 mem2.Integer["foo"] = 1
 mem2.Float["baz"] = 3.14
 
-agent2 := communication.NewMemberlistAgent(5001, config.LogConfig{}, "localhost:5000")
+agent2 := communication.NewMemberlistAgent("Agent-2", 5001, config.LogConfig{}, "localhost:5000")
 
 executer2, _ := goabu.NewExecuter(mem2, []string{globalRule}, agent2, config.LogConfig{})
 ```
@@ -280,7 +280,7 @@ func main() {
 	globalRule := `rule MyGlobalRule on foo for all this.foo >= ext.foo do ext.foo = ext.foo + this.foo`
 	globalRule = `rule MyGlobalRule on foo for all foo >= ext.foo do foo = ext.foo + foo`
 
-	agent := communication.NewMemberlistAgent(5000, config.LogConfig{})
+	agent := communication.NewMemberlistAgent("Agent", 5000, config.LogConfig{})
 
 	executer, _ := goabu.NewExecuter(mem, []string{localRule}, agent, config.LogConfig{})
 
@@ -288,7 +288,7 @@ func main() {
 	mem2.Integer["foo"] = 1
 	mem2.Float["baz"] = 3.14
 
-	agent2 := communication.NewMemberlistAgent(5001, config.LogConfig{}, "localhost:5000")
+	agent2 := communication.NewMemberlistAgent("Agent-2", 5001, config.LogConfig{}, "localhost:5000")
 
 	executer2, _ := goabu.NewExecuter(mem2, []string{globalRule}, agent2, config.LogConfig{})
 

@@ -57,8 +57,11 @@ func (m Motor) set(writer gpio.PwmWriter, speed byte, forward bool) error {
 		return err
 	}
 	err = writer.PwmWrite(m.backwardPin, 0)
-	if err != nil || speed == 0 {
+	if err != nil {
 		return err
+	}
+	if speed == 0 {
+		return nil
 	}
 	if forward {
 		return writer.PwmWrite(m.forwardPin, speed)

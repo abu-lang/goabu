@@ -14,10 +14,14 @@ type reader struct {
 }
 
 type writer struct {
-	workingSet   stringset.Set
-	optimistic   bool
-	awaiting     int
-	zeroAwaiting chan struct{}
+	workingSet stringset.Set
+	optimistic bool
+	awaiting   int
+
+	// wake if not nil will receive a signal each time a closeRead
+	// returns if optimistic == false otherwise it will receive a
+	// signal when awaiting becomes 0.
+	wake chan struct{}
 }
 
 type coordinator struct {
@@ -82,25 +86,25 @@ func (c *coordinator) requestWrite(optimistic bool) {
 	var e *list.Element = nil
 	for {
 		c.mutex.Lock()
+		if e != nil {
+			n := e.Next()
+			if n != nil {
+				w := n.Value.(chan struct{})
+				w <- struct{}{}
+			} else {
+				c.awake = false
+			}
+		}
 		if c.writing == nil {
 			c.writing = &writer{optimistic: optimistic}
 			if e != nil {
-				n := e.Next()
 				c.requesting.Remove(e)
-				if n != nil {
-					w := n.Value.(chan struct{})
-					w <- struct{}{}
-				} else {
-					c.awake = false
-				}
 			}
 			c.mutex.Unlock()
 			return
 		}
 		if e == nil {
 			e = c.requesting.PushBack(make(chan struct{}))
-		} else {
-			c.awake = false
 		}
 		wake := e.Value.(chan struct{})
 		c.mutex.Unlock()
@@ -117,9 +121,12 @@ func (c *coordinator) fixWorkingSetWrite(ws stringset.Set) {
 }
 
 func (c *coordinator) startWrite(ws stringset.Set) {
-	var e *list.Element = nil
 	for {
 		c.mutex.Lock()
+		if c.writing.wake != nil {
+			c.awake = false
+		}
+		c.wakeRequesting()
 		ok := true
 		for r := range ws {
 			if c.readers[r] > 0 {
@@ -129,27 +136,15 @@ func (c *coordinator) startWrite(ws stringset.Set) {
 		}
 		if ok {
 			c.writing.workingSet = ws
-			if e != nil {
-				n := e.Next()
-				c.requesting.Remove(e)
-				if n != nil {
-					w := n.Value.(chan struct{})
-					w <- struct{}{}
-				} else {
-					c.awake = false
-				}
-			}
+			c.writing.wake = nil
 			c.mutex.Unlock()
 			return
 		}
-		if e == nil {
-			e = c.requesting.PushBack(make(chan struct{}))
-		} else {
-			c.awake = false
+		if c.writing.wake == nil {
+			c.writing.wake = make(chan struct{})
 		}
-		wake := e.Value.(chan struct{})
 		c.mutex.Unlock()
-		<-wake
+		<-c.writing.wake
 	}
 }
 
@@ -177,10 +172,9 @@ func (c *coordinator) startOptimistic(ws stringset.Set) {
 		c.mutex.Unlock()
 		return
 	}
-	ready := make(chan struct{})
-	c.writing.zeroAwaiting = ready
+	c.writing.wake = make(chan struct{})
 	c.mutex.Unlock()
-	<-ready
+	<-c.writing.wake
 }
 
 func (c *coordinator) confirmRead(k key) bool {
@@ -199,7 +193,7 @@ func (c *coordinator) confirmWrite() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.writing.workingSet = stringset.Make()
-	c.wakeNext()
+	c.wakeRequesting()
 }
 
 func (c *coordinator) closeRead(k key) {
@@ -215,9 +209,6 @@ func (c *coordinator) closeRead(k key) {
 	}
 	if reader.blocking {
 		c.writing.awaiting--
-		if c.writing.awaiting == 0 {
-			c.writing.zeroAwaiting <- struct{}{}
-		}
 	}
 	c.wakeNext()
 }
@@ -226,13 +217,37 @@ func (c *coordinator) closeWrite() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.writing = nil
-	c.wakeNext()
+	c.wakeRequesting()
 }
 
-func (c *coordinator) wakeNext() {
+// wakeRequesting awakes the next pending call to requestRead or requestWrite if such a call exists
+// and c.awake == false.
+func (c *coordinator) wakeRequesting() {
 	if !c.awake && c.requesting.Len() > 0 {
 		w := c.requesting.Front().Value.(chan struct{})
 		w <- struct{}{}
 		c.awake = true
+	}
+}
+
+func (c *coordinator) wakeNext() {
+	if c.awake {
+		return
+	}
+	if c.writing != nil && c.writing.wake != nil && (!c.writing.optimistic || c.writing.awaiting == 0) {
+		c.wakeWriter()
+	} else {
+		c.wakeRequesting()
+	}
+}
+
+// wakeWriter awakes a pending fixWorkingSetWrite call by sending an empty struct on c.writing.wake.
+// It should be called only when c.awake == false.
+func (c *coordinator) wakeWriter() {
+	c.writing.wake <- struct{}{}
+	if !c.writing.optimistic {
+		c.awake = true
+	} else {
+		c.writing.wake = nil
 	}
 }

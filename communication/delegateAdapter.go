@@ -12,8 +12,8 @@ import (
 type delegateAdapter struct {
 	listPtr              **memberlist.Memberlist
 	trackGossip          chan chan *sync.WaitGroup
-	transactionMessages  chan messageUnion
-	transactionResponses chan messageUnion
+	transactionMessages  chan message
+	transactionResponses chan message
 	members              BaseMembers
 	delegate             MemberlistDelegate
 }
@@ -46,6 +46,8 @@ func (d delegateAdapter) register() (*sync.WaitGroup, error) {
 	}
 }
 
+// NodeMeta implements memberlist.Delegate.NodeMeta.
+// It returns the id of the agent as a possibly truncated []byte.
 func (d delegateAdapter) NodeMeta(limit int) []byte {
 	group, err := d.register()
 	if err != nil {
@@ -54,9 +56,17 @@ func (d delegateAdapter) NodeMeta(limit int) []byte {
 	}
 	defer group.Done()
 
-	return d.delegate.NodeMeta(d.delegateMembers(), limit)
+	res := []byte(d.members.AgentID)
+	if len(res) > limit {
+		res = res[0:limit:limit]
+	}
+	return res
 }
 
+// NotifyMsg implements memberlist.Delegate.NotifyMsg.
+// If the agent is running it sends m to the agent if m is a message of the
+// transaction handling protocol otherwise if the agent is running and m is
+// a different message then the delegate's NotifyMsg is called.
 func (d delegateAdapter) NotifyMsg(m []byte) {
 	group, err := d.register()
 	if err != nil {
@@ -65,28 +75,28 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 	}
 	defer group.Done()
 
-	var message messageUnion
-	ok := message.unmarshal(m)
+	var msg message
+	ok := msg.unmarshal(m)
 	if ok {
-		switch message.Type { // intercept transaction messages
+		switch msg.Type { // intercept transaction messages
 		case "interested", "not_interested", "prepared", "aborted", "committed":
 			select {
-			case d.transactionResponses <- message:
+			case d.transactionResponses <- msg:
 			default:
 				d.members.Logger.Warn("Dicarded transaction response",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction response"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(msg.Sender)))
 			}
 			return
 		case "interested?", "can_commit?", "do_commit", "do_abort", "get_decision":
 			select {
-			case d.transactionMessages <- message:
+			case d.transactionMessages <- msg:
 			default:
 				d.members.Logger.Warn("Dicarded incoming transaction message",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction message"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(msg.Sender)))
 			}
 			return
 		}
@@ -95,6 +105,9 @@ func (d delegateAdapter) NotifyMsg(m []byte) {
 	d.delegate.NotifyMsg(d.delegateMembers(), m)
 }
 
+// GetBroadcasts implements memberlist.Delegate.GetBroadcasts.
+// If the agent is still running it returns the result of the invocation
+// of the delegate's GetBroadcast otherwise [][]byte{} is returned.
 func (d delegateAdapter) GetBroadcasts(overhead, limit int) [][]byte {
 	group, err := d.register()
 	if err != nil {
@@ -106,6 +119,9 @@ func (d delegateAdapter) GetBroadcasts(overhead, limit int) [][]byte {
 	return d.delegate.GetBroadcasts(d.delegateMembers(), overhead, limit)
 }
 
+// LocalState implements memberlist.Delegate.LocalState.
+// If the agent is still running it returns the result of the invocation
+// of the delegate's LocalState otherwise []byte{} is returned.
 func (d delegateAdapter) LocalState(join bool) []byte {
 	group, err := d.register()
 	if err != nil {
@@ -117,6 +133,8 @@ func (d delegateAdapter) LocalState(join bool) []byte {
 	return d.delegate.LocalState(d.delegateMembers(), join)
 }
 
+// MergeRemoteState implements memberlist.Delegate.MergeRemoteState.
+// If the agent is still running it calls the delegate's MergeRemoteState.
 func (d delegateAdapter) MergeRemoteState(buf []byte, join bool) {
 	group, err := d.register()
 	if err != nil {
@@ -128,6 +146,8 @@ func (d delegateAdapter) MergeRemoteState(buf []byte, join bool) {
 	d.delegate.MergeRemoteState(d.delegateMembers(), buf, join)
 }
 
+// NotifyJoin implements memberlist.EventDelegate.NotifyJoin.
+// If the agent is still running it calls the delegate's NotifyJoin.
 func (d delegateAdapter) NotifyJoin(node *memberlist.Node) {
 	group, err := d.register()
 	if err != nil {
@@ -139,6 +159,8 @@ func (d delegateAdapter) NotifyJoin(node *memberlist.Node) {
 	d.delegate.NotifyJoin(d.delegateMembers(), node)
 }
 
+// NotifyLeave implements memberlist.EventDelegate.NotifyLeave.
+// If the agent is still running it calls the delegate's NotifyLeave.
 func (d delegateAdapter) NotifyLeave(node *memberlist.Node) {
 	group, err := d.register()
 	if err != nil {
@@ -147,14 +169,11 @@ func (d delegateAdapter) NotifyLeave(node *memberlist.Node) {
 	}
 	defer group.Done()
 
-	d.members.Logger.Info("Node "+node.Name+" has left",
-		zap.String("act", "leave"),
-		zap.String("subj", node.Name))
-	defer d.members.Logger.Sync()
-
 	d.delegate.NotifyLeave(d.delegateMembers(), node)
 }
 
+// NotifyUpdate implements memberlist.EventDelegate.NotifyUpdate.
+// If the agent is still running it calls the delegate's NotifyUpdate.
 func (d delegateAdapter) NotifyUpdate(node *memberlist.Node) {
 	group, err := d.register()
 	if err != nil {

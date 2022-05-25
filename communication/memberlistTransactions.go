@@ -20,14 +20,22 @@ const (
 	timeoutWakeMonitor = 12000
 )
 
+// agentID returns the agent id of node.
+func agentID(node *memberlist.Node) string {
+	return string(node.Meta)
+}
+
 type transactionInfo struct {
 	Initiator    string
 	Number       int
 	Payload      []byte
 	Participants []string
-	stopMonitor  chan bool
-	coordinated  bool
-	commands     chan string
+
+	// initiatorID possibly points to the agent id of the initiator or is nil.
+	initiatorID *string
+	stopMonitor chan bool
+	coordinated bool
+	commands    chan string
 }
 
 func (t *transactionInfo) id() string {
@@ -103,12 +111,12 @@ func (t transactionChannels) line(response string) chan<- string {
 }
 
 func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
-	message := messageUnion{
+	m := message{
 		Type:        "interested?",
 		Sender:      a.list.LocalNode(),
 		Transaction: tran,
 	}
-	msg, ok := message.marshal("interested?", a.logger)
+	msg, ok := m.marshal("interested?", a.logger)
 	if !ok {
 		a.logger.Panic("Could not marshal interested? message",
 			zap.String("act", "marshalling"),
@@ -118,7 +126,7 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 	channelsCh := make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- channels
-	nodes, err := a.interestPhase(msg, channels, tran.Number)
+	nodes, err := a.interestPhase(msg, channels)
 	a.testsHaltIf(TestsAfterInterested)
 	if len(nodes) == 0 {
 		channelsCh := make(chan transactionChannels)
@@ -131,7 +139,13 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 	return nodes, err
 }
 
-func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels, number int) ([]string, error) {
+// interestPhase sends msg to all nodes selected by the MemberlistDelegate filterPartecipants method.
+// It returns a slice containing the names of the nodes that responded with "interested" if no node
+// responded with "aborted" otherwise it aborts the transaction and returns an error.
+//
+// Testing: If a.test == TestsMidInterested it simulates a crash failure of the agent after having
+// received TestsMidSends responses.
+func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels) ([]string, error) {
 	aborted := ""
 	waitFor := stringset.Make()
 	for _, member := range a.adapter.filterParticipants(a.list.Members()) {
@@ -145,7 +159,7 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 		if a.test == TestsMidInterested {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
-			go a.phaseSend(waitForCopy, msg, true, receiversCh)
+			go a.phaseSend(waitForCopy, msg, true, channels.id(), receiversCh)
 		}
 		received := 0
 	INTERESTED:
@@ -175,12 +189,12 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	if aborted == "" {
 		return interested, nil
 	}
-	order := messageUnion{
+	order := message{
 		Type:   "do_abort",
 		Sender: a.list.LocalNode(),
 		Transaction: transactionInfo{
-			Initiator: a.list.LocalNode().Name,
-			Number:    number,
+			Initiator: channels.Initiator,
+			Number:    channels.Number,
 		},
 	}
 	abrt, ok := order.marshal(order.Type, a.logger)
@@ -191,12 +205,12 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	for _, i := range interested {
 		dests.Insert(i)
 	}
-	a.secondPhase(dests, abrt, channels.haveAborted)
+	a.secondPhase(dests, abrt, channels.haveAborted, channels.id())
 	return nil, fmt.Errorf("%s has aborted", aborted)
 }
 
 func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
-	canCommit := messageUnion{
+	canCommit := message{
 		Type:        "can_commit?",
 		Sender:      a.list.LocalNode(),
 		Transaction: tran,
@@ -214,12 +228,12 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- channels
 	a.logger.Debug("Started transaction",
-		zap.String("subj", canCommit.Sender.Name),
+		zap.String("subj", a.id),
 		zap.String("act", "start_tran"),
 		zap.Int("participants", receivers.Size()))
 	res := a.firstPhase(receivers, msg, channels)
 	a.logger.Debug("Terminated first phase",
-		zap.String("subj", canCommit.Sender.Name),
+		zap.String("subj", a.id),
 		zap.String("act", "end_1_phase"),
 		zap.Int("participants", receivers.Size()))
 	a.testsHaltIf(TestsAfterFirst)
@@ -229,7 +243,7 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 		responses = channels.haveAborted
 		action = "do_abort"
 	}
-	order := messageUnion{
+	order := message{
 		Type:   action,
 		Sender: a.list.LocalNode(),
 		Transaction: transactionInfo{
@@ -241,14 +255,14 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	if !ok {
 		a.logger.Panic("Could not marshal "+order.Type+" message", zap.String("act", "marshalling"), zap.String("obj", order.Type))
 	}
-	a.secondPhase(receivers, msg, responses)
+	a.secondPhase(receivers, msg, responses, tran.id())
 	channelsCh = make(chan transactionChannels)
 	a.coordinatedChannels <- channelsCh
 	channelsCh <- transactionChannels{
 		Initiator: tran.Initiator,
 		Number:    tran.Number,
 	}
-	a.logger.Debug("Terminated transaction", zap.String("subj", a.list.LocalNode().Name), zap.String("act", "end_tran"))
+	a.logger.Debug("Terminated transaction", zap.String("subj", a.id), zap.String("act", "end_tran"))
 	return res
 }
 
@@ -261,7 +275,7 @@ func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, cha
 		if a.test == TestsMidFirst {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
-			go a.phaseSend(waitForCopy, msg, true, receiversCh)
+			go a.phaseSend(waitForCopy, msg, true, channels.id(), receiversCh)
 		}
 		received := 0
 	GET_RESPONSES_1:
@@ -296,7 +310,12 @@ func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, cha
 	return nil
 }
 
-func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, responses <-chan string) {
+// secondPhase sends msg to waitFor with best effort and awaits the responses.
+// After having performed the sends if after timeoutPhaseResend milliseconds some node has not
+// responded then msg is resended to those nodes and the timeout is restarted.
+//
+// responses is a channel that must pass the name of a node when a response from that node is received.
+func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, responses <-chan string, tranID string) {
 	for !waitFor.Empty() {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
@@ -304,7 +323,7 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, respons
 		if a.test == TestsMidSecond {
 			go a.testsPhaseSend(waitForCopy, msg, false, receiversCh, TestsMidSends)
 		} else {
-			go a.phaseSend(waitForCopy, msg, false, receiversCh)
+			go a.phaseSend(waitForCopy, msg, false, tranID, receiversCh)
 		}
 		received := 0
 	GET_RESPONSES_2:
@@ -326,7 +345,14 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, respons
 	}
 }
 
-func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliableSend bool, done chan<- stringset.Set) {
+// phaseSend sends msg to all alive nodes in receivers.
+//
+// reliableSend indicates wheter to use a reliable transport protocol or not.
+//
+// done will pass the nodes that were alive during the execution of phaseSend.
+//
+// Testing: if a.test == TestsUnreliable about 10% of the sends aren't performed.
+func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliableSend bool, tranID string, done chan<- stringset.Set) {
 	newReceivers := stringset.Make()
 	for _, member := range a.list.Members() {
 		if receivers.Has(member.Name) {
@@ -339,6 +365,12 @@ func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliabl
 			} else {
 				a.list.SendBestEffort(member, msg)
 			}
+			a.logger.Debug(fmt.Sprintf("Sent message to \"%s\"", agentID(member)),
+				zap.String("subj", a.id),
+				zap.String("tran", tranID),
+				zap.String("act", "send"),
+				zap.Int("size", len(msg)),
+				zap.String("to", agentID(member)))
 		}
 	}
 	done <- newReceivers
@@ -373,7 +405,7 @@ func (a *MemberlistAgent) testsPhaseSend(receivers stringset.Set, msg []byte, re
 	}
 }
 
-func demuxResponses(coordinated <-chan chan transactionChannels, responses <-chan messageUnion, quit <-chan chan bool, logger *zap.Logger) {
+func demuxResponses(coordinated <-chan chan transactionChannels, responses <-chan message, quit <-chan chan bool, logger *zap.Logger) {
 	stopping := false
 	lines := make(map[string]transactionChannels)
 	for {
@@ -401,7 +433,7 @@ func demuxResponses(coordinated <-chan chan transactionChannels, responses <-cha
 				logger.Debug("Transaction already terminated: discarding response",
 					zap.String("act", "discard"),
 					zap.String("obj", "transaction response"),
-					zap.String("from", response.Sender.Name))
+					zap.String("from", agentID(response.Sender)))
 				break
 			}
 			c := channels.line(response.Type)
@@ -410,12 +442,12 @@ func demuxResponses(coordinated <-chan chan transactionChannels, responses <-cha
 				logger.Debug("Received: "+response.Type,
 					zap.String("act", "recv"),
 					zap.String("obj", response.Type),
-					zap.String("from", response.Sender.Name))
+					zap.String("from", agentID(response.Sender)))
 			default:
 				logger.Warn("Discarded interested status",
 					zap.String("act", "discard"),
 					zap.String("obj", response.Type),
-					zap.String("from", response.Sender.Name))
+					zap.String("from", agentID(response.Sender)))
 			}
 		}
 	}
@@ -432,25 +464,25 @@ func (a *MemberlistAgent) handleTransactions() {
 			if len(a.transactions) == 0 {
 				return
 			}
-		case message := <-a.transactionMessages:
-			response := messageUnion{
+		case msg := <-a.transactionMessages:
+			response := message{
 				Sender: a.list.LocalNode(),
 				Transaction: transactionInfo{
-					Initiator: message.Transaction.Initiator,
-					Number:    message.Transaction.Number,
+					Initiator: msg.Transaction.Initiator,
+					Number:    msg.Transaction.Number,
 				},
 			}
 			respond := true
-			id := message.Transaction.id()
+			id := msg.Transaction.id()
 			status := a.getStatus(id)
-			switch message.Type {
+			switch msg.Type {
 
 			case "__interested__", "__not_interested__", "__aborted__":
 				if status != "evaluating" {
-					a.logger.Panic("Received evaluation result when not evaluating", zap.String("act", "recv"), zap.String("obj", message.Type))
+					a.logger.Panic("Received evaluation result when not evaluating", zap.String("act", "recv"), zap.String("obj", msg.Type))
 				}
 				tran := a.transactions[id]
-				response.Type = strings.Trim(message.Type, "_")
+				response.Type = strings.Trim(msg.Type, "_")
 				if response.Type == "interested" {
 					tran.stopMonitor = make(chan bool)
 					go a.monitorTransaction(*tran)
@@ -460,7 +492,7 @@ func (a *MemberlistAgent) handleTransactions() {
 				respond = false
 				for _, node := range a.list.Members() {
 					if node.Name == tran.Initiator {
-						message.Sender = node
+						msg.Sender = node
 						respond = true
 						break
 					}
@@ -477,19 +509,26 @@ func (a *MemberlistAgent) handleTransactions() {
 					commandsCh := make(chan string)
 					a.operations <- actionsCh
 					a.operationCommands <- commandsCh
-					actionsCh <- message.Transaction.Payload
+					actionsCh <- msg.Transaction.Payload
 					tran := &transactionInfo{}
-					*tran = message.Transaction
+					*tran = msg.Transaction
 					tran.Payload = nil
 					tran.Participants = nil
 					go func(tran transactionInfo) {
-						a.transactionMessages <- messageUnion{
+						a.transactionMessages <- message{
 							Sender:      a.list.LocalNode(),
 							Type:        "__" + <-commandsCh + "__",
 							Transaction: tran,
 						}
 					}(*tran)
 					tran.commands = commandsCh
+					for _, member := range a.list.Members() {
+						if member.Name == tran.Initiator {
+							agtID := agentID(member)
+							tran.initiatorID = &agtID
+							break
+						}
+					}
 					a.transactions[id] = tran
 					respond = false
 				case "interested", "not_interested":
@@ -500,16 +539,16 @@ func (a *MemberlistAgent) handleTransactions() {
 
 			case "can_commit?":
 				a.logger.Debug("Received: can_commit?",
-					zap.String("subj", a.list.LocalNode().Name),
+					zap.String("subj", a.id),
 					zap.String("act", "recv"),
 					zap.String("obj", "can_commit?"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(msg.Sender)))
 				switch status {
 				case "not_interested", "evaluating":
 					a.logger.Panic("Received can_commit? but I am evaluating or I wasn't interested",
 						zap.String("act", "recv"),
 						zap.String("obj", "can_commit?"),
-						zap.String("from", message.Sender.Name))
+						zap.String("from", agentID(msg.Sender)))
 				case "interested":
 					if a.test == TestsAbort {
 						a.abort(id)
@@ -524,7 +563,7 @@ func (a *MemberlistAgent) handleTransactions() {
 						a.terminated[id] = "aborted"
 						delete(a.transactions, id)
 					} else {
-						tran.Participants = message.Transaction.Participants
+						tran.Participants = msg.Transaction.Participants
 					}
 				default:
 					response.Type = status
@@ -532,14 +571,14 @@ func (a *MemberlistAgent) handleTransactions() {
 
 			case "do_abort":
 				a.logger.Debug("Received: do_abort",
-					zap.String("subj", a.list.LocalNode().Name),
+					zap.String("subj", a.id),
 					zap.String("act", "recv"),
 					zap.String("obj", "do_abort"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(msg.Sender)))
 				switch status {
 				case "evaluating":
 					select {
-					case a.transactionMessages <- message:
+					case a.transactionMessages <- msg:
 					default:
 					}
 					respond = false
@@ -547,7 +586,7 @@ func (a *MemberlistAgent) handleTransactions() {
 					a.logger.Panic("Received do_abort for a committed, new or uninteresting transaction",
 						zap.String("act", "recv"),
 						zap.String("obj", "do_abort"),
-						zap.String("from", message.Sender.Name))
+						zap.String("from", agentID(msg.Sender)))
 				case "prepared", "interested":
 					a.abort(id)
 				}
@@ -555,10 +594,10 @@ func (a *MemberlistAgent) handleTransactions() {
 
 			case "do_commit":
 				a.logger.Debug("Received: do_commit",
-					zap.String("subj", a.list.LocalNode().Name),
+					zap.String("subj", a.id),
 					zap.String("act", "recv"),
 					zap.String("obj", "do_commit"),
-					zap.String("from", message.Sender.Name))
+					zap.String("from", agentID(msg.Sender)))
 				switch status {
 				case "prepared":
 					a.commit(id)
@@ -567,7 +606,7 @@ func (a *MemberlistAgent) handleTransactions() {
 					a.logger.Panic("Spurious do_commit",
 						zap.String("act", "recv"),
 						zap.String("obj", "do_commit"),
-						zap.String("from", message.Sender.Name))
+						zap.String("from", agentID(msg.Sender)))
 				}
 				response.Type = "committed"
 
@@ -577,7 +616,7 @@ func (a *MemberlistAgent) handleTransactions() {
 					a.logger.Panic("Received get_decision for a new, evaluating or uninteresting transaction",
 						zap.String("act", "recv"),
 						zap.String("obj", "get_decision"),
-						zap.String("from", message.Sender.Name))
+						zap.String("from", agentID(msg.Sender)))
 				case "interested", "prepared":
 					respond = false
 					tran := a.transactions[id]
@@ -593,18 +632,18 @@ func (a *MemberlistAgent) handleTransactions() {
 					}
 					if status == "interested" {
 						a.logger.Debug("Aborting: I was interested but initiator is dead",
-							zap.String("subj", a.list.LocalNode().Name),
+							zap.String("subj", a.id),
 							zap.String("act", "abort_tran"),
-							zap.String("initiator", tran.Initiator))
+							zap.Stringp("initiator", tran.initiatorID))
 						a.abort(id)
 						break
 					}
 					if tran.coordinated {
-						message.Transaction.Payload = nil
-						message.Transaction.Participants = nil
-						message.Type = "prepared"
+						msg.Transaction.Payload = nil
+						msg.Transaction.Participants = nil
+						msg.Type = "prepared"
 						select {
-						case a.transactionResponses <- message:
+						case a.transactionResponses <- msg:
 						default:
 						}
 						break
@@ -616,19 +655,25 @@ func (a *MemberlistAgent) handleTransactions() {
 					head := tran.Participants[0]
 					if head == a.list.LocalNode().Name {
 						a.logger.Debug("Initiator is dead: becoming new coordinator",
-							zap.String("subj", head),
+							zap.String("subj", a.id),
 							zap.String("act", "coord"),
-							zap.String("initiator", tran.Initiator))
+							zap.Stringp("initiator", tran.initiatorID))
 						go a.coordinateTransaction(*tran)
 						tran.coordinated = true
 						break
 					}
-					message.Sender = a.list.LocalNode()
-					deflected, ok := message.marshal("deflected message", a.logger)
+					msg.Sender = a.list.LocalNode()
+					deflected, ok := msg.marshal("deflected message", a.logger)
 					if ok {
 						for _, member := range a.list.Members() {
 							if member.Name == head {
 								a.list.SendReliable(member, deflected)
+								a.logger.Debug(fmt.Sprintf("Sent message to \"%s\"", agentID(member)),
+									zap.String("subj", a.id),
+									zap.String("tran", id),
+									zap.String("act", "send"),
+									zap.Int("size", len(deflected)),
+									zap.String("to", agentID(member)))
 								break
 							}
 						}
@@ -639,24 +684,30 @@ func (a *MemberlistAgent) handleTransactions() {
 						response.Type = "do_commit"
 					}
 					a.logger.Debug("Received get_decision, responding: "+response.Type,
-						zap.String("subj", a.list.LocalNode().Name),
+						zap.String("subj", a.id),
 						zap.String("act", "send"),
 						zap.String("obj", response.Type),
-						zap.String("to", message.Sender.Name))
+						zap.String("to", agentID(msg.Sender)))
 				}
 
 			default:
 				respond = false
-				a.logger.DPanic("Unsupported transaction message: "+message.Type,
+				a.logger.DPanic("Unsupported transaction message: "+msg.Type,
 					zap.String("act", "recv"),
-					zap.String("obj", `"`+message.Type+`"`),
-					zap.String("from", message.Sender.Name))
+					zap.String("obj", `"`+msg.Type+`"`),
+					zap.String("from", agentID(msg.Sender)))
 			}
 
 			if respond {
 				responseMsg, ok := response.marshal("response", a.logger)
 				if ok {
-					a.list.SendBestEffort(message.Sender, responseMsg)
+					a.list.SendBestEffort(msg.Sender, responseMsg)
+					a.logger.Debug(fmt.Sprintf("Sent message to \"%s\"", agentID(msg.Sender)),
+						zap.String("subj", a.id),
+						zap.String("tran", id),
+						zap.String("act", "send"),
+						zap.Int("size", len(responseMsg)),
+						zap.String("to", agentID(msg.Sender)))
 				}
 			}
 			a.logger.Sync()
@@ -710,19 +761,19 @@ func (a *MemberlistAgent) commit(id string) {
 }
 
 func (a *MemberlistAgent) monitorTransaction(transaction transactionInfo) {
-	message := messageUnion{
+	msg := message{
 		Type:        "get_decision",
 		Sender:      a.list.LocalNode(),
 		Transaction: transaction,
 	}
-	message.Transaction.stopMonitor = nil
-	message.Transaction.coordinated = false
+	msg.Transaction.stopMonitor = nil
+	msg.Transaction.coordinated = false
 	for {
 		select {
 		case <-transaction.stopMonitor:
 			return
 		case <-time.After(time.Millisecond * timeoutWakeMonitor):
-			a.transactionMessages <- message
+			a.transactionMessages <- msg
 		}
 	}
 }

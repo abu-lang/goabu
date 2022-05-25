@@ -1,4 +1,5 @@
 @startuml
+skin rose
 
 [*] --> new : interested?
 new : ask executer
