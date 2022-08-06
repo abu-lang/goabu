@@ -69,7 +69,7 @@ mem.Integer["foo"] = 1
 mem.Text["bar"] = "octocat"
 ```
 
-**NOTE** that the names of the resources (aka the map keys) should adhere to the standard indentifiers syntax and also that the subsequent case insensitive keywords are reserved: this, ext, rule, when, then, true, false, nil, salience, on, default, for, all, do.
+**NOTE** that the names of the resources (aka the map keys) should adhere to the standard syntax for identifiers and also that the subsequent case insensitive keywords are reserved: this, ext, rule, when, then, true, false, nil, salience, on, default, for, all, do.
 
 ## GoAbU Rules
 
@@ -90,12 +90,12 @@ This rule specifies that whenever the values of foo or bar change then if bar ==
 globalRule := `rule MyGlobalRule on foo for all this.foo >= ext.foo do ext.foo = ext.foo + this.foo`
 ```
 
-Note that the keyword **all** distinguish between local rules and global ones.
+**NOTE** that the keyword **all** distinguish between local rules and global ones.
 
 This rule specifies that when the value of the local resource foo changes then some update should be performed on all the other nodes that have foo which is less or equal than the value of foo on the current node.
 In particular these nodes should change their foo with the sum of their value of foo with the value of foo from the node that fired the rule.
 
-Note that to distinguish between local and external resources the prefixes "this." and "ext." are used.
+**NOTE** that to distinguish between local and external resources the prefixes "this." and "ext." are used.
 This can be a little verbose but on every assignment LHS the resource type can be inferred and if no prefix is specified then it is assumed that "this." was the intended one.
 
 So we can simplify a little bit the rule:

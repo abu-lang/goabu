@@ -109,8 +109,8 @@ func NewMemberlistAgent(id string, port int, lc config.LogConfig, nodes ...strin
 //
 // cfg specifies the configuration of the underlying memberlist.Memberlist.
 //
-// delegate consents to override the handling of the memberlist.Memberlist events, see file delegateDefault.go
-// for the default implementation.
+// delegate allows overriding the handling of memberlist's events, see file delegateDefault.go for the
+// default implementation.
 func NewMemberlistAgentAdvanced(id string, port int, cfg *memberlist.Config, delegate *MemberlistDelegate,
 	lc config.LogConfig, nodes ...string) *MemberlistAgent {
 	res := &MemberlistAgent{
