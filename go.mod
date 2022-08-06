@@ -9,5 +9,6 @@ require (
 	github.com/hyperjumptech/grule-rule-engine v1.10.5
 	go.uber.org/zap v1.21.0
 	gobot.io/x/gobot v1.16.0
+	golang.org/x/crypto v0.0.0-20220314234659-1baeb1ce4c0b // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 )
