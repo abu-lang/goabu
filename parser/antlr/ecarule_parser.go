@@ -1,6 +1,4 @@
-// Code generated from EcaruleParser.g4 by ANTLR 4.9.2.
-// then MODIFIED by adding grulev3 import and by:
-// sed '/type GrlContext struct/,$s/listenerT\.\(Enter\|Exit\)\([A-Za-z]\+\)(s)/c := grulev3.New\2Context(s.parser, s.BaseParserRuleContext, -1)\n\t\tc.BaseParserRuleContext = s.BaseParserRuleContext\n\t\tlistenerT.\1\2(c)/'
+// Code generated from EcaruleParser.g4 by ANTLR 4.9.2 and MODIFIED by ../Makefile.
 
 package antlr // EcaruleParser
 import (

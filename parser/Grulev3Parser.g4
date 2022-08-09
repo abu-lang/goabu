@@ -16,6 +16,7 @@
 //  limitations under the License.
 
 // source: "https://github.com/hyperjumptech/grule-rule-engine/blob/e63c3f6444865c7b76ed5c19e97dc2a4ed62810d/antlr/grulev3.g4"
+// see Makefile for details
 
 parser grammar Grulev3Parser;
 
@@ -172,3 +173,4 @@ stringLiteral
 booleanLiteral
     : TRUE | FALSE
     ;
+
