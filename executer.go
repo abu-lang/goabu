@@ -484,7 +484,7 @@ func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externa
 			}
 			newpool = appendNonempty(newpool, tActions)
 		} else {
-			extActions = append(extActions, m.preEvaluated(rule))
+			extActions = append(extActions, m.preEvaluated(&rule.Task))
 		}
 	}
 	return newpool, extActions
@@ -501,7 +501,7 @@ func (m *Executer) activeRules(modified stringset.Set) ecarule.RuleDict {
 }
 
 // Precondition: rule.Task.External
-func (m *Executer) preEvaluated(rule *ecarule.Rule) externalAction {
+func (m *Executer) preEvaluated(task *ecarule.Task) externalAction {
 	res := externalAction{
 		CondWorkingSet: stringset.Make(),
 		Constants:      make(map[string]interface{}),
@@ -509,12 +509,12 @@ func (m *Executer) preEvaluated(rule *ecarule.Rule) externalAction {
 		dataContext:    m.dataContext,
 		workingMemory:  m.workingMemory,
 	}
-	res.WorkingSets = make([]stringset.Set, 0, len(rule.Task.Actions))
-	for _, action := range rule.Task.Actions {
+	res.WorkingSets = make([]stringset.Set, 0, len(task.Actions))
+	for _, action := range task.Actions {
 		res.WorkingSets = append(res.WorkingSets, stringset.Make(action.Resource))
 	}
-	res.Condition = res.preEvaluatedExpression(rule.Task.Condition, res.CondWorkingSet)
-	res.Actions = res.preEvaluatedActions(rule.Task.Actions)
+	res.Condition = res.preEvaluatedExpression(task.Condition, res.CondWorkingSet)
+	res.Actions = res.preEvaluatedActions(task.Actions)
 	return res
 }
 
