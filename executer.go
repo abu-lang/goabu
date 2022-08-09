@@ -467,23 +467,22 @@ func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externa
 	var extActions []externalAction
 	localRules, globalRules := m.activeRules(modified)
 	for _, rule := range localRules {
-		var defaults, tActions Update
-		var err error
 		if len(rule.DefaultActions) > 0 {
-			defaults, err = evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
+			defaults, err := evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
 			if err != nil {
 				m.logger.Panic("Error during default actions evaluation: "+err.Error(),
 					zap.String("act", "eval"),
 					zap.String("obj", "default actions"))
 			}
+			newpool = append(newpool, defaults)
 		}
-		tActions, err = condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)
+		tActions, err := condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)
 		if err != nil {
 			m.logger.Panic("Error during actions evaluation: "+err.Error(),
 				zap.String("act", "eval"),
 				zap.String("obj", "actions"))
 		}
-		newpool = appendNonempty(newpool, append(defaults, tActions...))
+		newpool = appendNonempty(newpool, tActions)
 	}
 	for _, rule := range globalRules {
 		if len(rule.DefaultActions) > 0 {
