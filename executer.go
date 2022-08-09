@@ -33,8 +33,7 @@ type Executer struct {
 	coordinator    execCoordinator
 	updateReceiver chan<- preparedUpdates
 	lockPool       sync.Mutex
-	localLibrary   map[string]ecarule.RuleDict
-	globalLibrary  map[string]ecarule.RuleDict
+	ruleLibrary    map[string]ecarule.RuleDict
 	lockRules      sync.Mutex
 	invariants     []*ast.Expression
 
@@ -62,13 +61,12 @@ func NewExecuter(
 	invariants ...string) (*Executer, error) {
 
 	res := &Executer{
-		memory:        mem.Copy(),
-		pool:          make([]Update, 0),
-		coordinator:   newCoordinator(),
-		localLibrary:  make(map[string]ecarule.RuleDict),
-		globalLibrary: make(map[string]ecarule.RuleDict),
-		invariants:    make([]*ast.Expression, 0, len(invariants)),
-		agent:         agt,
+		memory:      mem.Copy(),
+		pool:        make([]Update, 0),
+		coordinator: newCoordinator(),
+		ruleLibrary: make(map[string]ecarule.RuleDict),
+		invariants:  make([]*ast.Expression, 0, len(invariants)),
+		agent:       agt,
 		lexerParserPool: sync.Pool{
 			New: func() interface{} {
 				return parser.NewEcaruleLexerParser()
@@ -465,8 +463,8 @@ func (m *Executer) discovery(modified stringset.Set) {
 func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externalAction) {
 	var newpool []Update
 	var extActions []externalAction
-	localRules, globalRules := m.activeRules(modified)
-	for _, rule := range localRules {
+	rules := m.activeRules(modified)
+	for _, rule := range rules {
 		if len(rule.DefaultActions) > 0 {
 			defaults, err := evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
 			if err != nil {
@@ -476,40 +474,30 @@ func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externa
 			}
 			newpool = append(newpool, defaults)
 		}
-		tActions, err := condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)
-		if err != nil {
-			m.logger.Panic("Error during actions evaluation: "+err.Error(),
-				zap.String("act", "eval"),
-				zap.String("obj", "actions"))
-		}
-		newpool = appendNonempty(newpool, tActions)
-	}
-	for _, rule := range globalRules {
-		if len(rule.DefaultActions) > 0 {
-			defaults, err := evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
+
+		if !rule.Task.External {
+			tActions, err := condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)
 			if err != nil {
-				m.logger.Panic("Error during default actions evaluation: "+err.Error(),
+				m.logger.Panic("Error during actions evaluation: "+err.Error(),
 					zap.String("act", "eval"),
-					zap.String("obj", "default actions"))
+					zap.String("obj", "actions"))
 			}
-			newpool = append(newpool, defaults)
+			newpool = appendNonempty(newpool, tActions)
+		} else {
+			extActions = append(extActions, m.preEvaluated(rule))
 		}
-		ext := m.preEvaluated(rule)
-		extActions = append(extActions, ext)
 	}
 	return newpool, extActions
 }
 
-func (m *Executer) activeRules(modified stringset.Set) (local, global ecarule.RuleDict) {
-	local = ecarule.MakeRuleDict()
-	global = ecarule.MakeRuleDict()
+func (m *Executer) activeRules(modified stringset.Set) ecarule.RuleDict {
+	res := ecarule.MakeRuleDict()
 	m.lockRules.Lock()
 	for resource := range modified {
-		local.Add(m.localLibrary[resource])
-		global.Add(m.globalLibrary[resource])
+		res.Add(m.ruleLibrary[resource])
 	}
 	m.lockRules.Unlock()
-	return local, global
+	return res
 }
 
 // Precondition: rule.Task.External
@@ -531,12 +519,7 @@ func (m *Executer) preEvaluated(rule *ecarule.Rule) externalAction {
 }
 
 func (m *Executer) hasRuleAux(name string) bool {
-	for _, d := range m.localLibrary {
-		if d.Has(name) {
-			return true
-		}
-	}
-	for _, d := range m.globalLibrary {
+	for _, d := range m.ruleLibrary {
 		if d.Has(name) {
 			return true
 		}
@@ -552,17 +535,11 @@ func (m *Executer) addRuleAux(r string) error {
 	if m.hasRuleAux(rule.Name) {
 		return fmt.Errorf("there is already a rule named %s", rule.Name)
 	}
-
-	library := m.localLibrary
-	if rule.Task.External {
-		library = m.globalLibrary
-	}
 	for _, evt := range rule.Events {
-		if library[evt] == nil {
-			var dict ecarule.RuleDict = ecarule.MakeRuleDict()
-			library[evt] = dict
+		if m.ruleLibrary[evt] == nil {
+			m.ruleLibrary[evt] = ecarule.MakeRuleDict()
 		}
-		library[evt].Insert(rule)
+		m.ruleLibrary[evt].Insert(rule)
 	}
 	m.logger.Debug("Introduced new rule", zap.String("act", "add_rule"), zap.String("obj", r))
 	return nil
