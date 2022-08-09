@@ -1,4 +1,4 @@
-// Code generated from EcaruleParser.g4 by ANTLR 4.9.2 and MODIFIED by ../Makefile.
+// Code generated from EcaruleParser.g4 by ANTLR 4.10.1 and MODIFIED by ../Makefile.
 
 package antlr // EcaruleParser
 import (
