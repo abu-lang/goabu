@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20220527190237-ee62e23da966
 	github.com/google/uuid v1.1.1
-	github.com/hashicorp/memberlist v0.3.3-0.20220729151420-05405d0c31ba
+	github.com/hashicorp/memberlist v0.4.0
 	github.com/hyperjumptech/grule-rule-engine v1.10.6
 	go.uber.org/zap v1.21.0
 	gobot.io/x/gobot v1.16.0
