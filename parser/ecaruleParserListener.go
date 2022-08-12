@@ -54,6 +54,10 @@ func (l *EcaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
 		return
 	}
 	l.Rule.Name = ctx.SIMPLENAME().GetText()
+	t := 0
+	for ; ctx.Task(t) != nil; t++ {
+	}
+	l.Rule.Tasks = make([]ecarule.Task, 0, t)
 }
 
 // ExitPrule is called when production prule is exited.
@@ -92,9 +96,10 @@ func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 		l.parseError(errors.New("syntax error"))
 		return
 	}
-	rule.Task.External = ctx.ALL() != nil
-	l.allowExt = rule.Task.External
-	l.Stack.Push(&rule.Task)
+	all := ctx.ALL() != nil
+	rule.Tasks = append(rule.Tasks, ecarule.Task{External: all})
+	l.allowExt = all
+	l.Stack.Push(&rule.Tasks[len(rule.Tasks)-1])
 }
 
 // ExitTask is called when production task is exited.

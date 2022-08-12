@@ -293,3 +293,39 @@ func TestForall(t *testing.T) {
 		}
 	}
 }
+
+func TestTwoTasks(t *testing.T) {
+	memory := memory.MakeResources()
+	memory.Bool["inc"] = false
+	memory.Integer["x"] = -5
+	e, err := NewExecuter(memory, []string{"rule twotasks on inc x for inc && x < 1 do x = x + 1 for all x == 1 do x = x * 3"},
+		MakeMockAgent(), config.TestsLogConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
+	e.Input("inc = true")
+	mem := e.memory.GetResources()
+	xs := []int64{-4, -3, -2, -1, 0, 1, 3}
+	for i := 0; i < 7; i++ {
+		for e.DoIfStable(func() {}) {
+		}
+		if len(e.pool) != 1 {
+			t.Error("pool should have length 1")
+		}
+		if !mem.Bool["inc"] {
+			t.Error("inc should be true")
+		}
+		e.Exec()
+		if mem.Integer["x"] != xs[i] {
+			t.Errorf("x should be %d", xs[i])
+		}
+	}
+	if !e.DoIfStable(func() {}) {
+		t.Error("should be stable")
+	}
+	if !mem.Bool["inc"] {
+		t.Error("inc should be true")
+	}
+}

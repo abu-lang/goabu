@@ -475,16 +475,18 @@ func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externa
 			newpool = append(newpool, defaults)
 		}
 
-		if !rule.Task.External {
-			tActions, err := condEvalActions(rule.Task.Condition, rule.Task.Actions, m.dataContext, m.workingMemory)
-			if err != nil {
-				m.logger.Panic("Error during actions evaluation: "+err.Error(),
-					zap.String("act", "eval"),
-					zap.String("obj", "actions"))
+		for _, task := range rule.Tasks {
+			if !task.External {
+				tActions, err := condEvalActions(task.Condition, task.Actions, m.dataContext, m.workingMemory)
+				if err != nil {
+					m.logger.Panic("Error during actions evaluation: "+err.Error(),
+						zap.String("act", "eval"),
+						zap.String("obj", "actions"))
+				}
+				newpool = appendNonempty(newpool, tActions)
+			} else {
+				extActions = append(extActions, m.preEvaluated(task))
 			}
-			newpool = appendNonempty(newpool, tActions)
-		} else {
-			extActions = append(extActions, m.preEvaluated(&rule.Task))
 		}
 	}
 	return newpool, extActions
@@ -501,7 +503,7 @@ func (m *Executer) activeRules(modified stringset.Set) ecarule.RuleDict {
 }
 
 // Precondition: rule.Task.External
-func (m *Executer) preEvaluated(task *ecarule.Task) externalAction {
+func (m *Executer) preEvaluated(task ecarule.Task) externalAction {
 	res := externalAction{
 		CondWorkingSet: stringset.Make(),
 		Constants:      make(map[string]interface{}),
@@ -569,7 +571,8 @@ func (m *Executer) parseInvariants(invs ...string) error {
 	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
 	defer m.lexerParserPool.Put(lp)
 	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
-	listener.Stack.Push(&listener.Rule.Task)
+	task := ecarule.Task{}
+	listener.Stack.Push(&task)
 	for i, inv := range invs {
 		lp.Reset(inv)
 		tree := lp.Parser.Expression()
@@ -598,8 +601,8 @@ func (m *Executer) parseInvariants(invs ...string) error {
 			m.logger.Sync()
 			return errs[0]
 		}
-		exp := listener.Rule.Task.Condition
-		listener.Rule.Task.Condition = nil
+		exp := task.Condition
+		task.Condition = nil
 		val, err := exp.Evaluate(m.dataContext, m.workingMemory)
 		if err != nil {
 			m.logger.Error("Could not evaluate invariant: "+err.Error(),
