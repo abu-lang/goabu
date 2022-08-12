@@ -20,6 +20,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Deprecated: In the future, method TakeState will return two values.
 type State struct {
 	Memory memory.Resources
 	Pool   []Update
