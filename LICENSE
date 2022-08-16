@@ -214,6 +214,7 @@ Files **/parser/Grulev3Parser.g4 and **/parser/EcaruleLexer.g4:
 These two files were obtained by SPLITTING and by slightly MODIFYING
 the grulev3 grammar of the Grule Rule Engine acquirable from:
 https://github.com/hyperjumptech/grule-rule-engine/blob/e63c3f6444865c7b76ed5c19e97dc2a4ed62810d/antlr/grulev3.g4
+See parser/Makefile for details.
 
 
 

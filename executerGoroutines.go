@@ -1,6 +1,7 @@
 package goabu
 
 import (
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -192,7 +193,7 @@ func (m *Executer) startUpdateReceiver() chan<- preparedUpdates {
 					m.lockPool.Lock()
 					m.pool = append(m.pool, queue[0].updates...)
 					m.lockPool.Unlock()
-					m.logger.Info("Added external actions",
+					m.logger.Info(fmt.Sprintf("Added %d updates to the pool", len(queue[0].updates)),
 						zap.String("act", "add_updates"),
 						zap.Array("updates", poolLogger(queue[0].updates)))
 				}

@@ -58,7 +58,7 @@ type Resources struct {
 }
 ```
 
-memory.Resources is a struct constituted by maps that will contain the resources that will be used by the node.
+memory.Resources is a struct constituted by maps that will contain the resources used by the node.
 
 The function memory.MakeResources() can be used to initialize all the fields with empty maps.
 Then the needed resources can be initializated as needed:
@@ -69,46 +69,47 @@ mem.Integer["foo"] = 1
 mem.Text["bar"] = "octocat"
 ```
 
-**NOTE** that the names of the resources (aka the map keys) should adhere to the standard indentifiers syntax and also that the subsequent case insensitive keywords are reserved: this, ext, rule, when, then, true, false, nil, salience, on, default, for, all, do.
+**NOTE** that the names of the resources (aka the map keys) should adhere to the standard syntax for identifiers and also that the subsequent case insensitive keywords are reserved: this, ext, rule, when, then, true, false, nil, salience, on, default, for, all, do.
 
 ## GoAbU Rules
 
-GoAbU has two types of rules:
-- local rules which are like standard ECA rules that are executed only on the current node
-- global rules that contain external actions which are performed on all the other nodes apart from the current one
+In the ECA rules of GoAbU, the Condition and the Actions are encoded in a task part starting with the "for" keyword.
+A task can be local (encoding local actions) or remote (encoding global actions):
+- rules with local tasks are like standard ECA rules and can influence only the the current node
+- remote tasks specify global actions which are performed on all the other nodes apart from the current one
 
-### Local Rules
+### Local Tasks
 
 ```go
 localRule := `rule MyLocalRule on foo bar for "octocat" == bar do foo = foo * 2; bar = "gopher"`
 ```
 This rule specifies that whenever the values of foo or bar change then if bar == "octocat" foo shuld be doubled and bar should take the value "gopher".
 
-### Global Rules
+### Global Tasks
 
 ```go
 globalRule := `rule MyGlobalRule on foo for all this.foo >= ext.foo do ext.foo = ext.foo + this.foo`
 ```
 
-Note that the keyword **all** distinguish between local rules and global ones.
+**NOTE** that the keyword **all** is used to distinguish remote tasks from local ones.
 
-This rule specifies that when the value of the local resource foo changes then some update should be performed on all the other nodes that have foo which is less or equal than the value of foo on the current node.
+This rule specifies that when the value of the (local) resource foo changes then some update should be performed on all the other nodes that have foo which is less or equal than the value of foo on the current node.
 In particular these nodes should change their foo with the sum of their value of foo with the value of foo from the node that fired the rule.
 
-Note that to distinguish between local and external resources the prefixes "this." and "ext." are used.
+**NOTE** that to distinguish between local and remote resources the prefixes "this." and "ext." are used.
 This can be a little verbose but on every assignment LHS the resource type can be inferred and if no prefix is specified then it is assumed that "this." was the intended one.
 
-So we can simplify a little bit the rule:
+So we can simplify a little bit the previous rule:
 
 ```go
 globalRule = `rule MyGlobalRule on foo for all foo >= ext.foo do foo = ext.foo + foo`
 ```
 
-This also explain why local rules as the one seen before do not require prefixes.
+This also explain why rules with local tasks, as the one seen before, do not require prefixes.
 
 ## Creating an Agent
 
-To perform the communication required by the global rules we have to create an Agent which is an interface that abstracts the communication between the various nodes.
+To perform the communication required by the remote task we have to create an Agent which is an interface that abstracts the communication between the various nodes.
 
 Currently the package communication has an implementation called MemberlistAgent based on [memberlist](https://github.com/hashicorp/memberlist).
 
@@ -121,8 +122,8 @@ agent := communication.NewMemberlistAgent("Agent", 5000, config.LogConfig{})
 ## Creating the Executer
 
 Finally we are ready to start our node.
-A node is represented by an Executer that will contain the Resources struct, a knowledgebase of GoAbU rules and an Agent.
-The Executer specifies the ECA rule execution model. It uses the knowledgebase to apply the required updates to the resources and to send the updates request to the other nodes by relying on the Agent for the communication.
+A node is represented by an Executer that will contain the Resources struct, a knowledge base of GoAbU rules and an Agent.
+The Executer specifies the ECA rule execution model. It uses the knowledge base to apply the required updates to the resources and to send updates to the other nodes by relying on the Agent for the communication.
 
 The Executer can be constructed using the NewExecuter function:
 
@@ -134,12 +135,12 @@ executer, _ := goabu.NewExecuter(mem, []string{localRule}, agent, config.LogConf
 
 The function NewExecuter also starts the Agent and performs the join operation.
 
-**NOTE** that the resources of mem are copied inside the executer by means of the method mem.Copy() but for the elements of mem.Other only a shallow copy is performed.
+**NOTE** that the resources of mem are copied inside the Executer by means of the method mem.Copy() but for the elements of mem.Other only a shallow copy is performed.
 So an external synchronization may be required.
 
 ## Another Local Node
 
-Let's make another executer to make thing livelier, for simplicity we will create it locally.
+Let's make another Executer to make thing livelier, for simplicity we will create it locally.
 
 We simply repeat the previous steps with some modifications:
 
@@ -165,7 +166,7 @@ executer2.Input("foo = 3; baz = 2.72")
 
 Now we changed the resources of executer2 but actually no modification happened on the other Executer.
 The fact is that when a rule is fired its changes are evaluated but aren't applied immediately.
-The changes are grouped in an atomic Update (goabu.Update) and appended to a pool of the relative executer.
+The changes are grouped in an atomic Update (goabu.Update) and appended to a pool of the relative Executer.
 
 So the changes implied by MyGLobalRule are currently in the pool owned by executer.
 
@@ -181,7 +182,7 @@ We call Exec two times to also apply the changes deriving from MyLocalRule.
 ## Inspecting the State
 
 To access the values of the resources we can use the method TakeState().
-TakeState() returns a State struct containing a copy of the executer Resources struct and a copy of its Update pool.
+TakeState() returns a copy of the Executer's Resources struct and a copy of its Update pool.
 
 ```go
 state := executer.TakeState()
@@ -236,7 +237,7 @@ But to add and use other devices it is sufficient to implement the physical.IOde
 
 ## Default Actions
 
-Both local and global rules can also have some default actions that are performed on the rule activation regardless of the rule condition.
+The rules of GoAbu can also have some default actions that are performed when the rule is activated regardless of the rule's condition.
 
 ```go
 r := `rule R on foo default baz = 0.0; bar = "octocat" for all ext.foo < 0 do foo = ext.foo * -1`
@@ -244,12 +245,21 @@ r := `rule R on foo default baz = 0.0; bar = "octocat" for all ext.foo < 0 do fo
 
 **NOTE** that default actions are **always** performed on the current node and can access only local resources.
 
+## Rules with multiple tasks
+
+A rule is not limited to have a single task but can have multiple tasks.
+
+For example, the rule R of the previous section can also be encoded with an equivalent rule using two tasks:
+```go
+r := `rule R on foo for all ext.foo < 0 do foo = ext.foo * -1 for true do baz = 0.0; bar = "octocat"`
+```
+
 ## Invariants
 
 An Executer can have some invariants that indicate the correct states of its resources.
 In particular if a call to Exec selects an update (discovered locally or received from another node) that would violate the invariants then that update is removed from the pool but no resource is modified.
 
-These invariants can be specified as optional arguments upon the executer's construction:
+These invariants can be specified as optional arguments upon the Executer's construction:
 
 ```go
 executer, err := goabu.NewExecuter(mem, []string{localRule}, agent, config.LogConfig{},

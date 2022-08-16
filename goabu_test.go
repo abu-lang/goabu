@@ -80,28 +80,22 @@ func TestAddRules(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	e.AddRules(local, global)
-	if len(e.localLibrary) != 2 {
+	if len(e.ruleLibrary) != 2 {
 		t.Error("localLibrary should have 2 dicts")
 	}
-	if len(e.globalLibrary) != 1 {
-		t.Error("localLibrary should have 1 dict")
+	if len(e.ruleLibrary["trigger"]) != 2 {
+		t.Error("trigger local dict should have 2 rule")
 	}
-	if len(e.localLibrary["trigger"]) != 1 {
-		t.Error("trigger local dict should have 1 rule")
-	}
-	if len(e.localLibrary["executed"]) != 1 {
+	if len(e.ruleLibrary["executed"]) != 1 {
 		t.Error("executed local dict should have 1 rule")
 	}
-	if len(e.globalLibrary["trigger"]) != 1 {
-		t.Error("trigger global dict should have 1 rule")
-	}
-	if !e.localLibrary["trigger"].Has("local") {
+	if !e.ruleLibrary["trigger"].Has("local") {
 		t.Error("trigger should contain local")
 	}
-	if !e.localLibrary["executed"].Has("local") {
+	if !e.ruleLibrary["executed"].Has("local") {
 		t.Error("executed should contain local")
 	}
-	if !e.globalLibrary["trigger"].Has("global") {
+	if !e.ruleLibrary["trigger"].Has("global") {
 		t.Error("trigger should contain global")
 	}
 }
@@ -297,5 +291,41 @@ func TestForall(t *testing.T) {
 		if mem.Integer["magna"] != magnas[i] {
 			t.Errorf("magna should be %d", magnas[i])
 		}
+	}
+}
+
+func TestTwoTasks(t *testing.T) {
+	memory := memory.MakeResources()
+	memory.Bool["inc"] = false
+	memory.Integer["x"] = -5
+	e, err := NewExecuter(memory, []string{"rule twotasks on inc x for inc && x < 1 do x = x + 1 for all x == 1 do x = x * 3"},
+		MakeMockAgent(), config.TestsLogConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
+	e.Input("inc = true")
+	mem := e.memory.GetResources()
+	xs := []int64{-4, -3, -2, -1, 0, 1, 3}
+	for i := 0; i < 7; i++ {
+		for e.DoIfStable(func() {}) {
+		}
+		if len(e.pool) != 1 {
+			t.Error("pool should have length 1")
+		}
+		if !mem.Bool["inc"] {
+			t.Error("inc should be true")
+		}
+		e.Exec()
+		if mem.Integer["x"] != xs[i] {
+			t.Errorf("x should be %d", xs[i])
+		}
+	}
+	if !e.DoIfStable(func() {}) {
+		t.Error("should be stable")
+	}
+	if !mem.Bool["inc"] {
+		t.Error("inc should be true")
 	}
 }

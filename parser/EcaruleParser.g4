@@ -5,7 +5,7 @@ import Grulev3Parser;
 options {tokenVocab=EcaruleLexer;}
 
 /* Rule. */
-prule : RULE SIMPLENAME ON events (DEFAULT actions)? task ;
+prule : RULE SIMPLENAME ON events (DEFAULT actions)? task+ ;
 
 /* Events. */
 events : SIMPLENAME+ ;

@@ -13,7 +13,7 @@ type Rule struct {
 	Name           string
 	Events         []string
 	DefaultActions []Action
-	Task           Task
+	Tasks          []Task
 }
 
 type Action struct {

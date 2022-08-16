@@ -16,6 +16,7 @@
 //  limitations under the License.
 
 // source: "https://github.com/hyperjumptech/grule-rule-engine/blob/e63c3f6444865c7b76ed5c19e97dc2a4ed62810d/antlr/grulev3.g4"
+// see Makefile for details
 
 lexer grammar EcaruleLexer;
 
@@ -70,7 +71,6 @@ fragment IC                 : ISC
                             | '\u0300' .. '\u036F'
                             | '\u203F' .. '\u2040'
                             ;
-
 
 T__0                        : ',' ;
 PLUS                        : '+' ;
@@ -164,3 +164,4 @@ fragment HEX_DIGIT          : [0-9a-fA-F];
 SPACE                       : [ \t\r\n]+    -> skip;
 COMMENT                     : '/*' .*? '*/' -> skip;
 LINE_COMMENT                : '//' ~[\r\n]* -> skip;
+
