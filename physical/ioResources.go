@@ -131,6 +131,7 @@ func (i *IOresources) Add(t string, name string, args ...interface{}) error {
 	if delegate == nil {
 		return errors.New("created IOdelegate is nil")
 	}
+	newResources = nestResources(name, newResources)
 	managed := newResources.ResourceNames()
 	newNames := stringset.Make(managed...)
 	for _, r := range i.ResourceNames() {
@@ -162,4 +163,33 @@ func (i *IOresources) addFrame(input, output bool, t string, c func(IOadaptor, s
 		},
 	}
 	return nil
+}
+
+// nestResources returns the Resources argument if it contains at most one resource
+// otherwise it returns a Resources struct where the names of the resources are prefixed
+// with the string argument and an '_'.
+func nestResources(name string, r memory.Resources) memory.Resources {
+	if len(r.ResourceNames()) < 2 {
+		return r
+	}
+	res := memory.MakeResources()
+	for k, v := range r.Bool {
+		res.Bool[name+"_"+k] = v
+	}
+	for k, v := range r.Integer {
+		res.Integer[name+"_"+k] = v
+	}
+	for k, v := range r.Float {
+		res.Float[name+"_"+k] = v
+	}
+	for k, v := range r.Text {
+		res.Text[name+"_"+k] = v
+	}
+	for k, v := range r.Time {
+		res.Time[name+"_"+k] = v
+	}
+	for k, v := range r.Other {
+		res.Other[name+"_"+k] = v
+	}
+	return res
 }
