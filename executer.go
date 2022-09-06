@@ -711,12 +711,12 @@ func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.
 		RuleEntries:   make(map[string]*ast.RuleEntry),
 		WorkingMemory: ast.NewWorkingMemory(kbName, version),
 	}
-	defunc := &ast.BuiltInFunctions{
-		Knowledge:     knowledgeBase,
-		WorkingMemory: knowledgeBase.WorkingMemory,
-		DataContext:   dataContext,
-	}
-	err = dataContext.Add("DEFUNC", defunc)
+	err = dataContext.Add("DEFUNC",
+		makeBuiltinFunctions(
+			knowledgeBase,
+			knowledgeBase.WorkingMemory,
+			dataContext,
+		))
 	if err != nil {
 		return dataContext, nil, err
 	}

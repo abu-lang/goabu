@@ -329,3 +329,27 @@ func TestTwoTasks(t *testing.T) {
 		t.Error("inc should be true")
 	}
 }
+
+func TestAbsInt(t *testing.T) {
+	memory := memory.MakeResources()
+	memory.Integer["x"] = -5
+	e, err := NewExecuter(memory, []string{"rule twotasks on x for AbsInt(x) != x do x = AbsInt(x)"},
+		MakeMockAgent(), config.TestsLogConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
+	e.Input("x = -4")
+	mem := e.memory.GetResources()
+	if mem.Integer["x"] != -4 {
+		t.Error("x should be -4")
+	}
+	e.Exec()
+	if mem.Integer["x"] != 4 {
+		t.Error("x should be 4")
+	}
+	if !e.DoIfStable(func() {}) {
+		t.Error("should be stable")
+	}
+}
