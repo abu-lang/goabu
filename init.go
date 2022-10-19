@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 // Package goabu implements a distributed Event-Condition-Action engine with attribute-based interaction.
 package goabu
 

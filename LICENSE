@@ -177,26 +177,10 @@
 
 
 
-ALL files EXCEPT **/parser/Grulev3Parser.g4 and **/parser/EcaruleLexer.g4:
+ALL files are licensed under the Apache-2.0 License.
 
-   Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-
-
-Files **/parser/Grulev3Parser.g4 and **/parser/EcaruleLexer.g4:
-
+License for files **/parser/Grulev3Parser.g4 and **/parser/EcaruleLexer.g4:
+===========================================================================
    Copyright hyperjumptech/grule-rule-engine Authors
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -210,7 +194,7 @@ Files **/parser/Grulev3Parser.g4 and **/parser/EcaruleLexer.g4:
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-
+-------------------------------------------------------------------------------
 These two files were obtained by SPLITTING and by slightly MODIFYING
 the grulev3 grammar of the Grule Rule Engine acquirable from:
 https://github.com/hyperjumptech/grule-rule-engine/blob/e63c3f6444865c7b76ed5c19e97dc2a4ed62810d/antlr/grulev3.g4
