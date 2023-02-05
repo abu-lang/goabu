@@ -60,8 +60,8 @@ github.com/hashicorp/memberlist v0.4.0 h1:k3uda5gZcltmafuFF+UFqNEl5PrH+yPZ4zkjp1
 github.com/hashicorp/memberlist v0.4.0/go.mod h1:yvyXLpo0QaGE59Y7hDTsTzDD25JYBZ4mHgHUZ8lrOI0=
 github.com/hybridgroup/go-ardrone v0.0.0-20140402002621-b9750d8d7b78/go.mod h1:YllNbhGM1UEcySxCv1BWK5lre7QLmJJ+O0ADUOo2nbc=
 github.com/hybridgroup/mjpeg v0.0.0-20140228234708-4680f319790e/go.mod h1:eagM805MRKrioHYuU7iKLUyFPVKqVV6um5DAvCkUtXs=
-github.com/hyperjumptech/grule-rule-engine v1.10.6 h1:4JjumzeE2YlLrabdYH32RzuEAAgBLw41QDXrWxqGaCw=
-github.com/hyperjumptech/grule-rule-engine v1.10.6/go.mod h1:HOZxwrX0UvpCUVTmHz/hdfqXZquXdr5h5DaBVW7xQs0=
+github.com/hyperjumptech/grule-rule-engine v1.11.0 h1:WTgeHnrXtZj90XeCGGDPnMBW+BXGP5TOWUSvtFeVc7Y=
+github.com/hyperjumptech/grule-rule-engine v1.11.0/go.mod h1:+DY0pvYAdj1w7Z3g0YJ7EYkEi3umjqAigbNqpXkiwY4=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
