@@ -185,12 +185,12 @@ To access the values of the resources we can use the method TakeState().
 TakeState() returns a copy of the Executer's Resources struct and a copy of its Update pool.
 
 ```go
-state := executer.TakeState()
-fmt.Println("foo =", state.Memory.Integer["foo"])
-fmt.Println("bar =", state.Memory.Text["bar"])
-state2 := executer2.TakeState()
-fmt.Println("foo =", state2.Memory.Integer["foo"])
-fmt.Println("baz =", state2.Memory.Float["baz"])
+state, _ := executer.TakeState()
+fmt.Println("foo =", state.Integer["foo"])
+fmt.Println("bar =", state.Text["bar"])
+state2, _ := executer2.TakeState()
+fmt.Println("foo =", state2.Integer["foo"])
+fmt.Println("baz =", state2.Float["baz"])
 ```
 
 # Input/Output Resources
@@ -307,11 +307,11 @@ func main() {
 	executer.Exec()
 	executer.Exec()
 
-	state := executer.TakeState()
-	fmt.Println("foo =", state.Memory.Integer["foo"])
-	fmt.Println("bar =", state.Memory.Text["bar"])
-	state2 := executer2.TakeState()
-	fmt.Println("foo =", state2.Memory.Integer["foo"])
-	fmt.Println("baz =", state2.Memory.Float["baz"])
+	state, _ := executer.TakeState()
+	fmt.Println("foo =", state.Integer["foo"])
+	fmt.Println("bar =", state.Text["bar"])
+	state2, _ := executer2.TakeState()
+	fmt.Println("foo =", state2.Integer["foo"])
+	fmt.Println("baz =", state2.Float["baz"])
 }
 ```

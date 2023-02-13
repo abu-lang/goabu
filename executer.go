@@ -23,12 +23,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Deprecated: In the future, method TakeState will return two values.
-type State struct {
-	Memory memory.Resources
-	Pool   []Update
-}
-
 type Executer struct {
 	memory         memory.ResourceController
 	lockMemory     sync.RWMutex
@@ -157,7 +151,7 @@ func (m *Executer) SetAgent(agt Agent) error {
 	return nil
 }
 
-func (m *Executer) TakeState() State {
+func (m *Executer) TakeState() (memory.Resources, []Update) {
 	m.coordinator.requestWrite(false)
 	m.lockMemory.RLock()
 	memCopy := m.memory.Copy().GetResources()
@@ -173,7 +167,7 @@ func (m *Executer) TakeState() State {
 	}
 	<-lock
 	m.coordinator.closeWrite()
-	return State{Memory: memCopy, Pool: poolCopy}
+	return memCopy, poolCopy
 }
 
 func (m *Executer) DoIfStable(f func()) bool {

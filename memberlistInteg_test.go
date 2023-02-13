@@ -35,8 +35,7 @@ func TestSingleNode(t *testing.T) {
 	if e.DoIfStable(func() {}) {
 		t.Error("should not be stable")
 	}
-	state := e.TakeState()
-	memory = state.Memory
+	memory, _ = e.TakeState()
 	if memory.Bool["aliqua"] {
 		t.Error("aliqua should be false")
 	}
@@ -67,7 +66,7 @@ func TestTwoNodes(t *testing.T) {
 		if !e1.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem1 := e1.TakeState().Memory
+		mem1, _ := e1.TakeState()
 		if mem1.Integer["lorem"] != 10 {
 			t.Error("lorem should be 10")
 		}
@@ -84,7 +83,7 @@ func TestTwoNodes(t *testing.T) {
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem2 := e2.TakeState().Memory
+		mem2, _ := e2.TakeState()
 		if mem2.Integer["lorem"] != 10 {
 			t.Error("lorem should be 10")
 		}
@@ -106,10 +105,12 @@ func TestThreeNodes(t *testing.T) {
 		e1.SetOptimisticExec(*goabu.Optimistic)
 		e1.SetOptimisticInput(*goabu.Optimistic)
 		t.Parallel()
-		for e1.TakeState().Memory.Float["ipsum"] != 6.5 {
+		mem1, _ := e1.TakeState()
+		for mem1.Float["ipsum"] != 6.5 {
 			e1.Exec()
+			mem1, _ = e1.TakeState()
 		}
-		if !e1.TakeState().Memory.Bool["involved"] {
+		if mem1, _ = e1.TakeState(); !mem1.Bool["involved"] {
 			t.Error("involved should be true")
 		}
 	})
@@ -125,7 +126,7 @@ func TestThreeNodes(t *testing.T) {
 		for e2.DoIfStable(func() {}) {
 		}
 		e2.Exec()
-		mem2 := e2.TakeState().Memory
+		mem2, _ := e2.TakeState()
 		if !mem2.Bool["involved"] {
 			t.Error("involved should be true")
 		}
@@ -143,10 +144,12 @@ func TestThreeNodes(t *testing.T) {
 		e3.SetOptimisticExec(*goabu.Optimistic)
 		e3.SetOptimisticInput(*goabu.Optimistic)
 		e3.Input("ipsum = 6.0;")
-		for e3.TakeState().Memory.Float["ipsum"] != 6.5 {
+		mem3, _ := e3.TakeState()
+		for mem3.Float["ipsum"] != 6.5 {
 			e3.Exec()
+			mem3, _ = e3.TakeState()
 		}
-		if !e3.TakeState().Memory.Bool["involved"] {
+		if mem3, _ = e3.TakeState(); !mem3.Bool["involved"] {
 			t.Error("involved should be true")
 		}
 	})
@@ -194,17 +197,17 @@ func incNode(m int64, e *goabu.Executer) <-chan struct{} {
 	res := make(chan struct{})
 	go func() {
 		e.Input("A = 1")
-		state := e.TakeState()
-		for state.Memory.Integer["A"] != m {
-			if state.Memory.Integer["A"] > m {
+		mem, _ := e.TakeState()
+		for mem.Integer["A"] != m {
+			if mem.Integer["A"] > m {
 				panic(fmt.Sprintf("A should be <= %d", m))
 			}
 			e.Exec()
-			state = e.TakeState()
+			mem, _ = e.TakeState()
 		}
 		for !e.DoIfStable(func() {}) {
 			e.Exec()
-			if e.TakeState().Memory.Integer["A"] > m {
+			if mem, _ = e.TakeState(); mem.Integer["A"] > m {
 				panic(fmt.Sprintf("A should be <= %d", m))
 			}
 		}
@@ -232,7 +235,7 @@ func TestInvariants(t *testing.T) {
 		if !e1.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem1 := e1.TakeState().Memory
+		mem1, _ := e1.TakeState()
 		if mem1.Integer["odd"] != 17 {
 			t.Error("odd should be 17")
 		}
@@ -257,7 +260,7 @@ func TestInvariants(t *testing.T) {
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem2 := e2.TakeState().Memory
+		mem2, _ := e2.TakeState()
 		if mem2.Integer["even"] != 12 {
 			t.Error("even should be 12")
 		}

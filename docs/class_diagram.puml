@@ -69,7 +69,7 @@ package goabu {
         localLibrary : string->RuleDict
         globalLibrary : string->RuleDict
 
-        TakeState() State
+        TakeState() (Resources, [][]Assignment)
         DoIfStable(func ()) bool
         Exec()
         Input(string) error

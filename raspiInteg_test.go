@@ -41,11 +41,14 @@ func TestLed2Buttons(t *testing.T) {
 	}
 	dummy.SetOptimisticExec(*goabu.Optimistic)
 	dummy.SetOptimisticInput(*goabu.Optimistic)
-	ledStatus := eLed.TakeState().Memory.Bool["led"]
+
+	state, _ := eLed.TakeState()
+	ledStatus, _ := state.Bool["led"]
 	for toggles > 0 {
 		time.Sleep(time.Millisecond)
 		eLed.Exec()
-		status := eLed.TakeState().Memory.Bool["led"]
+		state, _ = eLed.TakeState()
+		status := state.Bool["led"]
 		if ledStatus != status {
 			ledStatus = status
 			toggles--
@@ -72,7 +75,7 @@ func TestMotor(t *testing.T) {
 	for {
 		time.Sleep(8 * time.Second)
 		e.Exec()
-		if e.TakeState().Memory.Integer["motor"] == 0 {
+		if state, _ := e.TakeState(); state.Integer["motor"] == 0 {
 			break
 		}
 	}
