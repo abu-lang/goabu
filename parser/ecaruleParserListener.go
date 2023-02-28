@@ -18,7 +18,7 @@ import (
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
 )
 
-type EcaruleParserListener struct {
+type ecaruleParserListener struct {
 	*antlr.GruleV3ParserListener
 	Rule         *ecarule.Rule
 	types        map[string]string
@@ -26,15 +26,12 @@ type EcaruleParserListener struct {
 	inAssignLeft bool
 }
 
-func NewEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory) *EcaruleParserListener {
+func newEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, errorReporter *pkg.GruleErrorReporter) *ecaruleParserListener {
 	kb := &ast.KnowledgeBase{
-		Name:          "dummy1",
-		Version:       "0.0.1",
-		RuleEntries:   make(map[string]*ast.RuleEntry),
 		WorkingMemory: workingMemory,
 	}
-	res := &EcaruleParserListener{
-		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, &pkg.GruleErrorReporter{Errors: make([]error, 0)}),
+	res := &ecaruleParserListener{
+		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, errorReporter),
 		types:                 types,
 		Rule:                  &ecarule.Rule{},
 	}
@@ -42,17 +39,26 @@ func NewEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 	return res
 }
 
-func (l *EcaruleParserListener) Errors() []error {
-	return l.ErrorCallback.Errors
+// reset brings back the listener to a clean state so that it can be used on a differet tree.
+func (l *ecaruleParserListener) reset() {
+	l.Rule = &ecarule.Rule{}
+	l.PreviousNode = l.PreviousNode[:0]
+	for l.Stack.Len() > 0 {
+		l.Stack.Pop()
+	}
+	l.Stack.Push(l.Rule)
+	l.StopParse = false
+	l.ErrorCallback.Errors = make([]error, 0)
+
 }
 
-func (l *EcaruleParserListener) parseError(err error) {
+func (l *ecaruleParserListener) parseError(err error) {
 	l.StopParse = true
 	l.ErrorCallback.AddError(err)
 }
 
 // EnterPrule is called when production prule is entered.
-func (l *EcaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
+func (l *ecaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
 	if l.StopParse {
 		return
 	}
@@ -64,7 +70,7 @@ func (l *EcaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
 }
 
 // ExitPrule is called when production prule is exited.
-func (l *EcaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {
+func (l *ecaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {
 	if l.StopParse {
 		return
 	}
@@ -72,7 +78,7 @@ func (l *EcaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {
 }
 
 // EnterEvents is called when production events is entered.
-func (l *EcaruleParserListener) EnterEvents(ctx *antlr_parser.EventsContext) {
+func (l *ecaruleParserListener) EnterEvents(ctx *antlr_parser.EventsContext) {
 	if l.StopParse {
 		return
 	}
@@ -87,10 +93,10 @@ func (l *EcaruleParserListener) EnterEvents(ctx *antlr_parser.EventsContext) {
 }
 
 // ExitEvents is called when production events is exited.
-func (l *EcaruleParserListener) ExitEvents(ctx *antlr_parser.EventsContext) {}
+func (l *ecaruleParserListener) ExitEvents(ctx *antlr_parser.EventsContext) {}
 
 // EnterTask is called when production task is entered.
-func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
+func (l *ecaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 	if l.StopParse {
 		return
 	}
@@ -106,7 +112,7 @@ func (l *EcaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 }
 
 // ExitTask is called when production task is exited.
-func (l *EcaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
+func (l *ecaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
 	if l.StopParse {
 		return
 	}
@@ -120,30 +126,30 @@ func (l *EcaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
 }
 
 // EnterActions is called when production actions is entered.
-func (l *EcaruleParserListener) EnterActions(ctx *antlr_parser.ActionsContext) {}
+func (l *ecaruleParserListener) EnterActions(ctx *antlr_parser.ActionsContext) {}
 
 // ExitActions is called when production actions is exited.
-func (l *EcaruleParserListener) ExitActions(ctx *antlr_parser.ActionsContext) {}
+func (l *ecaruleParserListener) ExitActions(ctx *antlr_parser.ActionsContext) {}
 
 // EnterTailActions is called when production tailActions is entered.
-func (l *EcaruleParserListener) EnterTailActions(ctx *antlr_parser.TailActionsContext) {}
+func (l *ecaruleParserListener) EnterTailActions(ctx *antlr_parser.TailActionsContext) {}
 
 // ExitTailActions is called when production tailActions is exited.
-func (l *EcaruleParserListener) ExitTailActions(ctx *antlr_parser.TailActionsContext) {}
+func (l *ecaruleParserListener) ExitTailActions(ctx *antlr_parser.TailActionsContext) {}
 
 // EnterMaybeActions is called when production maybeActions is entered.
-func (l *EcaruleParserListener) EnterMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
+func (l *ecaruleParserListener) EnterMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
 
 // ExitMaybeActions is called when production maybeActions is exited.
-func (l *EcaruleParserListener) ExitMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
+func (l *ecaruleParserListener) ExitMaybeActions(ctx *antlr_parser.MaybeActionsContext) {}
 
-func (l *EcaruleParserListener) EnterAssignment(ctx *grulev3.AssignmentContext) {
+func (l *ecaruleParserListener) EnterAssignment(ctx *grulev3.AssignmentContext) {
 	l.inAssignLeft = true
 
 	l.GruleV3ParserListener.EnterAssignment(ctx)
 }
 
-func (l *EcaruleParserListener) ExitVariable(ctx *grulev3.VariableContext) {
+func (l *ecaruleParserListener) ExitVariable(ctx *grulev3.VariableContext) {
 	if !l.StopParse {
 		var r *ast.Variable = nil
 		e, ok := l.Stack.Peek().(*ast.Variable)
@@ -193,13 +199,13 @@ func (l *EcaruleParserListener) ExitVariable(ctx *grulev3.VariableContext) {
 	l.GruleV3ParserListener.ExitVariable(ctx)
 }
 
-func (l *EcaruleParserListener) EnterExpression(ctx *grulev3.ExpressionContext) {
+func (l *ecaruleParserListener) EnterExpression(ctx *grulev3.ExpressionContext) {
 	l.inAssignLeft = false
 
 	l.GruleV3ParserListener.EnterExpression(ctx)
 }
 
-func (l *EcaruleParserListener) newThisAssignVariable(r string, t string) *ast.Variable {
+func (l *ecaruleParserListener) newThisAssignVariable(r string, t string) *ast.Variable {
 	this := ast.NewVariable()
 	this.Name = "this"
 	tv := ast.NewVariable()
@@ -212,7 +218,7 @@ func (l *EcaruleParserListener) newThisAssignVariable(r string, t string) *ast.V
 	return res
 }
 
-func (l *EcaruleParserListener) newExtAssignVariable(r string) *ast.Variable {
+func (l *ecaruleParserListener) newExtAssignVariable(r string) *ast.Variable {
 	ext := ast.NewVariable()
 	ext.Name = "ext"
 	t := ast.NewVariable()
@@ -225,7 +231,7 @@ func (l *EcaruleParserListener) newExtAssignVariable(r string) *ast.Variable {
 	return res
 }
 
-func (l *EcaruleParserListener) newResourceArrayMapSelector(r string) *ast.ArrayMapSelector {
+func (l *ecaruleParserListener) newResourceArrayMapSelector(r string) *ast.ArrayMapSelector {
 	val := reflect.ValueOf(r)
 	c := ast.NewConstant()
 	c.Value = val

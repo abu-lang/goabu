@@ -14,10 +14,8 @@ import (
 	"github.com/abu-lang/goabu/ecarule"
 	"github.com/abu-lang/goabu/memory"
 	"github.com/abu-lang/goabu/parser"
-	antlr_parser "github.com/abu-lang/goabu/parser/antlr"
 	"github.com/abu-lang/goabu/stringset"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -65,11 +63,6 @@ func NewExecuter(
 		ruleLibrary: make(map[string]ecarule.RuleDict),
 		invariants:  make([]*ast.Expression, 0, len(invariants)),
 		agent:       agt,
-		lexerParserPool: sync.Pool{
-			New: func() interface{} {
-				return parser.NewEcaruleLexerParser()
-			},
-		},
 	}
 	if res.memory.HasDuplicates() {
 		return nil, errors.New("multiple resources have the same name")
@@ -82,6 +75,11 @@ func NewExecuter(
 	res.dataContext, res.workingMemory, err = res.newEmptyGruleStructures("this")
 	if err != nil {
 		return nil, err
+	}
+	res.lexerParserPool = sync.Pool{
+		New: func() interface{} {
+			return parser.New(res.types, res.workingMemory, &res.lockMemory)
+		},
 	}
 	if lc.Encoding == "" {
 		lc.Encoding = "console"
@@ -99,7 +97,7 @@ func NewExecuter(
 		return nil, err
 	}
 	res.SetLogLevel(lc.Level)
-	err = res.parseInvariants(invariants...)
+	err = res.addInvariants(invariants...)
 	if err != nil {
 		return nil, err
 	}
@@ -190,16 +188,29 @@ func (m *Executer) HasRule(name string) bool {
 	return m.hasRuleAux(name)
 }
 
+// AddRules adds a list of GoAbU rules to the node's knowledge base.
 func (m *Executer) AddRules(rules ...string) error {
 	if len(rules) == 0 {
 		return nil
 	}
 	m.lockRules.Lock()
 	defer m.lockRules.Unlock()
-	if len(rules) == 1 {
-		return m.addRuleAux(rules[0])
+	parser := m.lexerParserPool.Get().(ecarule.Parser)
+	defer m.lexerParserPool.Put(parser)
+	parsedRules, errs := parser.Parse(rules...)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.Strings("obj", rules))
+		}
+		m.logger.Sync()
+		return errs[0]
 	}
-	return addList(rules, m.addRuleAux)
+	if len(parsedRules) == 1 {
+		return m.addRuleAux(parsedRules[0])
+	}
+	return addList(parsedRules, m.addRuleAux)
 }
 
 func (m *Executer) Exec() {
@@ -527,11 +538,8 @@ func (m *Executer) hasRuleAux(name string) bool {
 	return false
 }
 
-func (m *Executer) addRuleAux(r string) error {
-	rule, err := m.parseRule(r)
-	if err != nil {
-		return err
-	}
+// addRuleAux adds an [ecarule.Rule] to the node's knowledge base.
+func (m *Executer) addRuleAux(rule ecarule.Rule) error {
 	if m.hasRuleAux(rule.Name) {
 		return fmt.Errorf("there is already a rule named %s", rule.Name)
 	}
@@ -539,9 +547,9 @@ func (m *Executer) addRuleAux(r string) error {
 		if m.ruleLibrary[evt] == nil {
 			m.ruleLibrary[evt] = ecarule.MakeRuleDict()
 		}
-		m.ruleLibrary[evt].Insert(rule)
+		m.ruleLibrary[evt].Insert(&rule)
 	}
-	m.logger.Debug("Introduced new rule", zap.String("act", "add_rule"), zap.String("obj", r))
+	m.logger.Debug("Introduced new rule", zap.String("act", "add_rule"), zap.String("obj", rule.Name))
 	return nil
 }
 
@@ -562,56 +570,36 @@ func (m *Executer) addPool(pl []string) error {
 	return addList(pl, m.addActions)
 }
 
-func (m *Executer) parseInvariants(invs ...string) error {
+// addInvariants constructs the node's invariant by forming a logical conjunction from
+// a list of local boolean expressions.
+func (m *Executer) addInvariants(invs ...string) error {
 	if len(invs) == 0 {
 		return nil
 	}
-	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
-	defer m.lexerParserPool.Put(lp)
-	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
-	task := ecarule.Task{}
-	listener.Stack.Push(&task)
-	for i, inv := range invs {
-		lp.Reset(inv)
-		tree := lp.Parser.Expression()
-		errs := lp.Errors()
-		if len(errs) > 0 {
-			for _, err := range errs {
-				m.logger.Error("error during parsing: "+err.Error(),
-					zap.String("act", "parse"),
-					zap.String("obj", inv))
-			}
-			m.logger.Sync()
-			return errs[0]
+	parser := m.lexerParserPool.Get().(ecarule.Parser)
+	defer m.lexerParserPool.Put(parser)
+	exps, errs := parser.ParseExpressions(invs...)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.Strings("obj", invs))
 		}
-
-		antlr.ParseTreeWalkerDefault.Walk(listener, tree)
-		// update WorkingMemory
-		m.workingMemory.IndexVariables()
-
-		errs = listener.Errors()
-		if len(errs) > 0 {
-			for _, err := range errs {
-				m.logger.Error("error during parsing: "+err.Error(),
-					zap.String("act", "parse"),
-					zap.String("obj", inv))
-			}
-			m.logger.Sync()
-			return errs[0]
-		}
-		exp := task.Condition
-		task.Condition = nil
+		m.logger.Sync()
+		return errs[0]
+	}
+	for i, exp := range exps {
 		val, err := exp.Evaluate(m.dataContext, m.workingMemory)
 		if err != nil {
 			m.logger.Error("Could not evaluate invariant: "+err.Error(),
 				zap.String("act", "eval_inv"),
-				zap.String("obj", inv))
+				zap.String("obj", invs[i]))
 			return err
 		}
 		if val.Kind() != reflect.Bool {
 			m.logger.Error("Invariant with non-boolean type",
 				zap.String("act", "add_inv"),
-				zap.String("obj", inv))
+				zap.String("obj", invs[i]))
 			return fmt.Errorf("type of invariant #%d is not boolean", i)
 		}
 		m.invariants = append(m.invariants, exp)
@@ -619,49 +607,11 @@ func (m *Executer) parseInvariants(invs ...string) error {
 	return nil
 }
 
-func (m *Executer) parseRule(r string) (*ecarule.Rule, error) {
-	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
-	defer m.lexerParserPool.Put(lp)
-	lp.Reset(r)
-	tree := lp.Parser.Prule()
-	errs := lp.Errors()
-	if len(errs) > 0 {
-		for _, err := range errs {
-			m.logger.Error("error during parsing: "+err.Error(),
-				zap.String("act", "parse"),
-				zap.String("obj", r))
-		}
-		m.logger.Sync()
-		return nil, errs[0]
-	}
-
-	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
-
-	m.lockMemory.Lock()
-	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
-	// update WorkingMemory
-	m.workingMemory.IndexVariables()
-	m.lockMemory.Unlock()
-
-	errs = listener.Errors()
-	if len(errs) > 0 {
-		for _, err := range errs {
-			m.logger.Error("error during parsing: "+err.Error(),
-				zap.String("act", "parse"),
-				zap.String("obj", r))
-		}
-		m.logger.Sync()
-		return nil, errs[0]
-	}
-	return listener.Rule, nil
-}
-
+// parseActions parses a series of local actions.
 func (m *Executer) parseActions(actions string) ([]ecarule.Action, error) {
-	lp := m.lexerParserPool.Get().(*parser.EcaruleLexerParser)
-	defer m.lexerParserPool.Put(lp)
-	lp.Reset(actions)
-	tree := lp.Parser.Actions()
-	errs := lp.Errors()
+	parser := m.lexerParserPool.Get().(ecarule.Parser)
+	defer m.lexerParserPool.Put(parser)
+	res, errs := parser.ParseActions(actions)
 	if len(errs) > 0 {
 		for _, err := range errs {
 			m.logger.Error("error during parsing: "+err.Error(),
@@ -672,25 +622,7 @@ func (m *Executer) parseActions(actions string) ([]ecarule.Action, error) {
 		return nil, errs[0]
 	}
 
-	listener := parser.NewEcaruleParserListener(m.types, m.workingMemory)
-
-	m.lockMemory.Lock()
-	antlr.ParseTreeWalkerDefault.Walk(listener, tree)
-	// update WorkingMemory
-	m.workingMemory.IndexVariables()
-	m.lockMemory.Unlock()
-
-	errs = listener.Errors()
-	if len(errs) > 0 {
-		for _, err := range errs {
-			m.logger.Error("error during parsing: "+err.Error(),
-				zap.String("act", "parse"),
-				zap.String("obj", actions))
-		}
-		m.logger.Sync()
-		return nil, errs[0]
-	}
-	return listener.Rule.DefaultActions, nil
+	return res, nil
 }
 
 func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
@@ -721,32 +653,25 @@ func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.
 	return dataContext, knowledgeBase.WorkingMemory, nil
 }
 
+// validNames verifies if the arguments can be used as valid identifiers in GoAbU rules.
 func validNames(names []string) error {
 	if len(names) == 0 {
 		return errors.New("no resource specified")
 	}
-	lexer := antlr_parser.NewEcaruleLexer(antlr.NewInputStream(""))
-	lexer.RemoveErrorListeners()
-	for _, n := range names {
-		if n != "this" && n != "ext" {
-			lexer.SetInputStream(antlr.NewInputStream(n))
-			token := lexer.NextToken()
-			if token.GetLine() == 1 && token.GetColumn() == 0 &&
-				lexer.GetCharIndex() == len(n) &&
-				antlr_parser.EcaruleLexerSIMPLENAME == token.GetTokenType() {
-				continue
-			}
+	results := parser.ValidateIdentifiers(names...)
+	for i, n := range names {
+		if !results[i] {
+			return fmt.Errorf(`invalid resource name: "%s"`, n)
 		}
-		return fmt.Errorf(`invalid resource name: "%s"`, n)
 	}
 	return nil
 }
 
-func addList(strs []string, add func(string) error) error {
+func addList[T any](objs []T, add func(T) error) error {
 	var fstErr error
 	failed := ""
-	for i, s := range strs {
-		err := add(s)
+	for i, obj := range objs {
+		err := add(obj)
 		if err != nil {
 			failed += strconv.Itoa(i) + ", "
 			if fstErr == nil {
