@@ -4,7 +4,7 @@
 package parser
 
 import (
-	antlr_parser "github.com/abu-lang/goabu/parser/antlr"
+	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 

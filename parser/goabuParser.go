@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/abu-lang/goabu/ecarule"
-	antlr_parser "github.com/abu-lang/goabu/parser/antlr"
+	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"

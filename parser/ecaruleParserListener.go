@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"github.com/abu-lang/goabu/ecarule"
-	antlr_parser "github.com/abu-lang/goabu/parser/antlr"
+	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
 
 	"github.com/hyperjumptech/grule-rule-engine/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
