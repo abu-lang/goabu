@@ -469,21 +469,13 @@ func (m *Executer) discovery(modified stringset.Set) {
 	}
 }
 
+// triggeredActions given a set of modified resources calculates the local updates and the partially evaluated tasks
+// that are to be sent to the other nodes.
 func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externalAction) {
 	var newpool []Update
 	var extActions []externalAction
 	rules := m.activeRules(modified)
 	for _, rule := range rules {
-		if len(rule.DefaultActions) > 0 {
-			defaults, err := evalActions(rule.DefaultActions, m.dataContext, m.workingMemory)
-			if err != nil {
-				m.logger.Panic("Error during default actions evaluation: "+err.Error(),
-					zap.String("act", "eval"),
-					zap.String("obj", "default actions"))
-			}
-			newpool = append(newpool, defaults)
-		}
-
 		for _, task := range rule.Tasks {
 			if !task.External {
 				tActions, err := condEvalActions(task.Condition, task.Actions, m.dataContext, m.workingMemory)

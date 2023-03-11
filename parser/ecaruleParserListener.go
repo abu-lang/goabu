@@ -18,12 +18,19 @@ import (
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
 )
 
+// processing will contain the events and the tasks of the rule currently being processed.
+type processing struct {
+	events []string
+	tasks  []ecarule.Task
+}
+
 type ecaruleParserListener struct {
 	*antlr.GruleV3ParserListener
-	Rule         *ecarule.Rule
+	Rules        []ecarule.Rule
 	types        map[string]string
 	allowExt     bool
 	inAssignLeft bool
+	processing
 }
 
 func newEcaruleParserListener(types map[string]string, workingMemory *ast.WorkingMemory, errorReporter *pkg.GruleErrorReporter) *ecaruleParserListener {
@@ -33,23 +40,19 @@ func newEcaruleParserListener(types map[string]string, workingMemory *ast.Workin
 	res := &ecaruleParserListener{
 		GruleV3ParserListener: antlr.NewGruleV3ParserListener(kb, errorReporter),
 		types:                 types,
-		Rule:                  &ecarule.Rule{},
 	}
-	res.Stack.Push(res.Rule)
 	return res
 }
 
 // reset brings back the listener to a clean state so that it can be used on a differet tree.
 func (l *ecaruleParserListener) reset() {
-	l.Rule = &ecarule.Rule{}
+	l.Rules = nil
 	l.PreviousNode = l.PreviousNode[:0]
 	for l.Stack.Len() > 0 {
 		l.Stack.Pop()
 	}
-	l.Stack.Push(l.Rule)
 	l.StopParse = false
 	l.ErrorCallback.Errors = make([]error, 0)
-
 }
 
 func (l *ecaruleParserListener) parseError(err error) {
@@ -57,16 +60,24 @@ func (l *ecaruleParserListener) parseError(err error) {
 	l.ErrorCallback.AddError(err)
 }
 
+// EnterPrule is called when production prules is entered.
+func (l *ecaruleParserListener) EnterPrules(ctx *antlr_parser.PrulesContext) {}
+
+// ExitPrule is called when production prules is exited.
+func (l *ecaruleParserListener) ExitPrules(ctx *antlr_parser.PrulesContext) {}
+
 // EnterPrule is called when production prule is entered.
 func (l *ecaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
 	if l.StopParse {
 		return
 	}
-	l.Rule.Name = ctx.SIMPLENAME().GetText()
 	t := 0
 	for ; ctx.Task(t) != nil; t++ {
 	}
-	l.Rule.Tasks = make([]ecarule.Task, 0, t)
+	if ctx.DefaultActions() != nil {
+		t++
+	}
+	l.tasks = make([]ecarule.Task, 0, t)
 }
 
 // ExitPrule is called when production prule is exited.
@@ -74,7 +85,13 @@ func (l *ecaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {
 	if l.StopParse {
 		return
 	}
-	l.Stack.Pop()
+	l.Rules = append(l.Rules, ecarule.Rule{
+		Name:   ctx.SIMPLENAME().GetText(),
+		Events: l.events,
+		Tasks:  l.tasks,
+	})
+	l.events = nil
+	l.tasks = nil
 }
 
 // EnterEvents is called when production events is entered.
@@ -82,33 +99,49 @@ func (l *ecaruleParserListener) EnterEvents(ctx *antlr_parser.EventsContext) {
 	if l.StopParse {
 		return
 	}
-	rule, ok := l.Stack.Peek().(*ecarule.Rule)
-	if !ok {
+	if len(l.events) > 0 {
 		l.parseError(errors.New("syntax error"))
 		return
 	}
 	for i := 0; ctx.SIMPLENAME(i) != nil; i++ {
-		rule.Events = append(rule.Events, ctx.SIMPLENAME(i).GetText())
+		l.events = append(l.events, ctx.SIMPLENAME(i).GetText())
 	}
 }
 
 // ExitEvents is called when production events is exited.
 func (l *ecaruleParserListener) ExitEvents(ctx *antlr_parser.EventsContext) {}
 
+// EnterDefaultActions is called when production defaultActions is entered.
+func (l *ecaruleParserListener) EnterDefaultActions(ctx *antlr_parser.DefaultActionsContext) {
+	if l.StopParse {
+		return
+	}
+	cond, err := l.newBooleanLiteralExpression(true)
+	if err != nil {
+		l.parseError(errors.New("error during default actions parsing"))
+		return
+	}
+	l.tasks = append(l.tasks, ecarule.Task{Condition: cond})
+	l.Stack.Push(expressionReceiver{&l.tasks[len(l.tasks)-1]})
+}
+
+// ExitDefaultActions is called when production defaultActions is exited.
+func (l *ecaruleParserListener) ExitDefaultActions(ctx *antlr_parser.DefaultActionsContext) {
+	if l.StopParse {
+		return
+	}
+	l.Stack.Pop()
+}
+
 // EnterTask is called when production task is entered.
 func (l *ecaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 	if l.StopParse {
 		return
 	}
-	rule, ok := l.Stack.Peek().(*ecarule.Rule)
-	if !ok {
-		l.parseError(errors.New("syntax error"))
-		return
-	}
 	all := ctx.ALL() != nil
-	rule.Tasks = append(rule.Tasks, ecarule.Task{External: all})
+	l.tasks = append(l.tasks, ecarule.Task{External: all})
 	l.allowExt = all
-	l.Stack.Push(&rule.Tasks[len(rule.Tasks)-1])
+	l.Stack.Push(expressionReceiver{&l.tasks[len(l.tasks)-1]})
 }
 
 // ExitTask is called when production task is exited.
@@ -117,12 +150,7 @@ func (l *ecaruleParserListener) ExitTask(ctx *antlr_parser.TaskContext) {
 		return
 	}
 	l.Stack.Pop()
-	t, ok := l.Stack.Peek().(*ecarule.Task)
-	if ok {
-		l.allowExt = t.External
-	} else {
-		l.allowExt = false
-	}
+	l.allowExt = false
 }
 
 // EnterActions is called when production actions is entered.
@@ -243,4 +271,28 @@ func (l *ecaruleParserListener) newResourceArrayMapSelector(r string) *ast.Array
 	res := ast.NewArrayMapSelector()
 	res.Expression = l.KnowledgeBase.WorkingMemory.AddExpression(e)
 	return res
+}
+
+// newBooleanLiteralExpression creates an [*ast.Expression] encoding the specified boolean value.
+func (l *ecaruleParserListener) newBooleanLiteralExpression(b bool) (*ast.Expression, error) {
+	text := "false"
+	if b {
+		text = "true"
+	}
+	cons := ast.NewConstant()
+	cons.GrlText = text
+	cons.AcceptBooleanLiteral(&ast.BooleanLiteral{Boolean: b})
+	atm := ast.NewExpressionAtom()
+	atm.GrlText = text
+	err := atm.AcceptConstant(cons)
+	if err != nil {
+		return nil, err
+	}
+	exp := ast.NewExpression()
+	exp.GrlText = text
+	err = exp.AcceptExpressionAtom(l.KnowledgeBase.WorkingMemory.AddExpressionAtom(atm))
+	if err != nil {
+		return nil, err
+	}
+	return l.KnowledgeBase.WorkingMemory.AddExpression(exp), nil
 }
