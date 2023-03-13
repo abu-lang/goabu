@@ -40,13 +40,17 @@ func (l brokenLock) Unlock() {}
 //
 // If a single [sync.Locker] is passed as argument then the parser will acquire the lock before performing
 // actions on the [*ast.WorkingMemory]. Only a single [sync.Locker] can be passed as argument.
-func New(types map[string]string, workingMemory *ast.WorkingMemory, memoryLocker ...sync.Locker) ecarule.Parser {
-	if len(memoryLocker) > 1 {
+func New(types map[string]string, workingMemory *ast.WorkingMemory, args ...any) ecarule.Parser {
+	if len(args) > 1 {
 		return nil
 	}
 	res := &goabuParser{errListener: &pkg.GruleErrorReporter{Errors: make([]error, 0)}}
-	if len(memoryLocker) == 1 {
-		res.lockMemory = memoryLocker[0]
+	if len(args) > 0 {
+		locker, ok := args[0].(sync.Locker)
+		if !ok || locker == nil {
+			return nil
+		}
+		res.lockMemory = locker
 	} else {
 		res.lockMemory = brokenLock{}
 	}
