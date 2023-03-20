@@ -15,7 +15,7 @@ import (
 )
 
 // TODO evaluate
-const inputsRate float64 = 1.0
+const inputsRate float64 = 0.5
 
 // milliseconds, TODO evaluate
 const inputsFlush = 100
@@ -34,7 +34,7 @@ type preparedUpdates struct {
 func (m *Executer) receiveInputs() {
 	inputs := m.memory.Inputs()
 	errors := m.memory.Errors()
-	bufferSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
+	bufferSize := int(math.RoundToEven(float64(len(m.types)) * inputsRate))
 	var buffer string = ""
 	var l int = 0
 	var timeout <-chan time.Time = nil
@@ -62,10 +62,10 @@ func (m *Executer) receiveInputs() {
 			buffer += input
 			l++
 			inBuffer.Insert(resource)
-			if l == 1 {
-				timeout = time.After(inputsFlush * time.Millisecond)
-			}
 			if l < bufferSize {
+				if l == 1 {
+					timeout = time.After(inputsFlush * time.Millisecond)
+				}
 				continue
 			}
 		case <-timeout:

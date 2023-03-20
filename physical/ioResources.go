@@ -72,16 +72,6 @@ func (i *IOresources) Errors() <-chan error {
 	return i.errors
 }
 
-func (i *IOresources) InputsNumber() int {
-	res := 0
-	for _, r := range i.delegates {
-		if r.meta.isInput {
-			res++
-		}
-	}
-	return res
-}
-
 func (i *IOresources) Modified(r string) {
 	if !i.Has(r) {
 		return

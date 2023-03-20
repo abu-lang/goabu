@@ -16,7 +16,6 @@ type ResourceController interface {
 	Types() map[string]string
 	GetResources() Resources
 	ResourceNames() []string
-	InputsNumber() int
 	String() string
 	Copy() ResourceController
 }

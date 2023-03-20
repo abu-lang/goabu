@@ -44,10 +44,6 @@ func (r Resources) Errors() <-chan error {
 
 func (r Resources) Modified(resource string) {}
 
-func (r Resources) InputsNumber() int {
-	return 0
-}
-
 func (r Resources) HasDuplicates() bool {
 	atts := stringset.Make()
 	for a := range r.Bool {

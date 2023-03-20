@@ -219,8 +219,6 @@ func TestReceiveExternalActions(t *testing.T) {
 	memory.Text["adipiscing"] = "sed"
 	memory.Time["tempor"] = time.Unix(0, 0)
 
-	memory.Text["incididunt"] = "ut"
-	memory.Bool["labore"] = true
 	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -232,9 +230,6 @@ func TestReceiveExternalActions(t *testing.T) {
 
 	// remove some resources
 	mem := e.memory.GetResources()
-	delete(mem.Bool, "labore")
-	delete(mem.Text, "incididunt")
-	e.types = e.memory.Types()
 
 	e.addActions("elit = 100.0;")
 	e.addActions("consectetur = -2;")
