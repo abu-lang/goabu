@@ -212,7 +212,7 @@ func (m *Executer) Exec() {
 	}
 	update, index := m.chooseUpdate()
 	m.lockPool.Unlock()
-	m.logger.Info(fmt.Sprintf("Exec: %v", update), zap.String("act", "exec"), zap.Array("update", updateLogger(update)))
+	m.logger.Info(fmt.Sprintf("Exec: %v", update), zap.String("act", "exec"), zapUpdate("update", update))
 	workingSet := stringset.Make()
 	for _, action := range update {
 		workingSet.Insert(action.Resource)
@@ -238,7 +238,7 @@ func (m *Executer) Exec() {
 			m.coordinator.confirmWrite()
 			m.logger.Info(fmt.Sprintf("Exec-Fail: %v would violate the invariants", update),
 				zap.String("act", "exec-fail"),
-				zap.Array("update", updateLogger(update)))
+				zapUpdate("update", update))
 			return
 		}
 	} else {
@@ -270,7 +270,7 @@ func (m *Executer) Input(actions string) error {
 			zap.String("obj", actions))
 	}
 	m.lockMemory.RUnlock()
-	m.logger.Info("Input: "+actions, zap.String("act", "input"), zap.Array("update", updateLogger(update)))
+	m.logger.Info("Input: "+actions, zap.String("act", "input"), zapUpdate("update", update))
 	m.lockMemory.Lock()
 	m.discovery(m.applyUpdate(update, true))
 	m.logger.Debug("Processed input", zap.String("act", "input"))
@@ -358,12 +358,12 @@ func (m *Executer) applyUpdate(update Update, input bool) stringset.Set {
 		if err != nil {
 			m.logger.Panic(fmt.Sprintf("Could not evaluate resource %s: %s", action.Resource, err.Error()),
 				zap.String("act", "eval_var"),
-				zap.String("obj", action.Resource))
+				zapUpdate("action", action))
 		}
 		if reflect.DeepEqual(currentVal, action.Value) {
 			m.logger.Debug(fmt.Sprintf("Skipping action %v: resource value would not change", action),
 				zap.String("act", "assign"),
-				zap.Object("action", assignmentLogger(action)))
+				zapUpdate("action", action))
 			continue
 		}
 		ltype := currentVal.Type()
@@ -371,22 +371,20 @@ func (m *Executer) applyUpdate(update Update, input bool) stringset.Set {
 		if !rtype.AssignableTo(ltype) {
 			m.logger.DPanic(fmt.Sprintf("Skipping action %v: cannot assign a %v to a %v", action, rtype, ltype),
 				zap.String("act", "assign"),
-				zap.Object("action", assignmentLogger(action)))
+				zapUpdate("action", action))
 		} else {
 			err := variable.Assign(action.Value, m.dataContext, m.workingMemory)
 			if err != nil {
 				m.logger.Panic("Could not perform assignment: "+err.Error(),
 					zap.String("act", "assign"),
-					zap.Object("action", assignmentLogger(action)))
+					zapUpdate("action", action))
 			}
 			modified.Insert(action.Resource)
 			if input {
 				m.memory.Modified(action.Resource)
 				m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", action.Resource),
 					zap.String("act", "assign"),
-					zap.String("typ", m.types[action.Resource]),
-					zap.String("res", action.Resource),
-					zap.String("val", fmt.Sprint(action.Value.Interface())))
+					zapUpdate("action", action))
 			}
 		}
 	}
@@ -413,9 +411,8 @@ func (m *Executer) signalModified(modified stringset.Set) {
 		m.memory.Modified(r)
 		m.logger.Debug(fmt.Sprintf("Modified resource \"%s\"", r),
 			zap.String("act", "assign"),
-			zap.String("typ", m.types[r]),
-			zap.String("res", r),
-			zap.String("val", fmt.Sprint(m.resourceValue(r).Interface())))
+			zap.Any(r, m.resourceValue(r).Interface()),
+		)
 	}
 }
 
@@ -434,7 +431,7 @@ func (m *Executer) discovery(modified stringset.Set) {
 	m.coordinator.confirmWrite()
 	m.logger.Info(fmt.Sprintf("Discovery found %d updates", len(updates)),
 		zap.String("act", "discovery"),
-		zap.Array("updates", poolLogger(updates)))
+		zapUpdates("updates", updates))
 	if len(eActions) > 0 {
 		payload, err := marshalExternalActions(eActions)
 		if err != nil {

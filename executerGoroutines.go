@@ -198,7 +198,7 @@ func (m *Executer) startUpdateReceiver() chan<- preparedUpdates {
 					m.lockPool.Unlock()
 					m.logger.Info(fmt.Sprintf("Added %d updates to the pool", len(queue[0].updates)),
 						zap.String("act", "add_updates"),
-						zap.Array("updates", poolLogger(queue[0].updates)))
+						zapUpdates("updates", queue[0].updates))
 				}
 				confirm <- ok
 				queue = queue[1:]
