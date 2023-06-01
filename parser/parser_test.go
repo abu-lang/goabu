@@ -1,3 +1,6 @@
+// Copyright 2023 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package parser
 
 import (
