@@ -62,7 +62,7 @@ func TestMotor(t *testing.T) {
 	mem := iodelegates.MakeIOresources(a)
 	mem.Add("Motor", "motor", "13", "11")
 	r1 := "rule R1 on motor for this.motor > 0 && this.motor < 255 do motor = this.motor + 60"
-	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0;"
+	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0,"
 	e, err := goabu.NewExecuter(mem, []string{r1, r2}, goabu.MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestMotor(t *testing.T) {
 	e.SetOptimisticInput(*goabu.Optimistic)
 	e.Input("motor = -150")
 	time.Sleep(8 * time.Second)
-	e.Input("motor = 150;")
+	e.Input("motor = 150,")
 	for {
 		time.Sleep(8 * time.Second)
 		e.Exec()

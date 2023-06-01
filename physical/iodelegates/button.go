@@ -47,8 +47,8 @@ func (b Button) Modified(adaptor physical.IOadaptor, name string, resources memo
 func (b Button) getButtonInput(in chan<- string, errs chan<- error) {
 	events := b.driver.Subscribe()
 	status := false
-	push := b.name + " = true;"
-	release := b.name + " = false;"
+	push := b.name + " = true,"
+	release := b.name + " = false,"
 	event := <-events
 	for {
 		var inputs chan<- string = nil

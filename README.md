@@ -81,7 +81,7 @@ A task can be local (encoding local actions) or remote (encoding global actions)
 ### Local Tasks
 
 ```go
-localRule := `rule MyLocalRule on foo bar for "octocat" == bar do foo = foo * 2; bar = "gopher"`
+localRule := `rule MyLocalRule on foo bar for "octocat" == bar do foo = foo * 2, bar = "gopher"`
 ```
 This rule specifies that whenever the values of foo or bar change then if bar == "octocat" foo shuld be doubled and bar should take the value "gopher".
 
@@ -161,7 +161,7 @@ Now we have our local cluster with two nodes but the situation is still the same
 We can change the resource values using the Input method as follow:
 
 ```go
-executer2.Input("foo = 3; baz = 2.72")
+executer2.Input("foo = 3, baz = 2.72")
 ```
 
 Now we changed the resources of executer2 but actually no modification happened on the other Executer.
@@ -240,7 +240,7 @@ But to add and use other devices it is sufficient to implement the physical.IOde
 The rules of GoAbu can also have some default actions that are performed when the rule is activated regardless of the rule's condition.
 
 ```go
-r := `rule R on foo default baz = 0.0; bar = "octocat" for all ext.foo < 0 do foo = ext.foo * -1`
+r := `rule R on foo default baz = 0.0, bar = "octocat" for all ext.foo < 0 do foo = ext.foo * -1`
 ```
 
 **NOTE** that default actions are **always** performed on the current node and can access only local resources.
@@ -251,7 +251,7 @@ A rule is not limited to have a single task but can have multiple tasks.
 
 For example, the rule R of the previous section can also be encoded with an equivalent rule using two tasks:
 ```go
-r := `rule R on foo for all ext.foo < 0 do foo = ext.foo * -1 for true do baz = 0.0; bar = "octocat"`
+r := `rule R on foo for all ext.foo < 0 do foo = ext.foo * -1 for true do baz = 0.0, bar = "octocat"`
 ```
 
 ## Invariants
@@ -285,7 +285,7 @@ func main() {
 	mem.Integer["foo"] = 1
 	mem.Text["bar"] = "octocat"
 
-	localRule := `rule MyLocalRule on foo bar for "octocat" == bar do foo = foo * 2; bar = "gopher"`
+	localRule := `rule MyLocalRule on foo bar for "octocat" == bar do foo = foo * 2, bar = "gopher"`
 
 	globalRule := `rule MyGlobalRule on foo for all this.foo >= ext.foo do ext.foo = ext.foo + this.foo`
 	globalRule = `rule MyGlobalRule on foo for all foo >= ext.foo do foo = ext.foo + foo`
@@ -302,7 +302,7 @@ func main() {
 
 	executer2, _ := goabu.NewExecuter(mem2, []string{globalRule}, agent2, config.LogConfig{})
 
-	executer2.Input("foo = 3; baz = 2.72")
+	executer2.Input("foo = 3, baz = 2.72")
 
 	executer.Exec()
 	executer.Exec()

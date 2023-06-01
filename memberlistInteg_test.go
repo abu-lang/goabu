@@ -24,11 +24,11 @@ func TestSingleNode(t *testing.T) {
 	}
 	e.SetOptimisticExec(*goabu.Optimistic)
 	e.SetOptimisticInput(*goabu.Optimistic)
-	r1 := "rule r1 on start default magna = 123 + this.magna; for this.aliqua do this.magna = -123;"
-	r2 := "rule r2 on magna for this.magna >= this.magna do this.magna = 2 * this.magna + this.magna;"
+	r1 := "rule r1 on start default magna = 123 + this.magna, for this.aliqua do this.magna = -123,"
+	r2 := "rule r2 on magna for this.magna >= this.magna do this.magna = 2 * this.magna + this.magna,"
 	e.AddRules(r1)
 	e.AddRules(r2)
-	e.Input("start = true;")
+	e.Input("start = true,")
 	for i := 0; i < 3; i++ {
 		e.Exec()
 	}
@@ -50,7 +50,7 @@ func TestSingleNode(t *testing.T) {
 func TestTwoNodes(t *testing.T) {
 	memory := memory.MakeResources()
 	memory.Integer["lorem"] = 5
-	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
+	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem, "
 	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
 		e1, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 9001, config.TestsLogConfig), config.TestsLogConfig)
@@ -79,7 +79,7 @@ func TestTwoNodes(t *testing.T) {
 		}
 		e2.SetOptimisticExec(*goabu.Optimistic)
 		e2.SetOptimisticInput(*goabu.Optimistic)
-		e2.Input("lorem = 10; ")
+		e2.Input("lorem = 10, ")
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
@@ -143,7 +143,7 @@ func TestThreeNodes(t *testing.T) {
 		}
 		e3.SetOptimisticExec(*goabu.Optimistic)
 		e3.SetOptimisticInput(*goabu.Optimistic)
-		e3.Input("ipsum = 6.0;")
+		e3.Input("ipsum = 6.0,")
 		mem3, _ := e3.TakeState()
 		for mem3.Float["ipsum"] != 6.5 {
 			e3.Exec()
@@ -219,7 +219,7 @@ func incNode(m int64, e *goabu.Executer) <-chan struct{} {
 func TestInvariants(t *testing.T) {
 	m1 := memory.MakeResources()
 	m1.Integer["odd"] = 5
-	r1 := "rule A on odd for all true do ext.even = ext.even + this.odd; "
+	r1 := "rule A on odd for all true do ext.even = ext.even + this.odd, "
 	t.Run("TestInvariants#1", func(t *testing.T) {
 		e1, err := goabu.NewExecuter(m1, []string{r1}, communication.NewMemberlistAgent(t.Name(), 12001, config.TestsLogConfig),
 			config.TestsLogConfig, "odd % 2 == 1")
@@ -242,7 +242,7 @@ func TestInvariants(t *testing.T) {
 	})
 	m2 := memory.MakeResources()
 	m2.Integer["even"] = 10
-	r2 := "rule B on even for all true do ext.odd = this.even + ext.odd; "
+	r2 := "rule B on even for all true do ext.odd = this.even + ext.odd, "
 	t.Run("TestInvariants#2", func(t *testing.T) {
 		t.Parallel()
 		e2, err := goabu.NewExecuter(m2, []string{r2},

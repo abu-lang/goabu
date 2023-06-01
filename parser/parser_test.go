@@ -24,7 +24,7 @@ func TestReset(t *testing.T) {
 	}{
 		//  {_, name, events, rule},
 		{1, "MyGlobalRule", []string{"foo"}, "rule MyGlobalRule on foo for all foo >= ext.foo do foo = ext.foo + foo"},
-		{2, "MyLocalRule", []string{"foo", "bar"}, "rule MyLocalRule on foo bar for \"qux\" == bar do foo = foo * 2; bar = \"grault\""},
+		{2, "MyLocalRule", []string{"foo", "bar"}, "rule MyLocalRule on foo bar for \"qux\" == bar do foo = foo * 2, bar = \"grault\""},
 	}
 	types := map[string]string{
 		"foo": "Integer",
@@ -72,9 +72,9 @@ func TestDefault(t *testing.T) {
 		rule string
 	}{
 		//  {_, rule},
-		{1, "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"},
+		{1, "rule r1 on start default magna = 123 + this.magna, for all ext.aliqua do ext.magna = -123,"},
 		{2, "rule r2 on ipsum default involved = true for all ipsum != ext.ipsum do involved = true"},
-		{3, "rule R on foo default baz = 0.0; bar = \"octocat\" for all ext.foo < 0 do foo = ext.foo * -1"},
+		{3, "rule R on foo default baz = 0.0, bar = \"octocat\" for all ext.foo < 0 do foo = ext.foo * -1"},
 	}
 	types := map[string]string{
 		"start":    "Bool",
@@ -115,11 +115,11 @@ func TestDefault(t *testing.T) {
 // TestMultipleRules tests the parsing of multiple rules in the same input stream.
 func TestMultipleRules(t *testing.T) {
 	rules := []string{
-		"rule A on odd for all true do ext.even = ext.even + this.odd;",
-		"rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem;",
+		"rule A on odd for all true do ext.even = ext.even + this.odd,",
+		"rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem,",
 		`rule batteryCheck on battery
 			for all (battery < 5 && ext.battery > 80)
-			do ext.help_lat = position_lat;
+			do ext.help_lat = position_lat,
 				ext.help_lon = position_lon`,
 		`rule setRescue on help_lat help_lon
 			for (AbsInt((position_lat - help_lat)) < threshold && AbsInt((position_lon - help_lon)) < threshold)

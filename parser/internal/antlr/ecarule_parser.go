@@ -116,7 +116,7 @@ func ecaruleparserParserInit() {
 		109, 5, 53, 0, 0, 108, 110, 5, 54, 0, 0, 109, 108, 1, 0, 0, 0, 109, 110,
 		1, 0, 0, 0, 110, 111, 1, 0, 0, 0, 111, 112, 3, 36, 18, 0, 112, 113, 5,
 		55, 0, 0, 113, 114, 3, 10, 5, 0, 114, 9, 1, 0, 0, 0, 115, 116, 3, 34, 17,
-		0, 116, 117, 3, 12, 6, 0, 117, 11, 1, 0, 0, 0, 118, 119, 5, 8, 0, 0, 119,
+		0, 116, 117, 3, 12, 6, 0, 117, 11, 1, 0, 0, 0, 118, 119, 5, 1, 0, 0, 119,
 		122, 3, 14, 7, 0, 120, 122, 1, 0, 0, 0, 121, 118, 1, 0, 0, 0, 121, 120,
 		1, 0, 0, 0, 122, 13, 1, 0, 0, 0, 123, 126, 3, 10, 5, 0, 124, 126, 1, 0,
 		0, 0, 125, 123, 1, 0, 0, 0, 125, 124, 1, 0, 0, 0, 126, 15, 1, 0, 0, 0,
@@ -1234,10 +1234,6 @@ func NewTailActionsContext(parser antlr.Parser, parent antlr.ParserRuleContext, 
 
 func (s *TailActionsContext) GetParser() antlr.Parser { return s.parser }
 
-func (s *TailActionsContext) SEMICOLON() antlr.TerminalNode {
-	return s.GetToken(EcaruleParserSEMICOLON, 0)
-}
-
 func (s *TailActionsContext) MaybeActions() IMaybeActionsContext {
 	var t antlr.RuleContext
 	for _, ctx := range s.GetChildren() {
@@ -1301,11 +1297,11 @@ func (p *EcaruleParser) TailActions() (localctx ITailActionsContext) {
 	p.GetErrorHandler().Sync(p)
 
 	switch p.GetTokenStream().LA(1) {
-	case EcaruleParserSEMICOLON:
+	case EcaruleParserT__0:
 		p.EnterOuterAlt(localctx, 1)
 		{
 			p.SetState(118)
-			p.Match(EcaruleParserSEMICOLON)
+			p.Match(EcaruleParserT__0)
 		}
 		{
 			p.SetState(119)

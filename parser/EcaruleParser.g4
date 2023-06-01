@@ -24,5 +24,5 @@ task : FOR ALL? expression DO actions ;
 
 /* List of actions. */
 actions : assignment tailActions ;
-tailActions : SEMICOLON maybeActions | /* epsilon */ ;
+tailActions : T__0 maybeActions | /* epsilon */ ;
 maybeActions : actions | /* epsilon */ ;

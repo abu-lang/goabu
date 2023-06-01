@@ -8,7 +8,7 @@ package memory
 type ResourceController interface {
 	// Start shall be called as soon as the node is ready to process inputs from the environment.
 	Start() error
-	// Inputs returns a channel providing the inputs received from the environment as strings of the form "<resource_name> = <value>;".
+	// Inputs returns a channel providing the inputs received from the environment as strings of the form "<resource_name> = <value>,".
 	Inputs() <-chan string
 	// Errors returns a channel handing the errors that occurs during operation.
 	Errors() <-chan error

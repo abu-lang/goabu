@@ -36,7 +36,7 @@ func (a externalAction) String() string {
 func actionsToString(actions []ecarule.Action) string {
 	res := ""
 	for _, action := range actions {
-		res += action.String() + "; "
+		res += action.String() + ", "
 	}
 	return res
 }
