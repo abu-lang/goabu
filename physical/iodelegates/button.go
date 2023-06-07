@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package iodelegates
 
 import (
@@ -44,8 +47,8 @@ func (b Button) Modified(adaptor physical.IOadaptor, name string, resources memo
 func (b Button) getButtonInput(in chan<- string, errs chan<- error) {
 	events := b.driver.Subscribe()
 	status := false
-	push := b.name + " = true;"
-	release := b.name + " = false;"
+	push := b.name + " = true,"
+	release := b.name + " = false,"
 	event := <-events
 	for {
 		var inputs chan<- string = nil

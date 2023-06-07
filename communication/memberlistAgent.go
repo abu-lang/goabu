@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 // Package communication provides means for transactional communication.
 package communication
 
@@ -288,7 +291,7 @@ func (a *MemberlistAgent) Stop() error {
 	}
 
 	a.logger.Debug("Leaving group...", zap.String("act", "leave"))
-	err = a.list.Shutdown() // always returns nil in memberlist v0.4.0
+	err = a.list.Shutdown() // always returns nil in memberlist v0.5.0
 	if err != nil {
 		a.logger.Error("Error in leaving group: "+err.Error(), zap.String("act", "leave"))
 	} else {

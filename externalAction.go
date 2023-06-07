@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 // TODO redo using parser
 
 package goabu
@@ -33,7 +36,7 @@ func (a externalAction) String() string {
 func actionsToString(actions []ecarule.Action) string {
 	res := ""
 	for _, action := range actions {
-		res += action.String() + "; "
+		res += action.String() + ", "
 	}
 	return res
 }

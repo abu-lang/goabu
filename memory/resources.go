@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package memory
 
 import (
@@ -7,6 +10,8 @@ import (
 	"github.com/abu-lang/goabu/stringset"
 )
 
+// Resources is a struct implementing the [ResourceController] interface modeling the state of a node
+// that has no sensors nor actuators.
 type Resources struct {
 	Bool    map[string]bool
 	Integer map[string]int64
@@ -16,6 +21,7 @@ type Resources struct {
 	Other   map[string]interface{}
 }
 
+// MakeResources returns a new empty [Resources] struct.
 func MakeResources() Resources {
 	return Resources{
 		Bool:    make(map[string]bool),
@@ -27,24 +33,25 @@ func MakeResources() Resources {
 	}
 }
 
+// Start is a no-op.
 func (r Resources) Start() error {
 	return nil
 }
 
+// Inputs returns nil.
 func (r Resources) Inputs() <-chan string {
 	return nil
 }
 
+// Errors returns nil.
 func (r Resources) Errors() <-chan error {
 	return nil
 }
 
+// Modified is a no-op.
 func (r Resources) Modified(resource string) {}
 
-func (r Resources) InputsNumber() int {
-	return 0
-}
-
+// HasDuplicates verifies if there are multiple resources sharing the same identifier.
 func (r Resources) HasDuplicates() bool {
 	atts := stringset.Make()
 	for a := range r.Bool {
@@ -86,6 +93,7 @@ func (r Resources) HasDuplicates() bool {
 	return false
 }
 
+// Has checks if there is a resource identified by the provided string.
 func (r Resources) Has(resource string) bool {
 	_, present := r.Bool[resource]
 	if present {
@@ -111,6 +119,10 @@ func (r Resources) Has(resource string) bool {
 	return present
 }
 
+// Types returns a map with an entry for each resource specifying its type
+// (one of the following: "Bool", "Integer", "Float", "Text", "Time", "Other").
+//
+// Prerequisite: !HasDuplicates()
 func (r Resources) Types() map[string]string {
 	res := make(map[string]string)
 	for a := range r.Bool {
@@ -134,10 +146,12 @@ func (r Resources) Types() map[string]string {
 	return res
 }
 
+// GetResources returns the [Resources] struct itself.
 func (r Resources) GetResources() Resources {
 	return r
 }
 
+// ResourceNames returns the list of all the contained resources' identifiers (without repeated elements).
 func (r Resources) ResourceNames() []string {
 	atts := stringset.Make()
 	for a := range r.Bool {
@@ -161,6 +175,7 @@ func (r Resources) ResourceNames() []string {
 	return atts.Slice()
 }
 
+// Extract returns a shallow copy of only the resources specified by the provided identifiers.
 func (r Resources) Extract(resources []string) Resources {
 	s := stringset.Make(resources...)
 	res := MakeResources()
@@ -197,6 +212,7 @@ func (r Resources) Extract(resources []string) Resources {
 	return res
 }
 
+// Enclose adds the provided resources to the ResourceController, overwriting previous values if present.
 func (r Resources) Enclose(i Resources) {
 	for k, v := range i.Bool {
 		r.Bool[k] = v
@@ -218,6 +234,7 @@ func (r Resources) Enclose(i Resources) {
 	}
 }
 
+// String returns a string representation of the struct for debugging purposes.
 func (r Resources) String() string {
 	var str string = "[ "
 	for key, value := range r.Bool {
@@ -241,6 +258,7 @@ func (r Resources) String() string {
 	return str + "]"
 }
 
+// Copy returns a shallow copy of the struct.
 func (r Resources) Copy() ResourceController {
 	res := MakeResources()
 	for k, v := range r.Bool {

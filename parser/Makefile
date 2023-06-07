@@ -1,6 +1,9 @@
+# Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+# SPDX-License-Identifier: Apache-2.0
+
 # GNU Make >= 4.3
 
-P_DIR = antlr
+P_DIR = internal/antlr
 SRC_COMMIT = $(shell sed -n -e '/^https/p' ../LICENSE | cut -d '/' -f 7)
 
 ANTLR = antlr4
@@ -8,7 +11,7 @@ CKSUM = cksum
 CURL = curl
 
 ANTLR_VERSION = $(shell $(ANTLR) | head -n 1 | cut -d ' ' -f 6)
-ANTLRFLAGS = -Dlanguage=Go -o '${P_DIR}' -package '${P_DIR}'
+ANTLRFLAGS = -Dlanguage=Go -o '${P_DIR}' -package '$(notdir ${P_DIR})'
 CURLFLAGS = -\# --proto =https
 
 TOK = ${P_DIR}/EcaruleLexer.interp ${P_DIR}/EcaruleLexer.tokens

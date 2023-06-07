@@ -10,11 +10,17 @@ import (
 type EcaruleParserListener interface {
 	antlr.ParseTreeListener
 
+	// EnterPrules is called when entering the prules production.
+	EnterPrules(c *PrulesContext)
+
 	// EnterPrule is called when entering the prule production.
 	EnterPrule(c *PruleContext)
 
 	// EnterEvents is called when entering the events production.
 	EnterEvents(c *EventsContext)
+
+	// EnterDefaultActions is called when entering the defaultActions production.
+	EnterDefaultActions(c *DefaultActionsContext)
 
 	// EnterTask is called when entering the task production.
 	EnterTask(c *TaskContext)
@@ -127,11 +133,17 @@ type EcaruleParserListener interface {
 	// EnterBooleanLiteral is called when entering the booleanLiteral production.
 	EnterBooleanLiteral(c *grulev3.BooleanLiteralContext)
 
+	// ExitPrules is called when exiting the prules production.
+	ExitPrules(c *PrulesContext)
+
 	// ExitPrule is called when exiting the prule production.
 	ExitPrule(c *PruleContext)
 
 	// ExitEvents is called when exiting the events production.
 	ExitEvents(c *EventsContext)
+
+	// ExitDefaultActions is called when exiting the defaultActions production.
+	ExitDefaultActions(c *DefaultActionsContext)
 
 	// ExitTask is called when exiting the task production.
 	ExitTask(c *TaskContext)

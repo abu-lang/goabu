@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package goabu_test
 
 import (
@@ -21,19 +24,18 @@ func TestSingleNode(t *testing.T) {
 	}
 	e.SetOptimisticExec(*goabu.Optimistic)
 	e.SetOptimisticInput(*goabu.Optimistic)
-	r1 := "rule r1 on start default magna = 123 + this.magna; for this.aliqua do this.magna = -123;"
-	r2 := "rule r2 on magna for this.magna >= this.magna do this.magna = 2 * this.magna + this.magna;"
+	r1 := "rule r1 on start default magna = 123 + this.magna, for this.aliqua do this.magna = -123,"
+	r2 := "rule r2 on magna for this.magna >= this.magna do this.magna = 2 * this.magna + this.magna,"
 	e.AddRules(r1)
 	e.AddRules(r2)
-	e.Input("start = true;")
+	e.Input("start = true,")
 	for i := 0; i < 3; i++ {
 		e.Exec()
 	}
 	if e.DoIfStable(func() {}) {
 		t.Error("should not be stable")
 	}
-	state := e.TakeState()
-	memory = state.Memory
+	memory, _ = e.TakeState()
 	if memory.Bool["aliqua"] {
 		t.Error("aliqua should be false")
 	}
@@ -48,7 +50,7 @@ func TestSingleNode(t *testing.T) {
 func TestTwoNodes(t *testing.T) {
 	memory := memory.MakeResources()
 	memory.Integer["lorem"] = 5
-	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem; "
+	r := "rule r on lorem for all this.lorem > ext.lorem do ext.lorem = this.lorem, "
 	rules := []string{r}
 	t.Run("TestTwoNodes#1", func(t *testing.T) {
 		e1, err := goabu.NewExecuter(memory, rules, communication.NewMemberlistAgent(t.Name(), 9001, config.TestsLogConfig), config.TestsLogConfig)
@@ -64,7 +66,7 @@ func TestTwoNodes(t *testing.T) {
 		if !e1.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem1 := e1.TakeState().Memory
+		mem1, _ := e1.TakeState()
 		if mem1.Integer["lorem"] != 10 {
 			t.Error("lorem should be 10")
 		}
@@ -77,11 +79,11 @@ func TestTwoNodes(t *testing.T) {
 		}
 		e2.SetOptimisticExec(*goabu.Optimistic)
 		e2.SetOptimisticInput(*goabu.Optimistic)
-		e2.Input("lorem = 10; ")
+		e2.Input("lorem = 10, ")
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem2 := e2.TakeState().Memory
+		mem2, _ := e2.TakeState()
 		if mem2.Integer["lorem"] != 10 {
 			t.Error("lorem should be 10")
 		}
@@ -103,10 +105,12 @@ func TestThreeNodes(t *testing.T) {
 		e1.SetOptimisticExec(*goabu.Optimistic)
 		e1.SetOptimisticInput(*goabu.Optimistic)
 		t.Parallel()
-		for e1.TakeState().Memory.Float["ipsum"] != 6.5 {
+		mem1, _ := e1.TakeState()
+		for mem1.Float["ipsum"] != 6.5 {
 			e1.Exec()
+			mem1, _ = e1.TakeState()
 		}
-		if !e1.TakeState().Memory.Bool["involved"] {
+		if mem1, _ = e1.TakeState(); !mem1.Bool["involved"] {
 			t.Error("involved should be true")
 		}
 	})
@@ -122,7 +126,7 @@ func TestThreeNodes(t *testing.T) {
 		for e2.DoIfStable(func() {}) {
 		}
 		e2.Exec()
-		mem2 := e2.TakeState().Memory
+		mem2, _ := e2.TakeState()
 		if !mem2.Bool["involved"] {
 			t.Error("involved should be true")
 		}
@@ -139,11 +143,13 @@ func TestThreeNodes(t *testing.T) {
 		}
 		e3.SetOptimisticExec(*goabu.Optimistic)
 		e3.SetOptimisticInput(*goabu.Optimistic)
-		e3.Input("ipsum = 6.0;")
-		for e3.TakeState().Memory.Float["ipsum"] != 6.5 {
+		e3.Input("ipsum = 6.0,")
+		mem3, _ := e3.TakeState()
+		for mem3.Float["ipsum"] != 6.5 {
 			e3.Exec()
+			mem3, _ = e3.TakeState()
 		}
-		if !e3.TakeState().Memory.Bool["involved"] {
+		if mem3, _ = e3.TakeState(); !mem3.Bool["involved"] {
 			t.Error("involved should be true")
 		}
 	})
@@ -191,17 +197,17 @@ func incNode(m int64, e *goabu.Executer) <-chan struct{} {
 	res := make(chan struct{})
 	go func() {
 		e.Input("A = 1")
-		state := e.TakeState()
-		for state.Memory.Integer["A"] != m {
-			if state.Memory.Integer["A"] > m {
+		mem, _ := e.TakeState()
+		for mem.Integer["A"] != m {
+			if mem.Integer["A"] > m {
 				panic(fmt.Sprintf("A should be <= %d", m))
 			}
 			e.Exec()
-			state = e.TakeState()
+			mem, _ = e.TakeState()
 		}
 		for !e.DoIfStable(func() {}) {
 			e.Exec()
-			if e.TakeState().Memory.Integer["A"] > m {
+			if mem, _ = e.TakeState(); mem.Integer["A"] > m {
 				panic(fmt.Sprintf("A should be <= %d", m))
 			}
 		}
@@ -213,7 +219,7 @@ func incNode(m int64, e *goabu.Executer) <-chan struct{} {
 func TestInvariants(t *testing.T) {
 	m1 := memory.MakeResources()
 	m1.Integer["odd"] = 5
-	r1 := "rule A on odd for all true do ext.even = ext.even + this.odd; "
+	r1 := "rule A on odd for all true do ext.even = ext.even + this.odd, "
 	t.Run("TestInvariants#1", func(t *testing.T) {
 		e1, err := goabu.NewExecuter(m1, []string{r1}, communication.NewMemberlistAgent(t.Name(), 12001, config.TestsLogConfig),
 			config.TestsLogConfig, "odd % 2 == 1")
@@ -229,14 +235,14 @@ func TestInvariants(t *testing.T) {
 		if !e1.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem1 := e1.TakeState().Memory
+		mem1, _ := e1.TakeState()
 		if mem1.Integer["odd"] != 17 {
 			t.Error("odd should be 17")
 		}
 	})
 	m2 := memory.MakeResources()
 	m2.Integer["even"] = 10
-	r2 := "rule B on even for all true do ext.odd = this.even + ext.odd; "
+	r2 := "rule B on even for all true do ext.odd = this.even + ext.odd, "
 	t.Run("TestInvariants#2", func(t *testing.T) {
 		t.Parallel()
 		e2, err := goabu.NewExecuter(m2, []string{r2},
@@ -254,7 +260,7 @@ func TestInvariants(t *testing.T) {
 		if !e2.DoIfStable(func() {}) {
 			t.Error("should be stable")
 		}
-		mem2 := e2.TakeState().Memory
+		mem2, _ := e2.TakeState()
 		if mem2.Integer["even"] != 12 {
 			t.Error("even should be 12")
 		}

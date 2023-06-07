@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 //go:build raspi
 // +build raspi
 
@@ -38,11 +41,14 @@ func TestLed2Buttons(t *testing.T) {
 	}
 	dummy.SetOptimisticExec(*goabu.Optimistic)
 	dummy.SetOptimisticInput(*goabu.Optimistic)
-	ledStatus := eLed.TakeState().Memory.Bool["led"]
+
+	state, _ := eLed.TakeState()
+	ledStatus, _ := state.Bool["led"]
 	for toggles > 0 {
 		time.Sleep(time.Millisecond)
 		eLed.Exec()
-		status := eLed.TakeState().Memory.Bool["led"]
+		state, _ = eLed.TakeState()
+		status := state.Bool["led"]
 		if ledStatus != status {
 			ledStatus = status
 			toggles--
@@ -56,7 +62,7 @@ func TestMotor(t *testing.T) {
 	mem := iodelegates.MakeIOresources(a)
 	mem.Add("Motor", "motor", "13", "11")
 	r1 := "rule R1 on motor for this.motor > 0 && this.motor < 255 do motor = this.motor + 60"
-	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0;"
+	r2 := "rule R2 on motor for this.motor >= 255 do motor = 0,"
 	e, err := goabu.NewExecuter(mem, []string{r1, r2}, goabu.MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -65,11 +71,11 @@ func TestMotor(t *testing.T) {
 	e.SetOptimisticInput(*goabu.Optimistic)
 	e.Input("motor = -150")
 	time.Sleep(8 * time.Second)
-	e.Input("motor = 150;")
+	e.Input("motor = 150,")
 	for {
 		time.Sleep(8 * time.Second)
 		e.Exec()
-		if e.TakeState().Memory.Integer["motor"] == 0 {
+		if state, _ := e.TakeState(); state.Integer["motor"] == 0 {
 			break
 		}
 	}

@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package goabu
 
 import (
@@ -5,9 +8,10 @@ import (
 	"reflect"
 
 	"github.com/abu-lang/goabu/ecarule"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/hyperjumptech/grule-rule-engine/ast"
-	"go.uber.org/zap/zapcore"
 )
 
 type Update []Assignment
@@ -63,35 +67,48 @@ func condEvalActions(exp *ast.Expression, actions []ecarule.Action, dataContext 
 
 //----------------------------------LOGGER------------------------------------
 
-type assignmentLogger Assignment
-
-func (l assignmentLogger) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	enc.AddString("typ", l.variable.Variable.Name)
-	enc.AddString("res", l.Resource)
-	enc.AddString("val", fmt.Sprint(l.Value.Interface()))
-	return nil
+// arrayMarshalerHolder is an interface for objects that can provide a [zapcore.ArrayMarshaler]
+// in order to be encoded as arrays by a [*zap.Logger].
+type arrayMarshalerHolder interface {
+	// arrayMarshaler returns a [zapcore.ArrayMarshaler] for encoding the receiver as an array.
+	arrayMarshaler() zapcore.ArrayMarshaler
 }
 
-type updateLogger Update
-
-func (l updateLogger) MarshalLogArray(enc zapcore.ArrayEncoder) error {
-	for _, a := range l {
-		err := enc.AppendObject(assignmentLogger(a))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// zapUpdate constructs [zapcore.Field] with the given [arrayMarshalerHolder].
+func zapUpdate(key string, h arrayMarshalerHolder) zapcore.Field {
+	return zap.Array(key, h.arrayMarshaler())
 }
 
-type poolLogger []Update
+// zapUpdates constructs [zapcore.Field] with the given [[]arrayMarshalerHolder].
+func zapUpdates[T arrayMarshalerHolder](key string, hs []T) zapcore.Field {
+	return zap.Array(key, newArrayMarshaler(hs...))
+}
 
-func (l poolLogger) MarshalLogArray(enc zapcore.ArrayEncoder) error {
-	for _, u := range l {
-		err := enc.AppendArray(updateLogger(u))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// newArrayMarshaler creates a [zapcore.ArrayMarshaler] for encoding a [[]arrayMarshalerHolder].
+func newArrayMarshaler[T arrayMarshalerHolder](hs ...T) zapcore.ArrayMarshaler {
+	return zapcore.ArrayMarshalerFunc(
+		func(enc zapcore.ArrayEncoder) error {
+			for _, h := range hs {
+				err := enc.AppendArray(h.arrayMarshaler())
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+}
+
+// arrayMarshaler returns a [zapcore.ArrayMarshaler] for encoding the receiver as an array.
+func (a Assignment) arrayMarshaler() zapcore.ArrayMarshaler {
+	return zapcore.ArrayMarshalerFunc(func(enc zapcore.ArrayEncoder) error {
+		enc.AppendString(a.variable.Variable.Name)
+		enc.AppendString(a.Resource)
+		enc.AppendReflected(a.Value.Interface())
+		return nil
+	})
+}
+
+// arrayMarshaler returns a [zapcore.ArrayMarshaler] for encoding the receiver as an array.
+func (u Update) arrayMarshaler() zapcore.ArrayMarshaler {
+	return newArrayMarshaler(u...)
 }

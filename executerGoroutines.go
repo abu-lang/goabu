@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package goabu
 
 import (
@@ -12,7 +15,7 @@ import (
 )
 
 // TODO evaluate
-const inputsRate float64 = 1.0
+const inputsRate float64 = 0.5
 
 // milliseconds, TODO evaluate
 const inputsFlush = 100
@@ -31,7 +34,7 @@ type preparedUpdates struct {
 func (m *Executer) receiveInputs() {
 	inputs := m.memory.Inputs()
 	errors := m.memory.Errors()
-	bufferSize := int(math.RoundToEven(float64(m.memory.InputsNumber()) * inputsRate))
+	bufferSize := int(math.RoundToEven(float64(len(m.types)) * inputsRate))
 	var buffer string = ""
 	var l int = 0
 	var timeout <-chan time.Time = nil
@@ -59,10 +62,10 @@ func (m *Executer) receiveInputs() {
 			buffer += input
 			l++
 			inBuffer.Insert(resource)
-			if l == 1 {
-				timeout = time.After(inputsFlush * time.Millisecond)
-			}
 			if l < bufferSize {
+				if l == 1 {
+					timeout = time.After(inputsFlush * time.Millisecond)
+				}
 				continue
 			}
 		case <-timeout:
@@ -195,7 +198,7 @@ func (m *Executer) startUpdateReceiver() chan<- preparedUpdates {
 					m.lockPool.Unlock()
 					m.logger.Info(fmt.Sprintf("Added %d updates to the pool", len(queue[0].updates)),
 						zap.String("act", "add_updates"),
-						zap.Array("updates", poolLogger(queue[0].updates)))
+						zapUpdates("updates", queue[0].updates))
 				}
 				confirm <- ok
 				queue = queue[1:]

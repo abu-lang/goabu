@@ -40,7 +40,6 @@ package memory {
         Types() map[string]string
         GetResources() Resources
         ResourceNames() []string
-        InputsNumber() int
         String() string
         Copy() ResourceController
     }
@@ -69,7 +68,7 @@ package goabu {
         localLibrary : string->RuleDict
         globalLibrary : string->RuleDict
 
-        TakeState() State
+        TakeState() (Resources, [][]Assignment)
         DoIfStable(func ()) bool
         Exec()
         Input(string) error

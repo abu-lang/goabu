@@ -1,3 +1,6 @@
+// Copyright 2021 Massimo Comuzzo, Michele Pasqua and Marino Miculan
+// SPDX-License-Identifier: Apache-2.0
+
 package goabu
 
 import (
@@ -65,12 +68,12 @@ func TestNewExecuter(t *testing.T) {
 func TestAddRules(t *testing.T) {
 	local := `rule local on trigger executed
 		for !this.executed do
-		trigger = "activated";`
+		trigger = "activated",`
 
 	global := `rule global on trigger
-		default executed = this.executed && false;
+		default executed = this.executed && false,
 		for all this.trigger != ext.trigger && this.trigger == "activated"
-		do ext.trigger = this.trigger;`
+		do ext.trigger = this.trigger,`
 
 	memory := memory.MakeResources()
 	memory.Bool["executed"] = false
@@ -113,9 +116,9 @@ func TestAddPool(t *testing.T) {
 	e.SetOptimisticExec(*Optimistic)
 	e.SetOptimisticInput(*Optimistic)
 	e.addPool([]string{
-		"elit = 2.71828;",
-		`consectetur = this.consectetur * 7; adipiscing = "";`,
-		`tempor = MakeTime(2021, 6, 5, 0, 0, 0) ;`,
+		"elit = 2.71828,",
+		`consectetur = this.consectetur * 7, adipiscing = "",`,
+		`tempor = MakeTime(2021, 6, 5, 0, 0, 0) ,`,
 	})
 	poolLength := len(e.pool)
 	for i := 0; i < 3; i++ {
@@ -146,16 +149,16 @@ func TestAddPool(t *testing.T) {
 func TestLocal(t *testing.T) {
 	startCooling := `rule startCooling on temperature
 		for "hihj".Replace("hj", "gh") == this.temperature
-		do  cooling = true;
+		do  cooling = true,
 			counter = 3 + 2 * 1 - 1 * 3`
 
 	counter := `rule counter on counter cooling
 		for this.counter > 0 && this.cooling
-		do this.counter = this.counter - 1;`
+		do this.counter = this.counter - 1,`
 
 	stopCooling := `rule stopCooling on counter
 		for this.counter == 0 && this.cooling
-		do  this.cooling = !this.cooling;
+		do  this.cooling = !this.cooling,
 			this.temperature = "NORMAL".ToLower()`
 
 	memory := memory.MakeResources()
@@ -200,14 +203,14 @@ func TestLocal(t *testing.T) {
 func TestReceiveExternalActions(t *testing.T) {
 	r1 := `rule r1 on elit
 		for all ext.elit > 0 || ext.labore
-		do  ext.elit = 0;
-			ext.consectetur = "-10";`
+		do  ext.elit = 0,
+			ext.consectetur = "-10",`
 
 	r2 := `rule r2 on consectetur
 		for all ext.consectetur < 0
-		do  ext.elit = ext.elit * 2 + 3.14;
-			ext.adipiscing = ext.incididunt;
-			ext.tempor = MakeTime(2000, 1, 1, 0, 0, 0);
+		do  ext.elit = ext.elit * 2 + 3.14,
+			ext.adipiscing = ext.incididunt,
+			ext.tempor = MakeTime(2000, 1, 1, 0, 0, 0),
 			ext.labore = false `
 
 	memory := memory.MakeResources()
@@ -216,8 +219,6 @@ func TestReceiveExternalActions(t *testing.T) {
 	memory.Text["adipiscing"] = "sed"
 	memory.Time["tempor"] = time.Unix(0, 0)
 
-	memory.Text["incididunt"] = "ut"
-	memory.Bool["labore"] = true
 	e, err := NewExecuter(memory, nil, MakeMockAgent(), config.TestsLogConfig)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -229,12 +230,9 @@ func TestReceiveExternalActions(t *testing.T) {
 
 	// remove some resources
 	mem := e.memory.GetResources()
-	delete(mem.Bool, "labore")
-	delete(mem.Text, "incididunt")
-	e.types = e.memory.Types()
 
-	e.addActions("elit = 100.0;")
-	e.addActions("consectetur = -2;")
+	e.addActions("elit = 100.0,")
+	e.addActions("consectetur = -2,")
 	execs := 0
 	for !e.DoIfStable(func() {}) {
 		e.Exec()
@@ -268,11 +266,11 @@ func TestForall(t *testing.T) {
 	}
 	e.SetOptimisticExec(*Optimistic)
 	e.SetOptimisticInput(*Optimistic)
-	r1 := "rule r1 on start default magna = 123 + this.magna; for all ext.aliqua do ext.magna = -123;"
-	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna;"
+	r1 := "rule r1 on start default magna = 123 + this.magna, for all ext.aliqua do ext.magna = -123,"
+	r2 := "rule r2 on magna for all this.magna >= ext.magna do ext.magna = 2 * this.magna + ext.magna,"
 	e.AddRules(r1)
 	e.AddRules(r2)
-	e.Input("start = true;")
+	e.Input("start = true,")
 	magnas := []int64{123, 369, 1107}
 	mem := e.memory.GetResources()
 	for i := 0; i < 3; i++ {
@@ -327,5 +325,29 @@ func TestTwoTasks(t *testing.T) {
 	}
 	if !mem.Bool["inc"] {
 		t.Error("inc should be true")
+	}
+}
+
+func TestAbsInt(t *testing.T) {
+	memory := memory.MakeResources()
+	memory.Integer["x"] = -5
+	e, err := NewExecuter(memory, []string{"rule twotasks on x for AbsInt(x) != x do x = AbsInt(x)"},
+		MakeMockAgent(), config.TestsLogConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.SetOptimisticExec(*Optimistic)
+	e.SetOptimisticInput(*Optimistic)
+	e.Input("x = -4")
+	mem := e.memory.GetResources()
+	if mem.Integer["x"] != -4 {
+		t.Error("x should be -4")
+	}
+	e.Exec()
+	if mem.Integer["x"] != 4 {
+		t.Error("x should be 4")
+	}
+	if !e.DoIfStable(func() {}) {
+		t.Error("should be stable")
 	}
 }
