@@ -1,5 +1,5 @@
 This project uses the ANTLR v4 parser generator and, in particular, the
-directory named "parser/antlr" contains files generated using ANTLR v4.
+directory named "parser/internal/antlr" contains files generated using ANTLR v4.
 
 (BSD-3-Clause) License of ANTLR v4 (https://github.com/antlr/antlr4):
 =====================================================================

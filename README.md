@@ -211,7 +211,7 @@ import (
 	"github.com/abu-lang/goabu/physical"
 	"github.com/abu-lang/goabu/physical/iodelegates"
 
-	"gobot.io/x/gobot/platforms/raspi"
+	"gobot.io/x/gobot/v2/platforms/raspi"
 )
 
 mem := iodelegates.MakeIOresources(raspi.NewAdaptor())

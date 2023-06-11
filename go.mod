@@ -8,14 +8,14 @@ require (
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hyperjumptech/grule-rule-engine v1.13.0
 	go.uber.org/zap v1.24.0
-	gobot.io/x/gobot v1.16.1-0.20230515163435-d07ad2cd5528
+	gobot.io/x/gobot/v2 v2.1.0
 )
 
 require (
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/bmatcuk/doublestar v1.3.2 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/gofrs/uuid v4.3.0+incompatible // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
@@ -43,6 +43,6 @@ require (
 	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
 	gopkg.in/src-d/go-git.v4 v4.13.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	periph.io/x/conn/v3 v3.6.10 // indirect
+	periph.io/x/conn/v3 v3.7.0 // indirect
 	periph.io/x/host/v3 v3.7.2 // indirect
 )

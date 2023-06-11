@@ -9,7 +9,7 @@ import (
 	"github.com/abu-lang/goabu/memory"
 	"github.com/abu-lang/goabu/physical"
 
-	"gobot.io/x/gobot/drivers/gpio"
+	"gobot.io/x/gobot/v2/drivers/gpio"
 )
 
 type Motor struct {
