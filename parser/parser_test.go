@@ -104,7 +104,7 @@ func TestDefault(t *testing.T) {
 		}
 		rule := rules[0]
 		found := 0
-		for _, t := range rule.Tasks {
+		for _, t := range rule.LocalTasks {
 			if t.Condition.AstID == exp.AstID {
 				found++
 			}

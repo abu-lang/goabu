@@ -12,17 +12,17 @@ import (
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 )
 
-// expressionReceiver is a struct wrapping an [*ecarule.Task] for allowing tasks to implement the
+// expressionReceiver is a struct wrapping an [*ecarule.LocalTask] for allowing tasks to implement the
 // receiver interfaces required by Grule rule engine's parser (without exporting the methods on
-// the [ecarule.Task] type).
+// the [ecarule.LocalTask] type).
 type expressionReceiver struct {
-	*ecarule.Task
+	*ecarule.LocalTask
 }
 
-// AcceptAssignment will accept an Assignment into this Task by creating a new corresponding Action.
+// AcceptAssignment will accept an Assignment into this local task by creating a new corresponding Action.
 // It is used by EcaruleParserListener.
 // One who wants to use this function in a different context should make sure that the Assignment
-// satisfies the constraints implied by this Task and by the Rule owner.
+// satisfies the constraints implied by this local task and by the Rule owner.
 func (t expressionReceiver) AcceptAssignment(a *ast.Assignment) error {
 	if !a.IsAssign {
 		return fmt.Errorf("assigment %s only assigment operator '=' is supported", a.GetGrlText())
@@ -38,10 +38,10 @@ func (t expressionReceiver) AcceptAssignment(a *ast.Assignment) error {
 	return nil
 }
 
-// AcceptExpression will accept an Expression into the Condition of this Task.
+// AcceptExpression will accept an Expression into the Condition of this local task.
 // It is used by EcaruleParserListener.
 // One who wants to use this function in a different context should make sure that the Expression
-// satisfies the constraints implied by this Task and by the Rule owner.
+// satisfies the constraints implied by this local task and by the Rule owner.
 func (t expressionReceiver) AcceptExpression(exp *ast.Expression) error {
 	if t.Condition != nil {
 		return errors.New("task condition already assigned")

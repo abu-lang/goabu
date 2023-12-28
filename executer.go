@@ -473,18 +473,17 @@ func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externa
 	var extActions []externalAction
 	rules := m.activeRules(modified)
 	for _, rule := range rules {
-		for _, task := range rule.Tasks {
-			if !task.External {
-				tActions, err := condEvalActions(task.Condition, task.Actions, m.dataContext, m.workingMemory)
-				if err != nil {
-					m.logger.Panic("Error during actions evaluation: "+err.Error(),
-						zap.String("act", "eval"),
-						zap.String("obj", "actions"))
-				}
-				newpool = appendNonempty(newpool, tActions)
-			} else {
-				extActions = append(extActions, m.preEvaluated(task))
+		for _, task := range rule.LocalTasks {
+			tActions, err := condEvalActions(task.Condition, task.Actions, m.dataContext, m.workingMemory)
+			if err != nil {
+				m.logger.Panic("Error during actions evaluation: "+err.Error(),
+					zap.String("act", "eval"),
+					zap.String("obj", "actions"))
 			}
+			newpool = appendNonempty(newpool, tActions)
+		}
+		for _, task := range rule.RemoteTasks {
+			extActions = append(extActions, m.preEvaluated(task))
 		}
 	}
 	return newpool, extActions
@@ -501,7 +500,7 @@ func (m *Executer) activeRules(modified stringset.Set) ecarule.RuleDict {
 }
 
 // Precondition: rule.Task.External
-func (m *Executer) preEvaluated(task ecarule.Task) externalAction {
+func (m *Executer) preEvaluated(task ecarule.RemoteTask) externalAction {
 	res := externalAction{
 		CondWorkingSet: stringset.Make(),
 		Constants:      make(map[string]interface{}),

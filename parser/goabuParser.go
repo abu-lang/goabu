@@ -109,7 +109,7 @@ func (p *goabuParser) ParseActions(actions string) ([]ecarule.Action, []error) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	task := ecarule.Task{}
+	task := ecarule.LocalTask{}
 	p.listener.Stack.Push(expressionReceiver{&task})
 	p.lockMemory.Lock()
 	antlr.ParseTreeWalkerDefault.Walk(p.listener, tree)
@@ -128,7 +128,7 @@ func (p *goabuParser) ParseExpressions(exps ...string) ([]*ast.Expression, []err
 	res := make([]*ast.Expression, 0, len(exps))
 	p.lockMemory.Lock()
 	defer p.lockMemory.Unlock()
-	task := ecarule.Task{}
+	task := ecarule.LocalTask{}
 	for _, exp := range exps {
 		p.reset(exp)
 		p.listener.Stack.Push(expressionReceiver{&task})

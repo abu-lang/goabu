@@ -20,8 +20,9 @@ import (
 
 // processing will contain the events and the tasks of the rule currently being processed.
 type processing struct {
-	events []string
-	tasks  []ecarule.Task
+	events      []string
+	localTasks  []ecarule.LocalTask
+	remoteTasks []ecarule.RemoteTask
 }
 
 type ecaruleParserListener struct {
@@ -71,13 +72,8 @@ func (l *ecaruleParserListener) EnterPrule(ctx *antlr_parser.PruleContext) {
 	if l.StopParse {
 		return
 	}
-	t := 0
-	for ; ctx.Task(t) != nil; t++ {
-	}
-	if ctx.DefaultActions() != nil {
-		t++
-	}
-	l.tasks = make([]ecarule.Task, 0, t)
+	l.localTasks = make([]ecarule.LocalTask, 0)
+	l.remoteTasks = make([]ecarule.RemoteTask, 0)
 }
 
 // ExitPrule is called when production prule is exited.
@@ -86,12 +82,14 @@ func (l *ecaruleParserListener) ExitPrule(ctx *antlr_parser.PruleContext) {
 		return
 	}
 	l.Rules = append(l.Rules, ecarule.Rule{
-		Name:   ctx.SIMPLENAME().GetText(),
-		Events: l.events,
-		Tasks:  l.tasks,
+		Name:        ctx.SIMPLENAME().GetText(),
+		Events:      l.events,
+		LocalTasks:  l.localTasks,
+		RemoteTasks: l.remoteTasks,
 	})
 	l.events = nil
-	l.tasks = nil
+	l.localTasks = nil
+	l.remoteTasks = nil
 }
 
 // EnterEvents is called when production events is entered.
@@ -121,8 +119,8 @@ func (l *ecaruleParserListener) EnterDefaultActions(ctx *antlr_parser.DefaultAct
 		l.parseError(errors.New("error during default actions parsing"))
 		return
 	}
-	l.tasks = append(l.tasks, ecarule.Task{Condition: cond})
-	l.Stack.Push(expressionReceiver{&l.tasks[len(l.tasks)-1]})
+	l.localTasks = append(l.localTasks, ecarule.LocalTask{Condition: cond})
+	l.Stack.Push(expressionReceiver{&l.localTasks[len(l.localTasks)-1]})
 }
 
 // ExitDefaultActions is called when production defaultActions is exited.
@@ -138,10 +136,15 @@ func (l *ecaruleParserListener) EnterTask(ctx *antlr_parser.TaskContext) {
 	if l.StopParse {
 		return
 	}
-	all := ctx.ALL() != nil
-	l.tasks = append(l.tasks, ecarule.Task{External: all})
-	l.allowExt = all
-	l.Stack.Push(expressionReceiver{&l.tasks[len(l.tasks)-1]})
+	if ctx.ALL() != nil {
+		l.allowExt = true
+		l.remoteTasks = append(l.remoteTasks, ecarule.RemoteTask{})
+		l.Stack.Push(tmpExpressionReceiver{&l.remoteTasks[len(l.remoteTasks)-1]})
+	} else {
+		l.allowExt = false
+		l.localTasks = append(l.localTasks, ecarule.LocalTask{})
+		l.Stack.Push(expressionReceiver{&l.localTasks[len(l.localTasks)-1]})
+	}
 }
 
 // ExitTask is called when production task is exited.
