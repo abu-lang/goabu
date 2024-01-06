@@ -181,53 +181,61 @@ func (l *ecaruleParserListener) EnterAssignment(ctx *grulev3.AssignmentContext) 
 }
 
 func (l *ecaruleParserListener) ExitVariable(ctx *grulev3.VariableContext) {
-	if !l.StopParse {
-		var r *ast.Variable = nil
-		e, ok := l.Stack.Peek().(*ast.Variable)
-		if ok {
-			switch {
-			case ctx.SIMPLENAME() != nil && len(ctx.SIMPLENAME().GetText()) > 0:
-				n := ctx.SIMPLENAME().GetText()
-				if n == "this" || n == "ext" {
-					break
-				}
-				if l.inAssignLeft && l.allowExt {
-					r = l.newExtAssignVariable(n)
-				} else {
-					t, present := l.types[n]
-					if !present {
-						l.parseError(fmt.Errorf("could not determine the type of %s", n))
-						break
-					}
-					r = l.newThisAssignVariable(n, t)
-				}
-			case e.Variable != nil && e.Variable.Name == "ext":
-				if !l.allowExt {
-					l.parseError(fmt.Errorf("external variable %s is not allowed in this context", e.GetGrlText()))
-					break
-				}
-				r = l.newExtAssignVariable(e.Name)
-			case e.Variable != nil && e.Variable.Name == "this":
-				if l.inAssignLeft && l.allowExt {
-					l.parseError(fmt.Errorf("local actions are not allowed in 'for all' tasks"))
-					break
-				}
-				n := e.Name
-				t, present := l.types[n]
-				if !present {
-					l.parseError(fmt.Errorf("could not determine the type of %s", n))
-					break
-				}
-				r = l.newThisAssignVariable(n, t)
+	defer l.GruleV3ParserListener.ExitVariable(ctx)
+	if l.StopParse {
+		return
+	}
+	e, ok := l.Stack.Peek().(*ast.Variable)
+	if !ok {
+		return
+	}
+	var name string
+	var typ string
+	var remote bool = false
+	switch {
+	case ctx.SIMPLENAME() != nil && len(ctx.SIMPLENAME().GetText()) > 0:
+		name = ctx.SIMPLENAME().GetText()
+		if name == "this" || name == "ext" {
+			return
+		}
+		if l.inAssignLeft && l.allowExt {
+			remote = true
+		} else {
+			var present bool
+			typ, present = l.types[name]
+			if !present {
+				l.parseError(fmt.Errorf("could not determine the type of %s", name))
+				return
 			}
 		}
-		if r != nil {
-			l.Stack.Pop()
-			l.Stack.Push(r)
+	case e.Variable != nil && e.Variable.Name == "ext":
+		if !l.allowExt {
+			l.parseError(fmt.Errorf("external variable %s is not allowed in this context", e.GetGrlText()))
+			return
+		}
+		name = e.Name
+		remote = true
+	case e.Variable != nil && e.Variable.Name == "this":
+		if l.inAssignLeft && l.allowExt {
+			l.parseError(fmt.Errorf("local actions are not allowed in 'for all' tasks"))
+			return
+		}
+		name = e.Name
+		var present bool
+		typ, present = l.types[name]
+		if !present {
+			l.parseError(fmt.Errorf("could not determine the type of %s", name))
+			return
 		}
 	}
-
-	l.GruleV3ParserListener.ExitVariable(ctx)
+	var r *ast.Variable
+	if !remote {
+		r = l.newThisAssignVariable(name, typ)
+	} else {
+		r = l.newExtAssignVariable(name)
+	}
+	l.Stack.Pop()
+	l.Stack.Push(r)
 }
 
 func (l *ecaruleParserListener) EnterExpression(ctx *grulev3.ExpressionContext) {
