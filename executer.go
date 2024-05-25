@@ -54,8 +54,8 @@ func NewExecuter(
 	rules []string,
 	agt Agent,
 	lc config.LogConfig,
-	invariants ...string) (*Executer, error) {
-
+	invariants ...string,
+) (*Executer, error) {
 	res := &Executer{
 		memory:      mem.Copy(),
 		pool:        make([]Update, 0),
@@ -72,7 +72,7 @@ func NewExecuter(
 		return nil, err
 	}
 	res.types = res.memory.Types()
-	res.dataContext, res.workingMemory, err = res.newEmptyGruleStructures("this")
+	res.dataContext, res.workingMemory, err = newEmptyGruleStructures(map[string]memory.Resources{"this": res.memory.GetResources()})
 	if err != nil {
 		return nil, err
 	}
@@ -432,8 +432,10 @@ func (m *Executer) resourceValue(resource string) reflect.Value {
 	return reflect.ValueOf(m.memory.GetResources()).FieldByName(m.types[resource]).MapIndex(reflect.ValueOf(resource))
 }
 
+// discovery given a set of modified resource names adds to the pool the updates coming from the
+// triggered local rules and adds the updates from the global rules in the pools of the other nodes.
 func (m *Executer) discovery(modified stringset.Set) {
-	updates, eActions := m.triggeredActions(modified)
+	updates, wire := m.triggeredActions(modified)
 	m.lockMemory.Unlock()
 	ok := make(chan bool)
 	m.updateReceiver <- preparedUpdates{updates: updates, confirm: ok}
@@ -443,8 +445,8 @@ func (m *Executer) discovery(modified stringset.Set) {
 	m.logger.Info(fmt.Sprintf("Discovery found %d updates", len(updates)),
 		zap.String("act", "discovery"),
 		zapUpdates("updates", updates))
-	if len(eActions) > 0 {
-		payload, err := marshalExternalActions(eActions)
+	if len(wire.Tasks) > 0 {
+		payload, err := marshalWireTasks(wire)
 		if err != nil {
 			m.logger.Panic("Error during external actions marshalling: "+err.Error(),
 				zap.String("act", "marshalling"),
@@ -466,12 +468,13 @@ func (m *Executer) discovery(modified stringset.Set) {
 	}
 }
 
-// triggeredActions given a set of modified resources calculates the local updates and the partially evaluated tasks
+// triggeredActions, given a set of modified resources, calculates the local updates and the partially evaluated tasks
 // that are to be sent to the other nodes.
-func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externalAction) {
+func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, wireTasks) {
 	var newpool []Update
-	var extActions []externalAction
+	var wTask wireTasks
 	rules := m.activeRules(modified)
+	localResources := stringset.Make()
 	for _, rule := range rules {
 		for _, task := range rule.LocalTasks {
 			tActions, err := condEvalActions(task.Condition, task.Actions, m.dataContext, m.workingMemory)
@@ -483,10 +486,12 @@ func (m *Executer) triggeredActions(modified stringset.Set) ([]Update, []externa
 			newpool = appendNonempty(newpool, tActions)
 		}
 		for _, task := range rule.RemoteTasks {
-			extActions = append(extActions, m.preEvaluated(task))
+			wTask.Tasks = append(wTask.Tasks, task)
+			localResources.Add(stringset.Make(task.LocalResources...))
 		}
 	}
-	return newpool, extActions
+	wTask.Resources = m.memory.Extract(localResources.Slice())
+	return newpool, wTask
 }
 
 func (m *Executer) activeRules(modified stringset.Set) ecarule.RuleDict {
@@ -499,24 +504,6 @@ func (m *Executer) activeRules(modified stringset.Set) ecarule.RuleDict {
 	return res
 }
 
-// Precondition: rule.Task.External
-func (m *Executer) preEvaluated(task ecarule.RemoteTask) externalAction {
-	res := externalAction{
-		CondWorkingSet: stringset.Make(),
-		Constants:      make(map[string]interface{}),
-		IntConstants:   make(map[string]int64),
-		dataContext:    m.dataContext,
-		workingMemory:  m.workingMemory,
-	}
-	res.WorkingSets = make([]stringset.Set, 0, len(task.Actions))
-	for _, action := range task.Actions {
-		res.WorkingSets = append(res.WorkingSets, stringset.Make(action.Resource))
-	}
-	res.Condition = res.preEvaluatedExpression(task.Condition, res.CondWorkingSet)
-	res.Actions = res.preEvaluatedActions(task.Actions)
-	return res
-}
-
 func (m *Executer) hasRuleAux(name string) bool {
 	for _, d := range m.ruleLibrary {
 		if d.Has(name) {
@@ -526,7 +513,7 @@ func (m *Executer) hasRuleAux(name string) bool {
 	return false
 }
 
-// addRuleAux adds an [ecarule.Rule] to the node's knowledge base.
+// addRuleAux adds a [ecarule.Rule] to the node's knowledge base.
 func (m *Executer) addRuleAux(rule ecarule.Rule) error {
 	if m.hasRuleAux(rule.Name) {
 		return fmt.Errorf("there is already a rule named %s", rule.Name)
@@ -613,14 +600,19 @@ func (m *Executer) parseActions(actions string) ([]ecarule.Action, error) {
 	return res, nil
 }
 
-func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.WorkingMemory, error) {
+// newEmptyGruleStructures creates a clean working memory and data context containing
+// the [memory.Resources] from resources as struct instances referenced by the map keys.
+func newEmptyGruleStructures(resources map[string]memory.Resources) (ast.IDataContext, *ast.WorkingMemory, error) {
 	dataContext := ast.NewDataContext()
-	resources := m.memory.GetResources()
-	err := dataContext.Add(name, &(resources))
-	if err != nil {
-		return dataContext, nil, err
+	kbName := "dummy"
+	for name, rs := range resources {
+		rs := rs
+		kbName += "_" + name
+		err := dataContext.Add(name, &(rs))
+		if err != nil {
+			return dataContext, nil, err
+		}
 	}
-	kbName := "dummy_" + name
 	version := "0.0.0"
 	knowledgeBase := &ast.KnowledgeBase{
 		Name:          kbName,
@@ -628,7 +620,7 @@ func (m *Executer) newEmptyGruleStructures(name string) (ast.IDataContext, *ast.
 		RuleEntries:   make(map[string]*ast.RuleEntry),
 		WorkingMemory: ast.NewWorkingMemory(kbName, version),
 	}
-	err = dataContext.Add("DEFUNC",
+	err := dataContext.Add("DEFUNC",
 		makeBuiltinFunctions(
 			knowledgeBase,
 			knowledgeBase.WorkingMemory,
