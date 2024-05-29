@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/memberlist v0.5.0
 	github.com/hyperjumptech/grule-rule-engine v1.15.0
-	go.uber.org/zap v1.25.0
+	go.uber.org/zap v1.27.0
 	gobot.io/x/gobot/v2 v2.1.0
 )
 
