@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/abu-lang/goabu/memory"
+	"github.com/abu-lang/goabu/parser"
 	"github.com/abu-lang/goabu/stringset"
 
 	"go.uber.org/zap"
@@ -23,12 +25,8 @@ const inputsFlush = 100
 // preparedUpdates represents a list of Updates that will possibly be
 // appended to the execution pool.
 type preparedUpdates struct {
-	// updates is the []Update that will possibly be added to the pool.
-	updates []Update
-
-	// confirm is a channel over which arrives a bool indicating if
-	// updates are to be added to the pool or not.
 	confirm chan bool
+	updates []Update
 }
 
 func (m *Executer) receiveInputs() {
@@ -89,53 +87,45 @@ func (m *Executer) receiveExternalActions() {
 // serveTransaction interacts with the Agent in order to possibly receive and append a list of Updates to m.pool.
 func (m *Executer) serveTransaction(actionsCh <-chan []byte, commandsCh chan string) {
 	defer m.logger.Sync()
-	eActions, err := unmarshalExternalActions(<-actionsCh, m.types)
+	wTasks, err := unmarshalWireTasks(<-actionsCh)
 	if err != nil {
 		m.logger.Error("Error during external actions unmarshalling: "+err.Error(),
 			zap.String("act", "unmarshalling"),
-			zap.String("obj", "external actions"))
+			zap.String("obj", "received tasks"))
 		commandsCh <- "aborted"
 		return
 	}
 	var updates []Update
-	localResources := stringset.Make()
-	for r := range m.types {
-		localResources.Insert(r)
-	}
-	workingSet := stringset.Make()
-	for _, eAction := range eActions {
-		if localResources.Contains(eAction.CondWorkingSet) {
-			workingSet.Add(eAction.CondWorkingSet)
-			for _, ws := range eAction.WorkingSets {
-				if localResources.Contains(ws) {
-					workingSet.Add(ws)
-				}
-			}
-		}
-	}
+	workingSet := stringset.Make(wTasks.getRemoteResources()...)
 	k := m.coordinator.requestRead(workingSet)
 	m.lockMemory.RLock()
-	context, workMem, err := m.newEmptyGruleStructures("ext")
+	context, workMem, err := newEmptyGruleStructures(map[string]memory.Resources{"this": m.memory.GetResources(), "ext": wTasks.Resources})
 	m.lockMemory.RUnlock()
 	if err != nil {
 		m.logger.Panic(err.Error())
 	}
-	for _, eAction := range eActions {
-		if localResources.Contains(eAction.CondWorkingSet) {
-			actions := eAction.cullActions(localResources)
-			if len(actions) == 0 {
-				continue
-			}
-			m.lockMemory.RLock()
-			update, err := condEvalActions(eAction.Condition, actions, context, workMem)
-			if err != nil {
-				m.logger.Panic("Error during external actions evaluation: "+err.Error(),
-					zap.String("act", "eval"),
-					zap.String("obj", "external actions"))
-			}
-			updates = appendNonempty(updates, update)
-			m.lockMemory.RUnlock()
+	p := parser.New(m.types, workMem)
+	lTasks, errs := p.ParseRemoteTasks(wTasks.Resources.Types(), wTasks.Tasks...)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			m.logger.Error("error during parsing: "+err.Error(),
+				zap.String("act", "parse"),
+				zap.String("obj", "received tasks"))
 		}
+		m.logger.Sync()
+		commandsCh <- "aborted"
+		return
+	}
+	for _, task := range lTasks {
+		m.lockMemory.RLock()
+		update, err := condEvalActions(task.Condition, task.Actions, context, workMem)
+		if err != nil {
+			m.logger.Panic("Error during received task evaluation: "+err.Error(),
+				zap.String("act", "eval"),
+				zap.String("obj", "received tasks"))
+		}
+		updates = appendNonempty(updates, update)
+		m.lockMemory.RUnlock()
 	}
 	if len(updates) == 0 {
 		if m.coordinator.confirmRead(k) {

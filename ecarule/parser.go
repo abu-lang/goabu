@@ -13,4 +13,6 @@ type Parser interface {
 	ParseExpressions(...string) ([]*ast.Expression, []error)
 	// ParseActions parses a series of local actions.
 	ParseActions(string) ([]Action, []error)
+	// ParseRemoteTasks parses a series of received tasks into local tasks that can be executed.
+	ParseRemoteTasks(map[string]string, ...RemoteTask) ([]LocalTask, []error)
 }

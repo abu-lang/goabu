@@ -98,11 +98,9 @@ package goabu {
         Resource : string
         Value : Value
     }
-    class externalAction
 
     Executer "1" o-- "1" Agent
     Executer *-- "*" Assignment
-    Executer -- externalAction
     Executer -- State
 }
 

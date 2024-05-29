@@ -8,7 +8,7 @@ import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
-// ValidateIdentifiers returns a boolean value for each argument. if the value is true
+// ValidateIdentifiers returns a boolean value for each argument. If the value is true
 // then the argument can be used as an identifier in GoAbU rules.
 func ValidateIdentifiers(ids ...string) []bool {
 	res := make([]bool, 0, len(ids))

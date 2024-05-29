@@ -10,8 +10,8 @@ import (
 )
 
 // isClean checks if the [*ecaruleParserListener] was correctly reset to a clean state.
-func (l *ecaruleParserListener) isClean() bool {
-	if l.Rules != nil || len(l.PreviousNode) > 0 || l.Stack.Len() > 0 || l.StopParse || len(l.ErrorCallback.Errors) > 0 {
+func (l *ruleParser) isClean() bool {
+	if l.rules != nil || len(l.local.PreviousNode) > 0 || l.local.Stack.Len() > 0 || l.local.StopParse || len(l.local.ErrorCallback.Errors) > 0 {
 		return false
 	}
 	return true
@@ -90,7 +90,7 @@ func TestDefault(t *testing.T) {
 	}
 	wm := ast.NewWorkingMemory("", "")
 	p := New(types, wm).(*goabuParser)
-	exp, err := p.listener.newBooleanLiteralExpression(true)
+	exp, err := newBooleanLiteralExpression(p.listener.local.KnowledgeBase.WorkingMemory, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestDefault(t *testing.T) {
 		}
 		rule := rules[0]
 		found := 0
-		for _, t := range rule.Tasks {
+		for _, t := range rule.LocalTasks {
 			if t.Condition.AstID == exp.AstID {
 				found++
 			}
