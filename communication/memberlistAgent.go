@@ -115,7 +115,8 @@ func NewMemberlistAgent(id string, port int, lc config.LogConfig, nodes ...strin
 // delegate allows overriding the handling of memberlist's events, see file delegateDefault.go for the
 // default implementation.
 func NewMemberlistAgentAdvanced(id string, port int, cfg *memberlist.Config, delegate *MemberlistDelegate,
-	lc config.LogConfig, nodes ...string) *MemberlistAgent {
+	lc config.LogConfig, nodes ...string,
+) *MemberlistAgent {
 	res := &MemberlistAgent{
 		id:                    id,
 		running:               false,
@@ -291,7 +292,7 @@ func (a *MemberlistAgent) Stop() error {
 	}
 
 	a.logger.Debug("Leaving group...", zap.String("act", "leave"))
-	err = a.list.Shutdown() // always returns nil in memberlist v0.5.0
+	err = a.list.Shutdown() // always returns nil in memberlist v0.5.1
 	if err != nil {
 		a.logger.Error("Error in leaving group: "+err.Error(), zap.String("act", "leave"))
 	} else {
