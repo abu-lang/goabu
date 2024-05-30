@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/memberlist v0.5.1
 	github.com/hyperjumptech/grule-rule-engine v1.15.0
 	go.uber.org/zap v1.27.0
-	gobot.io/x/gobot/v2 v2.1.0
+	gobot.io/x/gobot/v2 v2.2.0
 )
 
 require (
@@ -36,13 +36,12 @@ require (
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/miekg/dns v1.1.26 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sigurn/crc8 v0.0.0-20220107193325-2243fe600f9f // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
-	github.com/warthog618/gpiod v0.8.0 // indirect
+	github.com/warthog618/gpiod v0.8.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
@@ -52,5 +51,5 @@ require (
 	golang.org/x/tools v0.14.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	periph.io/x/conn/v3 v3.7.0 // indirect
-	periph.io/x/host/v3 v3.7.2 // indirect
+	periph.io/x/host/v3 v3.8.2 // indirect
 )
