@@ -1,6 +1,6 @@
 module github.com/abu-lang/goabu
 
-go 1.20
+go 1.22.0
 
 require (
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
