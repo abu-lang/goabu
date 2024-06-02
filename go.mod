@@ -2,6 +2,8 @@ module github.com/abu-lang/goabu
 
 go 1.22.0
 
+toolchain go1.22.3
+
 require (
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
 	github.com/google/uuid v1.3.0
@@ -9,6 +11,7 @@ require (
 	github.com/hyperjumptech/grule-rule-engine v1.15.0
 	go.uber.org/zap v1.27.0
 	gobot.io/x/gobot/v2 v2.2.0
+	k8s.io/apimachinery v0.30.1
 )
 
 require (
@@ -45,10 +48,10 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/mod v0.13.0 // indirect
+	golang.org/x/mod v0.15.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/tools v0.14.0 // indirect
+	golang.org/x/tools v0.18.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	periph.io/x/conn/v3 v3.7.0 // indirect
 	periph.io/x/host/v3 v3.8.2 // indirect
