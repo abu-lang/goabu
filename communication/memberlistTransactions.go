@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/abu-lang/goabu/stringset"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/hashicorp/memberlist"
 	"go.uber.org/zap"
@@ -46,7 +46,7 @@ func (t *transactionInfo) id() string {
 }
 
 func (t *transactionInfo) buryParticipants(members []*memberlist.Node) {
-	alives := stringset.Make()
+	alives := sets.New[string]()
 	for _, member := range members {
 		alives.Insert(member.Name)
 	}
@@ -150,15 +150,15 @@ func (a *MemberlistAgent) interested(tran transactionInfo) ([]string, error) {
 // received TestsMidSends responses.
 func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels) ([]string, error) {
 	aborted := ""
-	waitFor := stringset.Make()
+	waitFor := sets.New[string]()
 	for _, member := range a.adapter.filterParticipants(a.list.Members()) {
 		waitFor.Insert(member.Name)
 	}
 	var interested []string
-	for !waitFor.Empty() {
+	for waitFor.Len() > 0 {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan stringset.Set)
+		receiversCh := make(chan sets.Set[string])
 		if a.test == TestsMidInterested {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
@@ -166,11 +166,11 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 		}
 		received := 0
 	INTERESTED:
-		for !waitFor.Empty() {
+		for waitFor.Len() > 0 {
 			select {
 			case receivers := <-receiversCh:
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
-				waitFor.Intersect(receivers)
+				waitFor = waitFor.Intersection(receivers)
 			case participant := <-channels.areInterested:
 				received++
 				interested = append(interested, participant)
@@ -204,7 +204,7 @@ func (a *MemberlistAgent) interestPhase(msg []byte, channels transactionChannels
 	if !ok {
 		a.logger.Panic("Could not marshal "+order.Type+" message", zap.String("act", "marshalling"), zap.String("obj", order.Type))
 	}
-	dests := stringset.Make()
+	dests := sets.New[string]()
 	for _, i := range interested {
 		dests.Insert(i)
 	}
@@ -222,7 +222,7 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	if !ok {
 		return errors.New("could not marshal can_commit? message")
 	}
-	receivers := stringset.Make()
+	receivers := sets.New[string]()
 	for _, nodeName := range tran.Participants {
 		receivers.Insert(nodeName)
 	}
@@ -233,12 +233,12 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	a.logger.Debug("Started transaction",
 		zap.String("subj", a.id),
 		zap.String("act", "start_tran"),
-		zap.Int("participants", receivers.Size()))
+		zap.Int("participants", receivers.Len()))
 	res := a.firstPhase(receivers, msg, channels)
 	a.logger.Debug("Terminated first phase",
 		zap.String("subj", a.id),
 		zap.String("act", "end_1_phase"),
-		zap.Int("participants", receivers.Size()))
+		zap.Int("participants", receivers.Len()))
 	a.testsHaltIf(TestsAfterFirst)
 	responses := channels.haveCommitted
 	action := "do_commit"
@@ -269,12 +269,12 @@ func (a *MemberlistAgent) coordinateTransaction(tran transactionInfo) error {
 	return res
 }
 
-func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, channels transactionChannels) error {
+func (a *MemberlistAgent) firstPhase(participants sets.Set[string], msg []byte, channels transactionChannels) error {
 	waitFor := participants.Clone()
-	for !waitFor.Empty() {
+	for waitFor.Len() > 0 {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan stringset.Set)
+		receiversCh := make(chan sets.Set[string])
 		if a.test == TestsMidFirst {
 			go a.testsPhaseSend(waitForCopy, msg, true, receiversCh, TestsMidSends)
 		} else {
@@ -282,11 +282,11 @@ func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, cha
 		}
 		received := 0
 	GET_RESPONSES_1:
-		for !waitFor.Empty() {
+		for waitFor.Len() > 0 {
 			select {
 			case receivers := <-receiversCh:
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
-				waitFor.Intersect(receivers)
+				waitFor = waitFor.Intersection(receivers)
 			case prepared := <-channels.arePrepared:
 				received++
 				delete(waitFor, prepared)
@@ -318,11 +318,11 @@ func (a *MemberlistAgent) firstPhase(participants stringset.Set, msg []byte, cha
 // responded then msg is resended to those nodes and the timeout is restarted.
 //
 // responses is a channel that must pass the name of a node when a response from that node is received.
-func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, responses <-chan string, tranID string) {
-	for !waitFor.Empty() {
+func (a *MemberlistAgent) secondPhase(waitFor sets.Set[string], msg []byte, responses <-chan string, tranID string) {
+	for waitFor.Len() > 0 {
 		var timeout <-chan time.Time = nil
 		waitForCopy := waitFor.Clone()
-		receiversCh := make(chan stringset.Set)
+		receiversCh := make(chan sets.Set[string])
 		if a.test == TestsMidSecond {
 			go a.testsPhaseSend(waitForCopy, msg, false, receiversCh, TestsMidSends)
 		} else {
@@ -330,14 +330,14 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, respons
 		}
 		received := 0
 	GET_RESPONSES_2:
-		for !waitFor.Empty() {
+		for waitFor.Len() > 0 {
 			select {
 			case receivers := <-receiversCh:
 				timeout = time.After(time.Millisecond * timeoutPhaseResend)
-				waitFor.Intersect(receivers)
+				waitFor = waitFor.Intersection(receivers)
 			case responded := <-responses:
 				received++
-				waitFor.Remove(responded)
+				waitFor.Delete(responded)
 			case <-timeout:
 				break GET_RESPONSES_2
 			}
@@ -355,8 +355,8 @@ func (a *MemberlistAgent) secondPhase(waitFor stringset.Set, msg []byte, respons
 // done will pass the nodes that were alive during the execution of phaseSend.
 //
 // Testing: if a.test == TestsUnreliable about 10% of the sends aren't performed.
-func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliableSend bool, tranID string, done chan<- stringset.Set) {
-	newReceivers := stringset.Make()
+func (a *MemberlistAgent) phaseSend(receivers sets.Set[string], msg []byte, reliableSend bool, tranID string, done chan<- sets.Set[string]) {
+	newReceivers := sets.New[string]()
 	for _, member := range a.list.Members() {
 		if receivers.Has(member.Name) {
 			newReceivers.Insert(member.Name)
@@ -379,7 +379,7 @@ func (a *MemberlistAgent) phaseSend(receivers stringset.Set, msg []byte, reliabl
 	done <- newReceivers
 }
 
-func (a *MemberlistAgent) testsPhaseSend(receivers stringset.Set, msg []byte, reliableSend bool, done chan<- stringset.Set, haltAfter int) {
+func (a *MemberlistAgent) testsPhaseSend(receivers sets.Set[string], msg []byte, reliableSend bool, done chan<- sets.Set[string], haltAfter int) {
 	selected := make([]*memberlist.Node, 0, haltAfter)
 	sent := 0
 	for _, member := range a.list.Members() {
@@ -454,7 +454,6 @@ func demuxResponses(coordinated <-chan chan transactionChannels, responses <-cha
 			}
 		}
 	}
-
 }
 
 func (a *MemberlistAgent) handleTransactions() {

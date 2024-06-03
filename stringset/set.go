@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // package stringset is a simple implementation of finite sets of strings.
+//
+// Deprecated: the package will probably be substituted by k8s.io/apimachinery/pkg/util/sets.
 package stringset
 
 type Set map[string]bool
