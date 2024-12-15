@@ -1,8 +1,8 @@
-// Code generated from EcaruleParser.g4 by ANTLR 4.10.1 and MODIFIED by ../Makefile.
+// Code generated from EcaruleParser.g4 by ANTLR 4.13.2 and MODIFIED by ../Makefile.
 
 package antlr // EcaruleParser
 import (
-	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/antlr4-go/antlr/v4"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 )
 

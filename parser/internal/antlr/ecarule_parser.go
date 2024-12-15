@@ -1,4 +1,4 @@
-// Code generated from EcaruleParser.g4 by ANTLR 4.10.1 and MODIFIED by ../Makefile.
+// Code generated from EcaruleParser.g4 by ANTLR 4.13.2 and MODIFIED by ../Makefile.
 
 package antlr // EcaruleParser
 import (
@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/antlr4-go/antlr/v4"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 )
 
@@ -19,20 +19,20 @@ type EcaruleParser struct {
 	*antlr.BaseParser
 }
 
-var ecaruleparserParserStaticData struct {
+var EcaruleParserParserStaticData struct {
 	once                   sync.Once
 	serializedATN          []int32
-	literalNames           []string
-	symbolicNames          []string
-	ruleNames              []string
-	predictionContextCache *antlr.PredictionContextCache
+	LiteralNames           []string
+	SymbolicNames          []string
+	RuleNames              []string
+	PredictionContextCache *antlr.PredictionContextCache
 	atn                    *antlr.ATN
 	decisionToDFA          []*antlr.DFA
 }
 
 func ecaruleparserParserInit() {
-	staticData := &ecaruleparserParserStaticData
-	staticData.symbolicNames = []string{
+	staticData := &EcaruleParserParserStaticData
+	staticData.SymbolicNames = []string{
 		"", "", "PLUS", "MINUS", "DIV", "MUL", "MOD", "DOT", "SEMICOLON", "LR_BRACE",
 		"RR_BRACE", "LR_BRACKET", "RR_BRACKET", "LS_BRACKET", "RS_BRACKET",
 		"RULE", "WHEN", "THEN", "AND", "OR", "TRUE", "FALSE", "NIL_LITERAL",
@@ -43,7 +43,7 @@ func ecaruleparserParserInit() {
 		"OCT_LIT", "SPACE", "COMMENT", "LINE_COMMENT", "ON", "DEFAULT", "FOR",
 		"ALL", "DO",
 	}
-	staticData.ruleNames = []string{
+	staticData.RuleNames = []string{
 		"prules", "prule", "events", "defaultActions", "task", "actions", "tailActions",
 		"maybeActions", "grl", "ruleEntry", "salience", "ruleName", "ruleDescription",
 		"whenScope", "thenScope", "thenExpressionList", "thenExpression", "assignment",
@@ -54,7 +54,7 @@ func ecaruleparserParserInit() {
 		"integerLiteral", "decimalLiteral", "hexadecimalLiteral", "octalLiteral",
 		"stringLiteral", "booleanLiteral",
 	}
-	staticData.predictionContextCache = antlr.NewPredictionContextCache()
+	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
 		4, 1, 55, 324, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
 		4, 2, 5, 7, 5, 2, 6, 7, 6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2, 10, 7,
@@ -210,7 +210,7 @@ func ecaruleparserParserInit() {
 // NewEcaruleParser(). You can call this function if you wish to initialize the static state ahead
 // of time.
 func EcaruleParserInit() {
-	staticData := &ecaruleparserParserStaticData
+	staticData := &EcaruleParserParserStaticData
 	staticData.once.Do(ecaruleparserParserInit)
 }
 
@@ -219,11 +219,11 @@ func NewEcaruleParser(input antlr.TokenStream) *EcaruleParser {
 	EcaruleParserInit()
 	this := new(EcaruleParser)
 	this.BaseParser = antlr.NewBaseParser(input)
-	staticData := &ecaruleparserParserStaticData
-	this.Interpreter = antlr.NewParserATNSimulator(this, staticData.atn, staticData.decisionToDFA, staticData.predictionContextCache)
-	this.RuleNames = staticData.ruleNames
-	this.LiteralNames = staticData.literalNames
-	this.SymbolicNames = staticData.symbolicNames
+	staticData := &EcaruleParserParserStaticData
+	this.Interpreter = antlr.NewParserATNSimulator(this, staticData.atn, staticData.decisionToDFA, staticData.PredictionContextCache)
+	this.RuleNames = staticData.RuleNames
+	this.LiteralNames = staticData.LiteralNames
+	this.SymbolicNames = staticData.SymbolicNames
 	this.GrammarFileName = "EcaruleParser.g4"
 
 	return this
@@ -341,20 +341,29 @@ type IPrulesContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	AllPrule() []IPruleContext
+	Prule(i int) IPruleContext
+
 	// IsPrulesContext differentiates from other interfaces.
 	IsPrulesContext()
 }
 
 type PrulesContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyPrulesContext() *PrulesContext {
 	var p = new(PrulesContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_prules
 	return p
+}
+
+func InitEmptyPrulesContext(p *PrulesContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_prules
 }
 
 func (*PrulesContext) IsPrulesContext() {}
@@ -362,7 +371,7 @@ func (*PrulesContext) IsPrulesContext() {}
 func NewPrulesContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *PrulesContext {
 	var p = new(PrulesContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_prules
@@ -434,32 +443,16 @@ func (s *PrulesContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) Prules() (localctx IPrulesContext) {
-	this := p
-	_ = this
-
 	localctx = NewPrulesContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 0, EcaruleParserRULE_prules)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(83)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	for ok := true; ok; ok = _la == EcaruleParserRULE {
@@ -470,10 +463,23 @@ func (p *EcaruleParser) Prules() (localctx IPrulesContext) {
 
 		p.SetState(85)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IPruleContext is an interface to support dynamic dispatch.
@@ -483,20 +489,34 @@ type IPruleContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	RULE() antlr.TerminalNode
+	SIMPLENAME() antlr.TerminalNode
+	ON() antlr.TerminalNode
+	Events() IEventsContext
+	DefaultActions() IDefaultActionsContext
+	AllTask() []ITaskContext
+	Task(i int) ITaskContext
+
 	// IsPruleContext differentiates from other interfaces.
 	IsPruleContext()
 }
 
 type PruleContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyPruleContext() *PruleContext {
 	var p = new(PruleContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_prule
 	return p
+}
+
+func InitEmptyPruleContext(p *PruleContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_prule
 }
 
 func (*PruleContext) IsPruleContext() {}
@@ -504,7 +524,7 @@ func (*PruleContext) IsPruleContext() {}
 func NewPruleContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *PruleContext {
 	var p = new(PruleContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_prule
@@ -620,41 +640,34 @@ func (s *PruleContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) Prule() (localctx IPruleContext) {
-	this := p
-	_ = this
-
 	localctx = NewPruleContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 2, EcaruleParserRULE_prule)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(87)
 		p.Match(EcaruleParserRULE)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(88)
 		p.Match(EcaruleParserSIMPLENAME)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(89)
 		p.Match(EcaruleParserON)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(90)
@@ -662,6 +675,9 @@ func (p *EcaruleParser) Prule() (localctx IPruleContext) {
 	}
 	p.SetState(92)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserDEFAULT {
@@ -673,6 +689,9 @@ func (p *EcaruleParser) Prule() (localctx IPruleContext) {
 	}
 	p.SetState(95)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	for ok := true; ok; ok = _la == EcaruleParserFOR {
@@ -683,10 +702,23 @@ func (p *EcaruleParser) Prule() (localctx IPruleContext) {
 
 		p.SetState(97)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IEventsContext is an interface to support dynamic dispatch.
@@ -696,20 +728,29 @@ type IEventsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	AllSIMPLENAME() []antlr.TerminalNode
+	SIMPLENAME(i int) antlr.TerminalNode
+
 	// IsEventsContext differentiates from other interfaces.
 	IsEventsContext()
 }
 
 type EventsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyEventsContext() *EventsContext {
 	var p = new(EventsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_events
 	return p
+}
+
+func InitEmptyEventsContext(p *EventsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_events
 }
 
 func (*EventsContext) IsEventsContext() {}
@@ -717,7 +758,7 @@ func (*EventsContext) IsEventsContext() {}
 func NewEventsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *EventsContext {
 	var p = new(EventsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_events
@@ -756,46 +797,47 @@ func (s *EventsContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) Events() (localctx IEventsContext) {
-	this := p
-	_ = this
-
 	localctx = NewEventsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 4, EcaruleParserRULE_events)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(100)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	for ok := true; ok; ok = _la == EcaruleParserSIMPLENAME {
 		{
 			p.SetState(99)
 			p.Match(EcaruleParserSIMPLENAME)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 		p.SetState(102)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IDefaultActionsContext is an interface to support dynamic dispatch.
@@ -805,20 +847,29 @@ type IDefaultActionsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DEFAULT() antlr.TerminalNode
+	Actions() IActionsContext
+
 	// IsDefaultActionsContext differentiates from other interfaces.
 	IsDefaultActionsContext()
 }
 
 type DefaultActionsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyDefaultActionsContext() *DefaultActionsContext {
 	var p = new(DefaultActionsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_defaultActions
 	return p
+}
+
+func InitEmptyDefaultActionsContext(p *DefaultActionsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_defaultActions
 }
 
 func (*DefaultActionsContext) IsDefaultActionsContext() {}
@@ -826,7 +877,7 @@ func (*DefaultActionsContext) IsDefaultActionsContext() {}
 func NewDefaultActionsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *DefaultActionsContext {
 	var p = new(DefaultActionsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_defaultActions
@@ -877,39 +928,33 @@ func (s *DefaultActionsContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) DefaultActions() (localctx IDefaultActionsContext) {
-	this := p
-	_ = this
-
 	localctx = NewDefaultActionsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 6, EcaruleParserRULE_defaultActions)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(104)
 		p.Match(EcaruleParserDEFAULT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(105)
 		p.Actions()
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // ITaskContext is an interface to support dynamic dispatch.
@@ -919,20 +964,32 @@ type ITaskContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	FOR() antlr.TerminalNode
+	Expression() IExpressionContext
+	DO() antlr.TerminalNode
+	Actions() IActionsContext
+	ALL() antlr.TerminalNode
+
 	// IsTaskContext differentiates from other interfaces.
 	IsTaskContext()
 }
 
 type TaskContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyTaskContext() *TaskContext {
 	var p = new(TaskContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_task
 	return p
+}
+
+func InitEmptyTaskContext(p *TaskContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_task
 }
 
 func (*TaskContext) IsTaskContext() {}
@@ -940,7 +997,7 @@ func (*TaskContext) IsTaskContext() {}
 func NewTaskContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *TaskContext {
 	var p = new(TaskContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_task
@@ -1015,42 +1072,34 @@ func (s *TaskContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) Task() (localctx ITaskContext) {
-	this := p
-	_ = this
-
 	localctx = NewTaskContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 8, EcaruleParserRULE_task)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(107)
 		p.Match(EcaruleParserFOR)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	p.SetState(109)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserALL {
 		{
 			p.SetState(108)
 			p.Match(EcaruleParserALL)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	}
@@ -1061,13 +1110,27 @@ func (p *EcaruleParser) Task() (localctx ITaskContext) {
 	{
 		p.SetState(112)
 		p.Match(EcaruleParserDO)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(113)
 		p.Actions()
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IActionsContext is an interface to support dynamic dispatch.
@@ -1077,20 +1140,29 @@ type IActionsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	Assignment() IAssignmentContext
+	TailActions() ITailActionsContext
+
 	// IsActionsContext differentiates from other interfaces.
 	IsActionsContext()
 }
 
 type ActionsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyActionsContext() *ActionsContext {
 	var p = new(ActionsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_actions
 	return p
+}
+
+func InitEmptyActionsContext(p *ActionsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_actions
 }
 
 func (*ActionsContext) IsActionsContext() {}
@@ -1098,7 +1170,7 @@ func (*ActionsContext) IsActionsContext() {}
 func NewActionsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ActionsContext {
 	var p = new(ActionsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_actions
@@ -1161,28 +1233,8 @@ func (s *ActionsContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) Actions() (localctx IActionsContext) {
-	this := p
-	_ = this
-
 	localctx = NewActionsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 10, EcaruleParserRULE_actions)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(115)
@@ -1193,7 +1245,17 @@ func (p *EcaruleParser) Actions() (localctx IActionsContext) {
 		p.TailActions()
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // ITailActionsContext is an interface to support dynamic dispatch.
@@ -1203,20 +1265,28 @@ type ITailActionsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	MaybeActions() IMaybeActionsContext
+
 	// IsTailActionsContext differentiates from other interfaces.
 	IsTailActionsContext()
 }
 
 type TailActionsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyTailActionsContext() *TailActionsContext {
 	var p = new(TailActionsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_tailActions
 	return p
+}
+
+func InitEmptyTailActionsContext(p *TailActionsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_tailActions
 }
 
 func (*TailActionsContext) IsTailActionsContext() {}
@@ -1224,7 +1294,7 @@ func (*TailActionsContext) IsTailActionsContext() {}
 func NewTailActionsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *TailActionsContext {
 	var p = new(TailActionsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_tailActions
@@ -1271,30 +1341,13 @@ func (s *TailActionsContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) TailActions() (localctx ITailActionsContext) {
-	this := p
-	_ = this
-
 	localctx = NewTailActionsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 12, EcaruleParserRULE_tailActions)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.SetState(121)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 
 	switch p.GetTokenStream().LA(1) {
 	case EcaruleParserT__0:
@@ -1302,6 +1355,10 @@ func (p *EcaruleParser) TailActions() (localctx ITailActionsContext) {
 		{
 			p.SetState(118)
 			p.Match(EcaruleParserT__0)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 		{
 			p.SetState(119)
@@ -1312,10 +1369,21 @@ func (p *EcaruleParser) TailActions() (localctx ITailActionsContext) {
 		p.EnterOuterAlt(localctx, 2)
 
 	default:
-		panic(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
+		p.SetError(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
+		goto errorExit
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IMaybeActionsContext is an interface to support dynamic dispatch.
@@ -1325,20 +1393,28 @@ type IMaybeActionsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	Actions() IActionsContext
+
 	// IsMaybeActionsContext differentiates from other interfaces.
 	IsMaybeActionsContext()
 }
 
 type MaybeActionsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyMaybeActionsContext() *MaybeActionsContext {
 	var p = new(MaybeActionsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_maybeActions
 	return p
+}
+
+func InitEmptyMaybeActionsContext(p *MaybeActionsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_maybeActions
 }
 
 func (*MaybeActionsContext) IsMaybeActionsContext() {}
@@ -1346,7 +1422,7 @@ func (*MaybeActionsContext) IsMaybeActionsContext() {}
 func NewMaybeActionsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *MaybeActionsContext {
 	var p = new(MaybeActionsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_maybeActions
@@ -1393,30 +1469,13 @@ func (s *MaybeActionsContext) ExitRule(listener antlr.ParseTreeListener) {
 }
 
 func (p *EcaruleParser) MaybeActions() (localctx IMaybeActionsContext) {
-	this := p
-	_ = this
-
 	localctx = NewMaybeActionsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 14, EcaruleParserRULE_maybeActions)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.SetState(125)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 
 	switch p.GetTokenStream().LA(1) {
 	case EcaruleParserSIMPLENAME:
@@ -1430,10 +1489,21 @@ func (p *EcaruleParser) MaybeActions() (localctx IMaybeActionsContext) {
 		p.EnterOuterAlt(localctx, 2)
 
 	default:
-		panic(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
+		p.SetError(antlr.NewNoViableAltException(p, nil, nil, nil, nil, nil))
+		goto errorExit
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IGrlContext is an interface to support dynamic dispatch.
@@ -1443,20 +1513,30 @@ type IGrlContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	EOF() antlr.TerminalNode
+	AllRuleEntry() []IRuleEntryContext
+	RuleEntry(i int) IRuleEntryContext
+
 	// IsGrlContext differentiates from other interfaces.
 	IsGrlContext()
 }
 
 type GrlContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyGrlContext() *GrlContext {
 	var p = new(GrlContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_grl
 	return p
+}
+
+func InitEmptyGrlContext(p *GrlContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_grl
 }
 
 func (*GrlContext) IsGrlContext() {}
@@ -1464,7 +1544,7 @@ func (*GrlContext) IsGrlContext() {}
 func NewGrlContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *GrlContext {
 	var p = new(GrlContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_grl
@@ -1529,7 +1609,7 @@ func (s *GrlContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) st
 
 func (s *GrlContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewGrlContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewGrlContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterGrl(c)
 	}
@@ -1537,39 +1617,23 @@ func (s *GrlContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *GrlContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewGrlContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewGrlContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitGrl(c)
 	}
 }
 
 func (p *EcaruleParser) Grl() (localctx IGrlContext) {
-	this := p
-	_ = this
-
 	localctx = NewGrlContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 16, EcaruleParserRULE_grl)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(130)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	for _la == EcaruleParserRULE {
@@ -1580,14 +1644,31 @@ func (p *EcaruleParser) Grl() (localctx IGrlContext) {
 
 		p.SetState(132)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 	}
 	{
 		p.SetState(133)
 		p.Match(EcaruleParserEOF)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IRuleEntryContext is an interface to support dynamic dispatch.
@@ -1597,20 +1678,35 @@ type IRuleEntryContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	RULE() antlr.TerminalNode
+	RuleName() IRuleNameContext
+	LR_BRACE() antlr.TerminalNode
+	WhenScope() IWhenScopeContext
+	ThenScope() IThenScopeContext
+	RR_BRACE() antlr.TerminalNode
+	RuleDescription() IRuleDescriptionContext
+	Salience() ISalienceContext
+
 	// IsRuleEntryContext differentiates from other interfaces.
 	IsRuleEntryContext()
 }
 
 type RuleEntryContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyRuleEntryContext() *RuleEntryContext {
 	var p = new(RuleEntryContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_ruleEntry
 	return p
+}
+
+func InitEmptyRuleEntryContext(p *RuleEntryContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_ruleEntry
 }
 
 func (*RuleEntryContext) IsRuleEntryContext() {}
@@ -1618,7 +1714,7 @@ func (*RuleEntryContext) IsRuleEntryContext() {}
 func NewRuleEntryContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *RuleEntryContext {
 	var p = new(RuleEntryContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_ruleEntry
@@ -1730,7 +1826,7 @@ func (s *RuleEntryContext) ToStringTree(ruleNames []string, recog antlr.Recogniz
 
 func (s *RuleEntryContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewRuleEntryContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewRuleEntryContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterRuleEntry(c)
 	}
@@ -1738,40 +1834,25 @@ func (s *RuleEntryContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *RuleEntryContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewRuleEntryContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewRuleEntryContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitRuleEntry(c)
 	}
 }
 
 func (p *EcaruleParser) RuleEntry() (localctx IRuleEntryContext) {
-	this := p
-	_ = this
-
 	localctx = NewRuleEntryContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 18, EcaruleParserRULE_ruleEntry)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(135)
 		p.Match(EcaruleParserRULE)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(136)
@@ -1779,6 +1860,9 @@ func (p *EcaruleParser) RuleEntry() (localctx IRuleEntryContext) {
 	}
 	p.SetState(138)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserDQUOTA_STRING || _la == EcaruleParserSQUOTA_STRING {
@@ -1790,6 +1874,9 @@ func (p *EcaruleParser) RuleEntry() (localctx IRuleEntryContext) {
 	}
 	p.SetState(141)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserSALIENCE {
@@ -1802,6 +1889,10 @@ func (p *EcaruleParser) RuleEntry() (localctx IRuleEntryContext) {
 	{
 		p.SetState(143)
 		p.Match(EcaruleParserLR_BRACE)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(144)
@@ -1814,9 +1905,23 @@ func (p *EcaruleParser) RuleEntry() (localctx IRuleEntryContext) {
 	{
 		p.SetState(146)
 		p.Match(EcaruleParserRR_BRACE)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // ISalienceContext is an interface to support dynamic dispatch.
@@ -1826,20 +1931,29 @@ type ISalienceContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	SALIENCE() antlr.TerminalNode
+	IntegerLiteral() IIntegerLiteralContext
+
 	// IsSalienceContext differentiates from other interfaces.
 	IsSalienceContext()
 }
 
 type SalienceContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptySalienceContext() *SalienceContext {
 	var p = new(SalienceContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_salience
 	return p
+}
+
+func InitEmptySalienceContext(p *SalienceContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_salience
 }
 
 func (*SalienceContext) IsSalienceContext() {}
@@ -1847,7 +1961,7 @@ func (*SalienceContext) IsSalienceContext() {}
 func NewSalienceContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *SalienceContext {
 	var p = new(SalienceContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_salience
@@ -1887,7 +2001,7 @@ func (s *SalienceContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *SalienceContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewSalienceContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewSalienceContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterSalience(c)
 	}
@@ -1895,46 +2009,40 @@ func (s *SalienceContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *SalienceContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewSalienceContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewSalienceContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitSalience(c)
 	}
 }
 
 func (p *EcaruleParser) Salience() (localctx ISalienceContext) {
-	this := p
-	_ = this
-
 	localctx = NewSalienceContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 20, EcaruleParserRULE_salience)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(148)
 		p.Match(EcaruleParserSALIENCE)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(149)
 		p.IntegerLiteral()
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IRuleNameContext is an interface to support dynamic dispatch.
@@ -1944,20 +2052,28 @@ type IRuleNameContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	SIMPLENAME() antlr.TerminalNode
+
 	// IsRuleNameContext differentiates from other interfaces.
 	IsRuleNameContext()
 }
 
 type RuleNameContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyRuleNameContext() *RuleNameContext {
 	var p = new(RuleNameContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_ruleName
 	return p
+}
+
+func InitEmptyRuleNameContext(p *RuleNameContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_ruleName
 }
 
 func (*RuleNameContext) IsRuleNameContext() {}
@@ -1965,7 +2081,7 @@ func (*RuleNameContext) IsRuleNameContext() {}
 func NewRuleNameContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *RuleNameContext {
 	var p = new(RuleNameContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_ruleName
@@ -1989,7 +2105,7 @@ func (s *RuleNameContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *RuleNameContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewRuleNameContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewRuleNameContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterRuleName(c)
 	}
@@ -1997,42 +2113,36 @@ func (s *RuleNameContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *RuleNameContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewRuleNameContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewRuleNameContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitRuleName(c)
 	}
 }
 
 func (p *EcaruleParser) RuleName() (localctx IRuleNameContext) {
-	this := p
-	_ = this
-
 	localctx = NewRuleNameContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 22, EcaruleParserRULE_ruleName)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(151)
 		p.Match(EcaruleParserSIMPLENAME)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IRuleDescriptionContext is an interface to support dynamic dispatch.
@@ -2042,20 +2152,29 @@ type IRuleDescriptionContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DQUOTA_STRING() antlr.TerminalNode
+	SQUOTA_STRING() antlr.TerminalNode
+
 	// IsRuleDescriptionContext differentiates from other interfaces.
 	IsRuleDescriptionContext()
 }
 
 type RuleDescriptionContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyRuleDescriptionContext() *RuleDescriptionContext {
 	var p = new(RuleDescriptionContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_ruleDescription
 	return p
+}
+
+func InitEmptyRuleDescriptionContext(p *RuleDescriptionContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_ruleDescription
 }
 
 func (*RuleDescriptionContext) IsRuleDescriptionContext() {}
@@ -2063,7 +2182,7 @@ func (*RuleDescriptionContext) IsRuleDescriptionContext() {}
 func NewRuleDescriptionContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *RuleDescriptionContext {
 	var p = new(RuleDescriptionContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_ruleDescription
@@ -2091,7 +2210,7 @@ func (s *RuleDescriptionContext) ToStringTree(ruleNames []string, recog antlr.Re
 
 func (s *RuleDescriptionContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewRuleDescriptionContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewRuleDescriptionContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterRuleDescription(c)
 	}
@@ -2099,35 +2218,16 @@ func (s *RuleDescriptionContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *RuleDescriptionContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewRuleDescriptionContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewRuleDescriptionContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitRuleDescription(c)
 	}
 }
 
 func (p *EcaruleParser) RuleDescription() (localctx IRuleDescriptionContext) {
-	this := p
-	_ = this
-
 	localctx = NewRuleDescriptionContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 24, EcaruleParserRULE_ruleDescription)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
@@ -2142,7 +2242,17 @@ func (p *EcaruleParser) RuleDescription() (localctx IRuleDescriptionContext) {
 		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IWhenScopeContext is an interface to support dynamic dispatch.
@@ -2152,20 +2262,29 @@ type IWhenScopeContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	WHEN() antlr.TerminalNode
+	Expression() IExpressionContext
+
 	// IsWhenScopeContext differentiates from other interfaces.
 	IsWhenScopeContext()
 }
 
 type WhenScopeContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyWhenScopeContext() *WhenScopeContext {
 	var p = new(WhenScopeContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_whenScope
 	return p
+}
+
+func InitEmptyWhenScopeContext(p *WhenScopeContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_whenScope
 }
 
 func (*WhenScopeContext) IsWhenScopeContext() {}
@@ -2173,7 +2292,7 @@ func (*WhenScopeContext) IsWhenScopeContext() {}
 func NewWhenScopeContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *WhenScopeContext {
 	var p = new(WhenScopeContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_whenScope
@@ -2213,7 +2332,7 @@ func (s *WhenScopeContext) ToStringTree(ruleNames []string, recog antlr.Recogniz
 
 func (s *WhenScopeContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewWhenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewWhenScopeContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterWhenScope(c)
 	}
@@ -2221,46 +2340,40 @@ func (s *WhenScopeContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *WhenScopeContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewWhenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewWhenScopeContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitWhenScope(c)
 	}
 }
 
 func (p *EcaruleParser) WhenScope() (localctx IWhenScopeContext) {
-	this := p
-	_ = this
-
 	localctx = NewWhenScopeContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 26, EcaruleParserRULE_whenScope)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(155)
 		p.Match(EcaruleParserWHEN)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(156)
 		p.expression(0)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IThenScopeContext is an interface to support dynamic dispatch.
@@ -2270,20 +2383,29 @@ type IThenScopeContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	THEN() antlr.TerminalNode
+	ThenExpressionList() IThenExpressionListContext
+
 	// IsThenScopeContext differentiates from other interfaces.
 	IsThenScopeContext()
 }
 
 type ThenScopeContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyThenScopeContext() *ThenScopeContext {
 	var p = new(ThenScopeContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_thenScope
 	return p
+}
+
+func InitEmptyThenScopeContext(p *ThenScopeContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_thenScope
 }
 
 func (*ThenScopeContext) IsThenScopeContext() {}
@@ -2291,7 +2413,7 @@ func (*ThenScopeContext) IsThenScopeContext() {}
 func NewThenScopeContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ThenScopeContext {
 	var p = new(ThenScopeContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_thenScope
@@ -2331,7 +2453,7 @@ func (s *ThenScopeContext) ToStringTree(ruleNames []string, recog antlr.Recogniz
 
 func (s *ThenScopeContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewThenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewThenScopeContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterThenScope(c)
 	}
@@ -2339,46 +2461,40 @@ func (s *ThenScopeContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ThenScopeContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewThenScopeContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewThenScopeContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitThenScope(c)
 	}
 }
 
 func (p *EcaruleParser) ThenScope() (localctx IThenScopeContext) {
-	this := p
-	_ = this
-
 	localctx = NewThenScopeContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 28, EcaruleParserRULE_thenScope)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(158)
 		p.Match(EcaruleParserTHEN)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(159)
 		p.ThenExpressionList()
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IThenExpressionListContext is an interface to support dynamic dispatch.
@@ -2388,20 +2504,31 @@ type IThenExpressionListContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	AllThenExpression() []IThenExpressionContext
+	ThenExpression(i int) IThenExpressionContext
+	AllSEMICOLON() []antlr.TerminalNode
+	SEMICOLON(i int) antlr.TerminalNode
+
 	// IsThenExpressionListContext differentiates from other interfaces.
 	IsThenExpressionListContext()
 }
 
 type ThenExpressionListContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyThenExpressionListContext() *ThenExpressionListContext {
 	var p = new(ThenExpressionListContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_thenExpressionList
 	return p
+}
+
+func InitEmptyThenExpressionListContext(p *ThenExpressionListContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_thenExpressionList
 }
 
 func (*ThenExpressionListContext) IsThenExpressionListContext() {}
@@ -2409,7 +2536,7 @@ func (*ThenExpressionListContext) IsThenExpressionListContext() {}
 func NewThenExpressionListContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ThenExpressionListContext {
 	var p = new(ThenExpressionListContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_thenExpressionList
@@ -2478,7 +2605,7 @@ func (s *ThenExpressionListContext) ToStringTree(ruleNames []string, recog antlr
 
 func (s *ThenExpressionListContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewThenExpressionListContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewThenExpressionListContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterThenExpressionList(c)
 	}
@@ -2486,42 +2613,26 @@ func (s *ThenExpressionListContext) EnterRule(listener antlr.ParseTreeListener) 
 
 func (s *ThenExpressionListContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewThenExpressionListContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewThenExpressionListContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitThenExpressionList(c)
 	}
 }
 
 func (p *EcaruleParser) ThenExpressionList() (localctx IThenExpressionListContext) {
-	this := p
-	_ = this
-
 	localctx = NewThenExpressionListContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 30, EcaruleParserRULE_thenExpressionList)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(164)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
-	for ok := true; ok; ok = (((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EcaruleParserMINUS)|(1<<EcaruleParserTRUE)|(1<<EcaruleParserFALSE)|(1<<EcaruleParserNIL_LITERAL)|(1<<EcaruleParserNEGATION))) != 0) || (((_la-38)&-(0x1f+1)) == 0 && ((1<<uint((_la-38)))&((1<<(EcaruleParserSIMPLENAME-38))|(1<<(EcaruleParserDQUOTA_STRING-38))|(1<<(EcaruleParserSQUOTA_STRING-38))|(1<<(EcaruleParserDECIMAL_FLOAT_LIT-38))|(1<<(EcaruleParserHEX_FLOAT_LIT-38))|(1<<(EcaruleParserDEC_LIT-38))|(1<<(EcaruleParserHEX_LIT-38))|(1<<(EcaruleParserOCT_LIT-38)))) != 0) {
+	for ok := true; ok; ok = ((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&259209881976840) != 0) {
 		{
 			p.SetState(161)
 			p.ThenExpression()
@@ -2529,14 +2640,31 @@ func (p *EcaruleParser) ThenExpressionList() (localctx IThenExpressionListContex
 		{
 			p.SetState(162)
 			p.Match(EcaruleParserSEMICOLON)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 		p.SetState(166)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IThenExpressionContext is an interface to support dynamic dispatch.
@@ -2546,20 +2674,29 @@ type IThenExpressionContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	Assignment() IAssignmentContext
+	ExpressionAtom() IExpressionAtomContext
+
 	// IsThenExpressionContext differentiates from other interfaces.
 	IsThenExpressionContext()
 }
 
 type ThenExpressionContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyThenExpressionContext() *ThenExpressionContext {
 	var p = new(ThenExpressionContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_thenExpression
 	return p
+}
+
+func InitEmptyThenExpressionContext(p *ThenExpressionContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_thenExpression
 }
 
 func (*ThenExpressionContext) IsThenExpressionContext() {}
@@ -2567,7 +2704,7 @@ func (*ThenExpressionContext) IsThenExpressionContext() {}
 func NewThenExpressionContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ThenExpressionContext {
 	var p = new(ThenExpressionContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_thenExpression
@@ -2619,7 +2756,7 @@ func (s *ThenExpressionContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *ThenExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewThenExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewThenExpressionContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterThenExpression(c)
 	}
@@ -2627,38 +2764,22 @@ func (s *ThenExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ThenExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewThenExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewThenExpressionContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitThenExpression(c)
 	}
 }
 
 func (p *EcaruleParser) ThenExpression() (localctx IThenExpressionContext) {
-	this := p
-	_ = this
-
 	localctx = NewThenExpressionContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 32, EcaruleParserRULE_thenExpression)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.SetState(170)
 	p.GetErrorHandler().Sync(p)
-	switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 11, p.GetParserRuleContext()) {
+	if p.HasError() {
+		goto errorExit
+	}
+
+	switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 11, p.GetParserRuleContext()) {
 	case 1:
 		p.EnterOuterAlt(localctx, 1)
 		{
@@ -2673,9 +2794,21 @@ func (p *EcaruleParser) ThenExpression() (localctx IThenExpressionContext) {
 			p.expressionAtom(0)
 		}
 
+	case antlr.ATNInvalidAltNumber:
+		goto errorExit
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IAssignmentContext is an interface to support dynamic dispatch.
@@ -2685,20 +2818,34 @@ type IAssignmentContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	Variable() IVariableContext
+	Expression() IExpressionContext
+	ASSIGN() antlr.TerminalNode
+	PLUS_ASIGN() antlr.TerminalNode
+	MINUS_ASIGN() antlr.TerminalNode
+	DIV_ASIGN() antlr.TerminalNode
+	MUL_ASIGN() antlr.TerminalNode
+
 	// IsAssignmentContext differentiates from other interfaces.
 	IsAssignmentContext()
 }
 
 type AssignmentContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyAssignmentContext() *AssignmentContext {
 	var p = new(AssignmentContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_assignment
 	return p
+}
+
+func InitEmptyAssignmentContext(p *AssignmentContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_assignment
 }
 
 func (*AssignmentContext) IsAssignmentContext() {}
@@ -2706,7 +2853,7 @@ func (*AssignmentContext) IsAssignmentContext() {}
 func NewAssignmentContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *AssignmentContext {
 	var p = new(AssignmentContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_assignment
@@ -2778,7 +2925,7 @@ func (s *AssignmentContext) ToStringTree(ruleNames []string, recog antlr.Recogni
 
 func (s *AssignmentContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewAssignmentContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewAssignmentContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterAssignment(c)
 	}
@@ -2786,35 +2933,16 @@ func (s *AssignmentContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *AssignmentContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewAssignmentContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewAssignmentContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitAssignment(c)
 	}
 }
 
 func (p *EcaruleParser) Assignment() (localctx IAssignmentContext) {
-	this := p
-	_ = this
-
 	localctx = NewAssignmentContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 34, EcaruleParserRULE_assignment)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
@@ -2825,7 +2953,7 @@ func (p *EcaruleParser) Assignment() (localctx IAssignmentContext) {
 		p.SetState(173)
 		_la = p.GetTokenStream().LA(1)
 
-		if !(((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EcaruleParserASSIGN)|(1<<EcaruleParserPLUS_ASIGN)|(1<<EcaruleParserMINUS_ASIGN)|(1<<EcaruleParserDIV_ASIGN)|(1<<EcaruleParserMUL_ASIGN))) != 0) {
+		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&2080374784) != 0) {
 			p.GetErrorHandler().RecoverInline(p)
 		} else {
 			p.GetErrorHandler().ReportMatch(p)
@@ -2837,7 +2965,17 @@ func (p *EcaruleParser) Assignment() (localctx IAssignmentContext) {
 		p.expression(0)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IExpressionContext is an interface to support dynamic dispatch.
@@ -2847,20 +2985,38 @@ type IExpressionContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	LR_BRACKET() antlr.TerminalNode
+	AllExpression() []IExpressionContext
+	Expression(i int) IExpressionContext
+	RR_BRACKET() antlr.TerminalNode
+	NEGATION() antlr.TerminalNode
+	ExpressionAtom() IExpressionAtomContext
+	MulDivOperators() IMulDivOperatorsContext
+	AddMinusOperators() IAddMinusOperatorsContext
+	ComparisonOperator() IComparisonOperatorContext
+	AndLogicOperator() IAndLogicOperatorContext
+	OrLogicOperator() IOrLogicOperatorContext
+
 	// IsExpressionContext differentiates from other interfaces.
 	IsExpressionContext()
 }
 
 type ExpressionContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyExpressionContext() *ExpressionContext {
 	var p = new(ExpressionContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_expression
 	return p
+}
+
+func InitEmptyExpressionContext(p *ExpressionContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_expression
 }
 
 func (*ExpressionContext) IsExpressionContext() {}
@@ -2868,7 +3024,7 @@ func (*ExpressionContext) IsExpressionContext() {}
 func NewExpressionContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ExpressionContext {
 	var p = new(ExpressionContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_expression
@@ -3037,7 +3193,7 @@ func (s *ExpressionContext) ToStringTree(ruleNames []string, recog antlr.Recogni
 
 func (s *ExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewExpressionContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterExpression(c)
 	}
@@ -3045,7 +3201,7 @@ func (s *ExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewExpressionContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewExpressionContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitExpression(c)
 	}
@@ -3056,10 +3212,8 @@ func (p *EcaruleParser) Expression() (localctx IExpressionContext) {
 }
 
 func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
-	this := p
-	_ = this
-
 	var _parentctx antlr.ParserRuleContext = p.GetParserRuleContext()
+
 	_parentState := p.GetState()
 	localctx = NewExpressionContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IExpressionContext = localctx
@@ -3068,43 +3222,42 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 	p.EnterRecursionRule(localctx, 36, EcaruleParserRULE_expression, _p)
 	var _la int
 
-	defer func() {
-		p.UnrollRecursionContexts(_parentctx)
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(185)
 	p.GetErrorHandler().Sync(p)
-	switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 13, p.GetParserRuleContext()) {
+	if p.HasError() {
+		goto errorExit
+	}
+
+	switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 13, p.GetParserRuleContext()) {
 	case 1:
 		p.SetState(178)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 
 		if _la == EcaruleParserNEGATION {
 			{
 				p.SetState(177)
 				p.Match(EcaruleParserNEGATION)
+				if p.HasError() {
+					// Recognition error - abort rule
+					goto errorExit
+				}
 			}
 
 		}
 		{
 			p.SetState(180)
 			p.Match(EcaruleParserLR_BRACKET)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 		{
 			p.SetState(181)
@@ -3113,6 +3266,10 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 		{
 			p.SetState(182)
 			p.Match(EcaruleParserRR_BRACKET)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	case 2:
@@ -3121,12 +3278,19 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 			p.expressionAtom(0)
 		}
 
+	case antlr.ATNInvalidAltNumber:
+		goto errorExit
 	}
 	p.GetParserRuleContext().SetStop(p.GetTokenStream().LT(-1))
 	p.SetState(209)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 15, p.GetParserRuleContext())
-
+	if p.HasError() {
+		goto errorExit
+	}
+	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 15, p.GetParserRuleContext())
+	if p.HasError() {
+		goto errorExit
+	}
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			if p.GetParseListeners() != nil {
@@ -3135,14 +3299,19 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 			_prevctx = localctx
 			p.SetState(207)
 			p.GetErrorHandler().Sync(p)
-			switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 14, p.GetParserRuleContext()) {
+			if p.HasError() {
+				goto errorExit
+			}
+
+			switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 14, p.GetParserRuleContext()) {
 			case 1:
 				localctx = NewExpressionContext(p, _parentctx, _parentState)
 				p.PushNewRecursionContext(localctx, _startState, EcaruleParserRULE_expression)
 				p.SetState(187)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 7)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 7)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 7)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(188)
@@ -3159,7 +3328,8 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 				p.SetState(191)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 6)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 6)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 6)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(192)
@@ -3176,7 +3346,8 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 				p.SetState(195)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 5)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 5)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 5)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(196)
@@ -3193,7 +3364,8 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 				p.SetState(199)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 4)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 4)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 4)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(200)
@@ -3210,7 +3382,8 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 				p.SetState(203)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 3)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 3)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 3)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(204)
@@ -3221,15 +3394,33 @@ func (p *EcaruleParser) expression(_p int) (localctx IExpressionContext) {
 					p.expression(4)
 				}
 
+			case antlr.ATNInvalidAltNumber:
+				goto errorExit
 			}
 
 		}
 		p.SetState(211)
 		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 15, p.GetParserRuleContext())
+		if p.HasError() {
+			goto errorExit
+		}
+		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 15, p.GetParserRuleContext())
+		if p.HasError() {
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.UnrollRecursionContexts(_parentctx)
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IMulDivOperatorsContext is an interface to support dynamic dispatch.
@@ -3239,20 +3430,30 @@ type IMulDivOperatorsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	MUL() antlr.TerminalNode
+	DIV() antlr.TerminalNode
+	MOD() antlr.TerminalNode
+
 	// IsMulDivOperatorsContext differentiates from other interfaces.
 	IsMulDivOperatorsContext()
 }
 
 type MulDivOperatorsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyMulDivOperatorsContext() *MulDivOperatorsContext {
 	var p = new(MulDivOperatorsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_mulDivOperators
 	return p
+}
+
+func InitEmptyMulDivOperatorsContext(p *MulDivOperatorsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_mulDivOperators
 }
 
 func (*MulDivOperatorsContext) IsMulDivOperatorsContext() {}
@@ -3260,7 +3461,7 @@ func (*MulDivOperatorsContext) IsMulDivOperatorsContext() {}
 func NewMulDivOperatorsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *MulDivOperatorsContext {
 	var p = new(MulDivOperatorsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_mulDivOperators
@@ -3292,7 +3493,7 @@ func (s *MulDivOperatorsContext) ToStringTree(ruleNames []string, recog antlr.Re
 
 func (s *MulDivOperatorsContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewMulDivOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewMulDivOperatorsContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterMulDivOperators(c)
 	}
@@ -3300,42 +3501,23 @@ func (s *MulDivOperatorsContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *MulDivOperatorsContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewMulDivOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewMulDivOperatorsContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitMulDivOperators(c)
 	}
 }
 
 func (p *EcaruleParser) MulDivOperators() (localctx IMulDivOperatorsContext) {
-	this := p
-	_ = this
-
 	localctx = NewMulDivOperatorsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 38, EcaruleParserRULE_mulDivOperators)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(212)
 		_la = p.GetTokenStream().LA(1)
 
-		if !(((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EcaruleParserDIV)|(1<<EcaruleParserMUL)|(1<<EcaruleParserMOD))) != 0) {
+		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&112) != 0) {
 			p.GetErrorHandler().RecoverInline(p)
 		} else {
 			p.GetErrorHandler().ReportMatch(p)
@@ -3343,7 +3525,17 @@ func (p *EcaruleParser) MulDivOperators() (localctx IMulDivOperatorsContext) {
 		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IAddMinusOperatorsContext is an interface to support dynamic dispatch.
@@ -3353,20 +3545,31 @@ type IAddMinusOperatorsContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	PLUS() antlr.TerminalNode
+	MINUS() antlr.TerminalNode
+	BITAND() antlr.TerminalNode
+	BITOR() antlr.TerminalNode
+
 	// IsAddMinusOperatorsContext differentiates from other interfaces.
 	IsAddMinusOperatorsContext()
 }
 
 type AddMinusOperatorsContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyAddMinusOperatorsContext() *AddMinusOperatorsContext {
 	var p = new(AddMinusOperatorsContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_addMinusOperators
 	return p
+}
+
+func InitEmptyAddMinusOperatorsContext(p *AddMinusOperatorsContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_addMinusOperators
 }
 
 func (*AddMinusOperatorsContext) IsAddMinusOperatorsContext() {}
@@ -3374,7 +3577,7 @@ func (*AddMinusOperatorsContext) IsAddMinusOperatorsContext() {}
 func NewAddMinusOperatorsContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *AddMinusOperatorsContext {
 	var p = new(AddMinusOperatorsContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_addMinusOperators
@@ -3410,7 +3613,7 @@ func (s *AddMinusOperatorsContext) ToStringTree(ruleNames []string, recog antlr.
 
 func (s *AddMinusOperatorsContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewAddMinusOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewAddMinusOperatorsContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterAddMinusOperators(c)
 	}
@@ -3418,42 +3621,23 @@ func (s *AddMinusOperatorsContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *AddMinusOperatorsContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewAddMinusOperatorsContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewAddMinusOperatorsContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitAddMinusOperators(c)
 	}
 }
 
 func (p *EcaruleParser) AddMinusOperators() (localctx IAddMinusOperatorsContext) {
-	this := p
-	_ = this
-
 	localctx = NewAddMinusOperatorsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 40, EcaruleParserRULE_addMinusOperators)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(214)
 		_la = p.GetTokenStream().LA(1)
 
-		if !(_la == EcaruleParserPLUS || _la == EcaruleParserMINUS || _la == EcaruleParserBITAND || _la == EcaruleParserBITOR) {
+		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&206158430220) != 0) {
 			p.GetErrorHandler().RecoverInline(p)
 		} else {
 			p.GetErrorHandler().ReportMatch(p)
@@ -3461,7 +3645,17 @@ func (p *EcaruleParser) AddMinusOperators() (localctx IAddMinusOperatorsContext)
 		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IComparisonOperatorContext is an interface to support dynamic dispatch.
@@ -3471,20 +3665,33 @@ type IComparisonOperatorContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	GT() antlr.TerminalNode
+	LT() antlr.TerminalNode
+	GTE() antlr.TerminalNode
+	LTE() antlr.TerminalNode
+	EQUALS() antlr.TerminalNode
+	NOTEQUALS() antlr.TerminalNode
+
 	// IsComparisonOperatorContext differentiates from other interfaces.
 	IsComparisonOperatorContext()
 }
 
 type ComparisonOperatorContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyComparisonOperatorContext() *ComparisonOperatorContext {
 	var p = new(ComparisonOperatorContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_comparisonOperator
 	return p
+}
+
+func InitEmptyComparisonOperatorContext(p *ComparisonOperatorContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_comparisonOperator
 }
 
 func (*ComparisonOperatorContext) IsComparisonOperatorContext() {}
@@ -3492,7 +3699,7 @@ func (*ComparisonOperatorContext) IsComparisonOperatorContext() {}
 func NewComparisonOperatorContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ComparisonOperatorContext {
 	var p = new(ComparisonOperatorContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_comparisonOperator
@@ -3536,7 +3743,7 @@ func (s *ComparisonOperatorContext) ToStringTree(ruleNames []string, recog antlr
 
 func (s *ComparisonOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewComparisonOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewComparisonOperatorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterComparisonOperator(c)
 	}
@@ -3544,42 +3751,23 @@ func (s *ComparisonOperatorContext) EnterRule(listener antlr.ParseTreeListener) 
 
 func (s *ComparisonOperatorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewComparisonOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewComparisonOperatorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitComparisonOperator(c)
 	}
 }
 
 func (p *EcaruleParser) ComparisonOperator() (localctx IComparisonOperatorContext) {
-	this := p
-	_ = this
-
 	localctx = NewComparisonOperatorContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 42, EcaruleParserRULE_comparisonOperator)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(216)
 		_la = p.GetTokenStream().LA(1)
 
-		if !(((_la-25)&-(0x1f+1)) == 0 && ((1<<uint((_la-25)))&((1<<(EcaruleParserEQUALS-25))|(1<<(EcaruleParserGT-25))|(1<<(EcaruleParserLT-25))|(1<<(EcaruleParserGTE-25))|(1<<(EcaruleParserLTE-25))|(1<<(EcaruleParserNOTEQUALS-25)))) != 0) {
+		if !((int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&66605547520) != 0) {
 			p.GetErrorHandler().RecoverInline(p)
 		} else {
 			p.GetErrorHandler().ReportMatch(p)
@@ -3587,7 +3775,17 @@ func (p *EcaruleParser) ComparisonOperator() (localctx IComparisonOperatorContex
 		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IAndLogicOperatorContext is an interface to support dynamic dispatch.
@@ -3597,20 +3795,28 @@ type IAndLogicOperatorContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	AND() antlr.TerminalNode
+
 	// IsAndLogicOperatorContext differentiates from other interfaces.
 	IsAndLogicOperatorContext()
 }
 
 type AndLogicOperatorContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyAndLogicOperatorContext() *AndLogicOperatorContext {
 	var p = new(AndLogicOperatorContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_andLogicOperator
 	return p
+}
+
+func InitEmptyAndLogicOperatorContext(p *AndLogicOperatorContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_andLogicOperator
 }
 
 func (*AndLogicOperatorContext) IsAndLogicOperatorContext() {}
@@ -3618,7 +3824,7 @@ func (*AndLogicOperatorContext) IsAndLogicOperatorContext() {}
 func NewAndLogicOperatorContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *AndLogicOperatorContext {
 	var p = new(AndLogicOperatorContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_andLogicOperator
@@ -3642,7 +3848,7 @@ func (s *AndLogicOperatorContext) ToStringTree(ruleNames []string, recog antlr.R
 
 func (s *AndLogicOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewAndLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewAndLogicOperatorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterAndLogicOperator(c)
 	}
@@ -3650,42 +3856,36 @@ func (s *AndLogicOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *AndLogicOperatorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewAndLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewAndLogicOperatorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitAndLogicOperator(c)
 	}
 }
 
 func (p *EcaruleParser) AndLogicOperator() (localctx IAndLogicOperatorContext) {
-	this := p
-	_ = this
-
 	localctx = NewAndLogicOperatorContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 44, EcaruleParserRULE_andLogicOperator)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(218)
 		p.Match(EcaruleParserAND)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IOrLogicOperatorContext is an interface to support dynamic dispatch.
@@ -3695,20 +3895,28 @@ type IOrLogicOperatorContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	OR() antlr.TerminalNode
+
 	// IsOrLogicOperatorContext differentiates from other interfaces.
 	IsOrLogicOperatorContext()
 }
 
 type OrLogicOperatorContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyOrLogicOperatorContext() *OrLogicOperatorContext {
 	var p = new(OrLogicOperatorContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_orLogicOperator
 	return p
+}
+
+func InitEmptyOrLogicOperatorContext(p *OrLogicOperatorContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_orLogicOperator
 }
 
 func (*OrLogicOperatorContext) IsOrLogicOperatorContext() {}
@@ -3716,7 +3924,7 @@ func (*OrLogicOperatorContext) IsOrLogicOperatorContext() {}
 func NewOrLogicOperatorContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *OrLogicOperatorContext {
 	var p = new(OrLogicOperatorContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_orLogicOperator
@@ -3740,7 +3948,7 @@ func (s *OrLogicOperatorContext) ToStringTree(ruleNames []string, recog antlr.Re
 
 func (s *OrLogicOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewOrLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewOrLogicOperatorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterOrLogicOperator(c)
 	}
@@ -3748,42 +3956,36 @@ func (s *OrLogicOperatorContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *OrLogicOperatorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewOrLogicOperatorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewOrLogicOperatorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitOrLogicOperator(c)
 	}
 }
 
 func (p *EcaruleParser) OrLogicOperator() (localctx IOrLogicOperatorContext) {
-	this := p
-	_ = this
-
 	localctx = NewOrLogicOperatorContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 46, EcaruleParserRULE_orLogicOperator)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(220)
 		p.Match(EcaruleParserOR)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IExpressionAtomContext is an interface to support dynamic dispatch.
@@ -3793,20 +3995,35 @@ type IExpressionAtomContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	Constant() IConstantContext
+	Variable() IVariableContext
+	FunctionCall() IFunctionCallContext
+	NEGATION() antlr.TerminalNode
+	ExpressionAtom() IExpressionAtomContext
+	MethodCall() IMethodCallContext
+	MemberVariable() IMemberVariableContext
+	ArrayMapSelector() IArrayMapSelectorContext
+
 	// IsExpressionAtomContext differentiates from other interfaces.
 	IsExpressionAtomContext()
 }
 
 type ExpressionAtomContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyExpressionAtomContext() *ExpressionAtomContext {
 	var p = new(ExpressionAtomContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_expressionAtom
 	return p
+}
+
+func InitEmptyExpressionAtomContext(p *ExpressionAtomContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_expressionAtom
 }
 
 func (*ExpressionAtomContext) IsExpressionAtomContext() {}
@@ -3814,7 +4031,7 @@ func (*ExpressionAtomContext) IsExpressionAtomContext() {}
 func NewExpressionAtomContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ExpressionAtomContext {
 	var p = new(ExpressionAtomContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_expressionAtom
@@ -3950,7 +4167,7 @@ func (s *ExpressionAtomContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *ExpressionAtomContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewExpressionAtomContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewExpressionAtomContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterExpressionAtom(c)
 	}
@@ -3958,7 +4175,7 @@ func (s *ExpressionAtomContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ExpressionAtomContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewExpressionAtomContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewExpressionAtomContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitExpressionAtom(c)
 	}
@@ -3969,39 +4186,24 @@ func (p *EcaruleParser) ExpressionAtom() (localctx IExpressionAtomContext) {
 }
 
 func (p *EcaruleParser) expressionAtom(_p int) (localctx IExpressionAtomContext) {
-	this := p
-	_ = this
-
 	var _parentctx antlr.ParserRuleContext = p.GetParserRuleContext()
+
 	_parentState := p.GetState()
 	localctx = NewExpressionAtomContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IExpressionAtomContext = localctx
 	var _ antlr.ParserRuleContext = _prevctx // TODO: To prevent unused variable warning.
 	_startState := 48
 	p.EnterRecursionRule(localctx, 48, EcaruleParserRULE_expressionAtom, _p)
-
-	defer func() {
-		p.UnrollRecursionContexts(_parentctx)
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(228)
 	p.GetErrorHandler().Sync(p)
-	switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 16, p.GetParserRuleContext()) {
+	if p.HasError() {
+		goto errorExit
+	}
+
+	switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 16, p.GetParserRuleContext()) {
 	case 1:
 		{
 			p.SetState(223)
@@ -4024,18 +4226,29 @@ func (p *EcaruleParser) expressionAtom(_p int) (localctx IExpressionAtomContext)
 		{
 			p.SetState(226)
 			p.Match(EcaruleParserNEGATION)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 		{
 			p.SetState(227)
 			p.expressionAtom(1)
 		}
 
+	case antlr.ATNInvalidAltNumber:
+		goto errorExit
 	}
 	p.GetParserRuleContext().SetStop(p.GetTokenStream().LT(-1))
 	p.SetState(238)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 18, p.GetParserRuleContext())
-
+	if p.HasError() {
+		goto errorExit
+	}
+	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 18, p.GetParserRuleContext())
+	if p.HasError() {
+		goto errorExit
+	}
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			if p.GetParseListeners() != nil {
@@ -4044,14 +4257,19 @@ func (p *EcaruleParser) expressionAtom(_p int) (localctx IExpressionAtomContext)
 			_prevctx = localctx
 			p.SetState(236)
 			p.GetErrorHandler().Sync(p)
-			switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 17, p.GetParserRuleContext()) {
+			if p.HasError() {
+				goto errorExit
+			}
+
+			switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 17, p.GetParserRuleContext()) {
 			case 1:
 				localctx = NewExpressionAtomContext(p, _parentctx, _parentState)
 				p.PushNewRecursionContext(localctx, _startState, EcaruleParserRULE_expressionAtom)
 				p.SetState(230)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 4)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 4)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 4)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(231)
@@ -4064,7 +4282,8 @@ func (p *EcaruleParser) expressionAtom(_p int) (localctx IExpressionAtomContext)
 				p.SetState(232)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 3)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 3)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 3)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(233)
@@ -4077,22 +4296,41 @@ func (p *EcaruleParser) expressionAtom(_p int) (localctx IExpressionAtomContext)
 				p.SetState(234)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 2)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 2)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 2)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(235)
 					p.ArrayMapSelector()
 				}
 
+			case antlr.ATNInvalidAltNumber:
+				goto errorExit
 			}
 
 		}
 		p.SetState(240)
 		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 18, p.GetParserRuleContext())
+		if p.HasError() {
+			goto errorExit
+		}
+		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 18, p.GetParserRuleContext())
+		if p.HasError() {
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.UnrollRecursionContexts(_parentctx)
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IConstantContext is an interface to support dynamic dispatch.
@@ -4102,20 +4340,32 @@ type IConstantContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	StringLiteral() IStringLiteralContext
+	IntegerLiteral() IIntegerLiteralContext
+	FloatLiteral() IFloatLiteralContext
+	BooleanLiteral() IBooleanLiteralContext
+	NIL_LITERAL() antlr.TerminalNode
+
 	// IsConstantContext differentiates from other interfaces.
 	IsConstantContext()
 }
 
 type ConstantContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyConstantContext() *ConstantContext {
 	var p = new(ConstantContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_constant
 	return p
+}
+
+func InitEmptyConstantContext(p *ConstantContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_constant
 }
 
 func (*ConstantContext) IsConstantContext() {}
@@ -4123,7 +4373,7 @@ func (*ConstantContext) IsConstantContext() {}
 func NewConstantContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ConstantContext {
 	var p = new(ConstantContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_constant
@@ -4211,7 +4461,7 @@ func (s *ConstantContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *ConstantContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewConstantContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewConstantContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterConstant(c)
 	}
@@ -4219,38 +4469,22 @@ func (s *ConstantContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ConstantContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewConstantContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewConstantContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitConstant(c)
 	}
 }
 
 func (p *EcaruleParser) Constant() (localctx IConstantContext) {
-	this := p
-	_ = this
-
 	localctx = NewConstantContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 50, EcaruleParserRULE_constant)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.SetState(246)
 	p.GetErrorHandler().Sync(p)
-	switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 19, p.GetParserRuleContext()) {
+	if p.HasError() {
+		goto errorExit
+	}
+
+	switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 19, p.GetParserRuleContext()) {
 	case 1:
 		p.EnterOuterAlt(localctx, 1)
 		{
@@ -4284,11 +4518,27 @@ func (p *EcaruleParser) Constant() (localctx IConstantContext) {
 		{
 			p.SetState(245)
 			p.Match(EcaruleParserNIL_LITERAL)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
+	case antlr.ATNInvalidAltNumber:
+		goto errorExit
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IVariableContext is an interface to support dynamic dispatch.
@@ -4298,20 +4548,31 @@ type IVariableContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	SIMPLENAME() antlr.TerminalNode
+	Variable() IVariableContext
+	MemberVariable() IMemberVariableContext
+	ArrayMapSelector() IArrayMapSelectorContext
+
 	// IsVariableContext differentiates from other interfaces.
 	IsVariableContext()
 }
 
 type VariableContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyVariableContext() *VariableContext {
 	var p = new(VariableContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_variable
 	return p
+}
+
+func InitEmptyVariableContext(p *VariableContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_variable
 }
 
 func (*VariableContext) IsVariableContext() {}
@@ -4319,7 +4580,7 @@ func (*VariableContext) IsVariableContext() {}
 func NewVariableContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *VariableContext {
 	var p = new(VariableContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_variable
@@ -4391,7 +4652,7 @@ func (s *VariableContext) ToStringTree(ruleNames []string, recog antlr.Recognize
 
 func (s *VariableContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewVariableContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterVariable(c)
 	}
@@ -4399,7 +4660,7 @@ func (s *VariableContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *VariableContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewVariableContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitVariable(c)
 	}
@@ -4410,46 +4671,36 @@ func (p *EcaruleParser) Variable() (localctx IVariableContext) {
 }
 
 func (p *EcaruleParser) variable(_p int) (localctx IVariableContext) {
-	this := p
-	_ = this
-
 	var _parentctx antlr.ParserRuleContext = p.GetParserRuleContext()
+
 	_parentState := p.GetState()
 	localctx = NewVariableContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IVariableContext = localctx
 	var _ antlr.ParserRuleContext = _prevctx // TODO: To prevent unused variable warning.
 	_startState := 52
 	p.EnterRecursionRule(localctx, 52, EcaruleParserRULE_variable, _p)
-
-	defer func() {
-		p.UnrollRecursionContexts(_parentctx)
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	var _alt int
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(249)
 		p.Match(EcaruleParserSIMPLENAME)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
 	p.GetParserRuleContext().SetStop(p.GetTokenStream().LT(-1))
 	p.SetState(257)
 	p.GetErrorHandler().Sync(p)
-	_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 21, p.GetParserRuleContext())
-
+	if p.HasError() {
+		goto errorExit
+	}
+	_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 21, p.GetParserRuleContext())
+	if p.HasError() {
+		goto errorExit
+	}
 	for _alt != 2 && _alt != antlr.ATNInvalidAltNumber {
 		if _alt == 1 {
 			if p.GetParseListeners() != nil {
@@ -4458,14 +4709,19 @@ func (p *EcaruleParser) variable(_p int) (localctx IVariableContext) {
 			_prevctx = localctx
 			p.SetState(255)
 			p.GetErrorHandler().Sync(p)
-			switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 20, p.GetParserRuleContext()) {
+			if p.HasError() {
+				goto errorExit
+			}
+
+			switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 20, p.GetParserRuleContext()) {
 			case 1:
 				localctx = NewVariableContext(p, _parentctx, _parentState)
 				p.PushNewRecursionContext(localctx, _startState, EcaruleParserRULE_variable)
 				p.SetState(251)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 3)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 3)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 3)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(252)
@@ -4478,22 +4734,41 @@ func (p *EcaruleParser) variable(_p int) (localctx IVariableContext) {
 				p.SetState(253)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 2)) {
-					panic(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 2)", ""))
+					p.SetError(antlr.NewFailedPredicateException(p, "p.Precpred(p.GetParserRuleContext(), 2)", ""))
+					goto errorExit
 				}
 				{
 					p.SetState(254)
 					p.ArrayMapSelector()
 				}
 
+			case antlr.ATNInvalidAltNumber:
+				goto errorExit
 			}
 
 		}
 		p.SetState(259)
 		p.GetErrorHandler().Sync(p)
-		_alt = p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 21, p.GetParserRuleContext())
+		if p.HasError() {
+			goto errorExit
+		}
+		_alt = p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 21, p.GetParserRuleContext())
+		if p.HasError() {
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.UnrollRecursionContexts(_parentctx)
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IArrayMapSelectorContext is an interface to support dynamic dispatch.
@@ -4503,20 +4778,30 @@ type IArrayMapSelectorContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	LS_BRACKET() antlr.TerminalNode
+	Expression() IExpressionContext
+	RS_BRACKET() antlr.TerminalNode
+
 	// IsArrayMapSelectorContext differentiates from other interfaces.
 	IsArrayMapSelectorContext()
 }
 
 type ArrayMapSelectorContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyArrayMapSelectorContext() *ArrayMapSelectorContext {
 	var p = new(ArrayMapSelectorContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_arrayMapSelector
 	return p
+}
+
+func InitEmptyArrayMapSelectorContext(p *ArrayMapSelectorContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_arrayMapSelector
 }
 
 func (*ArrayMapSelectorContext) IsArrayMapSelectorContext() {}
@@ -4524,7 +4809,7 @@ func (*ArrayMapSelectorContext) IsArrayMapSelectorContext() {}
 func NewArrayMapSelectorContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ArrayMapSelectorContext {
 	var p = new(ArrayMapSelectorContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_arrayMapSelector
@@ -4568,7 +4853,7 @@ func (s *ArrayMapSelectorContext) ToStringTree(ruleNames []string, recog antlr.R
 
 func (s *ArrayMapSelectorContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewArrayMapSelectorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewArrayMapSelectorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterArrayMapSelector(c)
 	}
@@ -4576,39 +4861,23 @@ func (s *ArrayMapSelectorContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ArrayMapSelectorContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewArrayMapSelectorContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewArrayMapSelectorContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitArrayMapSelector(c)
 	}
 }
 
 func (p *EcaruleParser) ArrayMapSelector() (localctx IArrayMapSelectorContext) {
-	this := p
-	_ = this
-
 	localctx = NewArrayMapSelectorContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 54, EcaruleParserRULE_arrayMapSelector)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(260)
 		p.Match(EcaruleParserLS_BRACKET)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(261)
@@ -4617,9 +4886,23 @@ func (p *EcaruleParser) ArrayMapSelector() (localctx IArrayMapSelectorContext) {
 	{
 		p.SetState(262)
 		p.Match(EcaruleParserRS_BRACKET)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IMemberVariableContext is an interface to support dynamic dispatch.
@@ -4629,20 +4912,29 @@ type IMemberVariableContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DOT() antlr.TerminalNode
+	SIMPLENAME() antlr.TerminalNode
+
 	// IsMemberVariableContext differentiates from other interfaces.
 	IsMemberVariableContext()
 }
 
 type MemberVariableContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyMemberVariableContext() *MemberVariableContext {
 	var p = new(MemberVariableContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_memberVariable
 	return p
+}
+
+func InitEmptyMemberVariableContext(p *MemberVariableContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_memberVariable
 }
 
 func (*MemberVariableContext) IsMemberVariableContext() {}
@@ -4650,7 +4942,7 @@ func (*MemberVariableContext) IsMemberVariableContext() {}
 func NewMemberVariableContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *MemberVariableContext {
 	var p = new(MemberVariableContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_memberVariable
@@ -4678,7 +4970,7 @@ func (s *MemberVariableContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *MemberVariableContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewMemberVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewMemberVariableContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterMemberVariable(c)
 	}
@@ -4686,46 +4978,44 @@ func (s *MemberVariableContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *MemberVariableContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewMemberVariableContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewMemberVariableContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitMemberVariable(c)
 	}
 }
 
 func (p *EcaruleParser) MemberVariable() (localctx IMemberVariableContext) {
-	this := p
-	_ = this
-
 	localctx = NewMemberVariableContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 56, EcaruleParserRULE_memberVariable)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(264)
 		p.Match(EcaruleParserDOT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(265)
 		p.Match(EcaruleParserSIMPLENAME)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IFunctionCallContext is an interface to support dynamic dispatch.
@@ -4735,20 +5025,31 @@ type IFunctionCallContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	SIMPLENAME() antlr.TerminalNode
+	LR_BRACKET() antlr.TerminalNode
+	RR_BRACKET() antlr.TerminalNode
+	ArgumentList() IArgumentListContext
+
 	// IsFunctionCallContext differentiates from other interfaces.
 	IsFunctionCallContext()
 }
 
 type FunctionCallContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyFunctionCallContext() *FunctionCallContext {
 	var p = new(FunctionCallContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_functionCall
 	return p
+}
+
+func InitEmptyFunctionCallContext(p *FunctionCallContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_functionCall
 }
 
 func (*FunctionCallContext) IsFunctionCallContext() {}
@@ -4756,7 +5057,7 @@ func (*FunctionCallContext) IsFunctionCallContext() {}
 func NewFunctionCallContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FunctionCallContext {
 	var p = new(FunctionCallContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_functionCall
@@ -4804,7 +5105,7 @@ func (s *FunctionCallContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *FunctionCallContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewFunctionCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewFunctionCallContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterFunctionCall(c)
 	}
@@ -4812,50 +5113,42 @@ func (s *FunctionCallContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *FunctionCallContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewFunctionCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewFunctionCallContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitFunctionCall(c)
 	}
 }
 
 func (p *EcaruleParser) FunctionCall() (localctx IFunctionCallContext) {
-	this := p
-	_ = this
-
 	localctx = NewFunctionCallContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 58, EcaruleParserRULE_functionCall)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(267)
 		p.Match(EcaruleParserSIMPLENAME)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(268)
 		p.Match(EcaruleParserLR_BRACKET)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	p.SetState(270)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
-	if (((_la)&-(0x1f+1)) == 0 && ((1<<uint(_la))&((1<<EcaruleParserMINUS)|(1<<EcaruleParserLR_BRACKET)|(1<<EcaruleParserTRUE)|(1<<EcaruleParserFALSE)|(1<<EcaruleParserNIL_LITERAL)|(1<<EcaruleParserNEGATION))) != 0) || (((_la-38)&-(0x1f+1)) == 0 && ((1<<uint((_la-38)))&((1<<(EcaruleParserSIMPLENAME-38))|(1<<(EcaruleParserDQUOTA_STRING-38))|(1<<(EcaruleParserSQUOTA_STRING-38))|(1<<(EcaruleParserDECIMAL_FLOAT_LIT-38))|(1<<(EcaruleParserHEX_FLOAT_LIT-38))|(1<<(EcaruleParserDEC_LIT-38))|(1<<(EcaruleParserHEX_LIT-38))|(1<<(EcaruleParserOCT_LIT-38)))) != 0) {
+	if (int64(_la) & ^0x3f) == 0 && ((int64(1)<<_la)&259209881978888) != 0 {
 		{
 			p.SetState(269)
 			p.ArgumentList()
@@ -4865,9 +5158,23 @@ func (p *EcaruleParser) FunctionCall() (localctx IFunctionCallContext) {
 	{
 		p.SetState(272)
 		p.Match(EcaruleParserRR_BRACKET)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IMethodCallContext is an interface to support dynamic dispatch.
@@ -4877,20 +5184,29 @@ type IMethodCallContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DOT() antlr.TerminalNode
+	FunctionCall() IFunctionCallContext
+
 	// IsMethodCallContext differentiates from other interfaces.
 	IsMethodCallContext()
 }
 
 type MethodCallContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyMethodCallContext() *MethodCallContext {
 	var p = new(MethodCallContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_methodCall
 	return p
+}
+
+func InitEmptyMethodCallContext(p *MethodCallContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_methodCall
 }
 
 func (*MethodCallContext) IsMethodCallContext() {}
@@ -4898,7 +5214,7 @@ func (*MethodCallContext) IsMethodCallContext() {}
 func NewMethodCallContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *MethodCallContext {
 	var p = new(MethodCallContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_methodCall
@@ -4938,7 +5254,7 @@ func (s *MethodCallContext) ToStringTree(ruleNames []string, recog antlr.Recogni
 
 func (s *MethodCallContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewMethodCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewMethodCallContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterMethodCall(c)
 	}
@@ -4946,46 +5262,40 @@ func (s *MethodCallContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *MethodCallContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewMethodCallContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewMethodCallContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitMethodCall(c)
 	}
 }
 
 func (p *EcaruleParser) MethodCall() (localctx IMethodCallContext) {
-	this := p
-	_ = this
-
 	localctx = NewMethodCallContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 60, EcaruleParserRULE_methodCall)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(274)
 		p.Match(EcaruleParserDOT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 	{
 		p.SetState(275)
 		p.FunctionCall()
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IArgumentListContext is an interface to support dynamic dispatch.
@@ -4995,20 +5305,29 @@ type IArgumentListContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	AllExpression() []IExpressionContext
+	Expression(i int) IExpressionContext
+
 	// IsArgumentListContext differentiates from other interfaces.
 	IsArgumentListContext()
 }
 
 type ArgumentListContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyArgumentListContext() *ArgumentListContext {
 	var p = new(ArgumentListContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_argumentList
 	return p
+}
+
+func InitEmptyArgumentListContext(p *ArgumentListContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_argumentList
 }
 
 func (*ArgumentListContext) IsArgumentListContext() {}
@@ -5016,7 +5335,7 @@ func (*ArgumentListContext) IsArgumentListContext() {}
 func NewArgumentListContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *ArgumentListContext {
 	var p = new(ArgumentListContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_argumentList
@@ -5077,7 +5396,7 @@ func (s *ArgumentListContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *ArgumentListContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewArgumentListContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewArgumentListContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterArgumentList(c)
 	}
@@ -5085,35 +5404,16 @@ func (s *ArgumentListContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *ArgumentListContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewArgumentListContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewArgumentListContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitArgumentList(c)
 	}
 }
 
 func (p *EcaruleParser) ArgumentList() (localctx IArgumentListContext) {
-	this := p
-	_ = this
-
 	localctx = NewArgumentListContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 62, EcaruleParserRULE_argumentList)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
@@ -5122,12 +5422,19 @@ func (p *EcaruleParser) ArgumentList() (localctx IArgumentListContext) {
 	}
 	p.SetState(282)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	for _la == EcaruleParserT__0 {
 		{
 			p.SetState(278)
 			p.Match(EcaruleParserT__0)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 		{
 			p.SetState(279)
@@ -5136,10 +5443,23 @@ func (p *EcaruleParser) ArgumentList() (localctx IArgumentListContext) {
 
 		p.SetState(284)
 		p.GetErrorHandler().Sync(p)
+		if p.HasError() {
+			goto errorExit
+		}
 		_la = p.GetTokenStream().LA(1)
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IFloatLiteralContext is an interface to support dynamic dispatch.
@@ -5149,20 +5469,29 @@ type IFloatLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DecimalFloatLiteral() IDecimalFloatLiteralContext
+	HexadecimalFloatLiteral() IHexadecimalFloatLiteralContext
+
 	// IsFloatLiteralContext differentiates from other interfaces.
 	IsFloatLiteralContext()
 }
 
 type FloatLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyFloatLiteralContext() *FloatLiteralContext {
 	var p = new(FloatLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_floatLiteral
 	return p
+}
+
+func InitEmptyFloatLiteralContext(p *FloatLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_floatLiteral
 }
 
 func (*FloatLiteralContext) IsFloatLiteralContext() {}
@@ -5170,7 +5499,7 @@ func (*FloatLiteralContext) IsFloatLiteralContext() {}
 func NewFloatLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *FloatLiteralContext {
 	var p = new(FloatLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_floatLiteral
@@ -5222,7 +5551,7 @@ func (s *FloatLiteralContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *FloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewFloatLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterFloatLiteral(c)
 	}
@@ -5230,38 +5559,22 @@ func (s *FloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *FloatLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewFloatLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitFloatLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) FloatLiteral() (localctx IFloatLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewFloatLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 64, EcaruleParserRULE_floatLiteral)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.SetState(287)
 	p.GetErrorHandler().Sync(p)
-	switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 24, p.GetParserRuleContext()) {
+	if p.HasError() {
+		goto errorExit
+	}
+
+	switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 24, p.GetParserRuleContext()) {
 	case 1:
 		p.EnterOuterAlt(localctx, 1)
 		{
@@ -5276,9 +5589,21 @@ func (p *EcaruleParser) FloatLiteral() (localctx IFloatLiteralContext) {
 			p.HexadecimalFloatLiteral()
 		}
 
+	case antlr.ATNInvalidAltNumber:
+		goto errorExit
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IDecimalFloatLiteralContext is an interface to support dynamic dispatch.
@@ -5288,20 +5613,29 @@ type IDecimalFloatLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DECIMAL_FLOAT_LIT() antlr.TerminalNode
+	MINUS() antlr.TerminalNode
+
 	// IsDecimalFloatLiteralContext differentiates from other interfaces.
 	IsDecimalFloatLiteralContext()
 }
 
 type DecimalFloatLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyDecimalFloatLiteralContext() *DecimalFloatLiteralContext {
 	var p = new(DecimalFloatLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_decimalFloatLiteral
 	return p
+}
+
+func InitEmptyDecimalFloatLiteralContext(p *DecimalFloatLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_decimalFloatLiteral
 }
 
 func (*DecimalFloatLiteralContext) IsDecimalFloatLiteralContext() {}
@@ -5309,7 +5643,7 @@ func (*DecimalFloatLiteralContext) IsDecimalFloatLiteralContext() {}
 func NewDecimalFloatLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *DecimalFloatLiteralContext {
 	var p = new(DecimalFloatLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_decimalFloatLiteral
@@ -5337,7 +5671,7 @@ func (s *DecimalFloatLiteralContext) ToStringTree(ruleNames []string, recog antl
 
 func (s *DecimalFloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewDecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewDecimalFloatLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterDecimalFloatLiteral(c)
 	}
@@ -5345,54 +5679,56 @@ func (s *DecimalFloatLiteralContext) EnterRule(listener antlr.ParseTreeListener)
 
 func (s *DecimalFloatLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewDecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewDecimalFloatLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitDecimalFloatLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) DecimalFloatLiteral() (localctx IDecimalFloatLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewDecimalFloatLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 66, EcaruleParserRULE_decimalFloatLiteral)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(290)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserMINUS {
 		{
 			p.SetState(289)
 			p.Match(EcaruleParserMINUS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	}
 	{
 		p.SetState(292)
 		p.Match(EcaruleParserDECIMAL_FLOAT_LIT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IHexadecimalFloatLiteralContext is an interface to support dynamic dispatch.
@@ -5402,20 +5738,29 @@ type IHexadecimalFloatLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	HEX_FLOAT_LIT() antlr.TerminalNode
+	MINUS() antlr.TerminalNode
+
 	// IsHexadecimalFloatLiteralContext differentiates from other interfaces.
 	IsHexadecimalFloatLiteralContext()
 }
 
 type HexadecimalFloatLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyHexadecimalFloatLiteralContext() *HexadecimalFloatLiteralContext {
 	var p = new(HexadecimalFloatLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_hexadecimalFloatLiteral
 	return p
+}
+
+func InitEmptyHexadecimalFloatLiteralContext(p *HexadecimalFloatLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_hexadecimalFloatLiteral
 }
 
 func (*HexadecimalFloatLiteralContext) IsHexadecimalFloatLiteralContext() {}
@@ -5423,7 +5768,7 @@ func (*HexadecimalFloatLiteralContext) IsHexadecimalFloatLiteralContext() {}
 func NewHexadecimalFloatLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *HexadecimalFloatLiteralContext {
 	var p = new(HexadecimalFloatLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_hexadecimalFloatLiteral
@@ -5451,7 +5796,7 @@ func (s *HexadecimalFloatLiteralContext) ToStringTree(ruleNames []string, recog 
 
 func (s *HexadecimalFloatLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewHexadecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewHexadecimalFloatLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterHexadecimalFloatLiteral(c)
 	}
@@ -5459,54 +5804,56 @@ func (s *HexadecimalFloatLiteralContext) EnterRule(listener antlr.ParseTreeListe
 
 func (s *HexadecimalFloatLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewHexadecimalFloatLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewHexadecimalFloatLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitHexadecimalFloatLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) HexadecimalFloatLiteral() (localctx IHexadecimalFloatLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewHexadecimalFloatLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 68, EcaruleParserRULE_hexadecimalFloatLiteral)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(295)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserMINUS {
 		{
 			p.SetState(294)
 			p.Match(EcaruleParserMINUS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	}
 	{
 		p.SetState(297)
 		p.Match(EcaruleParserHEX_FLOAT_LIT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IIntegerLiteralContext is an interface to support dynamic dispatch.
@@ -5516,20 +5863,30 @@ type IIntegerLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DecimalLiteral() IDecimalLiteralContext
+	HexadecimalLiteral() IHexadecimalLiteralContext
+	OctalLiteral() IOctalLiteralContext
+
 	// IsIntegerLiteralContext differentiates from other interfaces.
 	IsIntegerLiteralContext()
 }
 
 type IntegerLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyIntegerLiteralContext() *IntegerLiteralContext {
 	var p = new(IntegerLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_integerLiteral
 	return p
+}
+
+func InitEmptyIntegerLiteralContext(p *IntegerLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_integerLiteral
 }
 
 func (*IntegerLiteralContext) IsIntegerLiteralContext() {}
@@ -5537,7 +5894,7 @@ func (*IntegerLiteralContext) IsIntegerLiteralContext() {}
 func NewIntegerLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *IntegerLiteralContext {
 	var p = new(IntegerLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_integerLiteral
@@ -5605,7 +5962,7 @@ func (s *IntegerLiteralContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *IntegerLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewIntegerLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewIntegerLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterIntegerLiteral(c)
 	}
@@ -5613,38 +5970,22 @@ func (s *IntegerLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *IntegerLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewIntegerLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewIntegerLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitIntegerLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) IntegerLiteral() (localctx IIntegerLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewIntegerLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 70, EcaruleParserRULE_integerLiteral)
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.SetState(302)
 	p.GetErrorHandler().Sync(p)
-	switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 27, p.GetParserRuleContext()) {
+	if p.HasError() {
+		goto errorExit
+	}
+
+	switch p.GetInterpreter().AdaptivePredict(p.BaseParser, p.GetTokenStream(), 27, p.GetParserRuleContext()) {
 	case 1:
 		p.EnterOuterAlt(localctx, 1)
 		{
@@ -5666,9 +6007,21 @@ func (p *EcaruleParser) IntegerLiteral() (localctx IIntegerLiteralContext) {
 			p.OctalLiteral()
 		}
 
+	case antlr.ATNInvalidAltNumber:
+		goto errorExit
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IDecimalLiteralContext is an interface to support dynamic dispatch.
@@ -5678,20 +6031,29 @@ type IDecimalLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DEC_LIT() antlr.TerminalNode
+	MINUS() antlr.TerminalNode
+
 	// IsDecimalLiteralContext differentiates from other interfaces.
 	IsDecimalLiteralContext()
 }
 
 type DecimalLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyDecimalLiteralContext() *DecimalLiteralContext {
 	var p = new(DecimalLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_decimalLiteral
 	return p
+}
+
+func InitEmptyDecimalLiteralContext(p *DecimalLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_decimalLiteral
 }
 
 func (*DecimalLiteralContext) IsDecimalLiteralContext() {}
@@ -5699,7 +6061,7 @@ func (*DecimalLiteralContext) IsDecimalLiteralContext() {}
 func NewDecimalLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *DecimalLiteralContext {
 	var p = new(DecimalLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_decimalLiteral
@@ -5727,7 +6089,7 @@ func (s *DecimalLiteralContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *DecimalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewDecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewDecimalLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterDecimalLiteral(c)
 	}
@@ -5735,54 +6097,56 @@ func (s *DecimalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *DecimalLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewDecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewDecimalLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitDecimalLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) DecimalLiteral() (localctx IDecimalLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewDecimalLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 72, EcaruleParserRULE_decimalLiteral)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(305)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserMINUS {
 		{
 			p.SetState(304)
 			p.Match(EcaruleParserMINUS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	}
 	{
 		p.SetState(307)
 		p.Match(EcaruleParserDEC_LIT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IHexadecimalLiteralContext is an interface to support dynamic dispatch.
@@ -5792,20 +6156,29 @@ type IHexadecimalLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	HEX_LIT() antlr.TerminalNode
+	MINUS() antlr.TerminalNode
+
 	// IsHexadecimalLiteralContext differentiates from other interfaces.
 	IsHexadecimalLiteralContext()
 }
 
 type HexadecimalLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyHexadecimalLiteralContext() *HexadecimalLiteralContext {
 	var p = new(HexadecimalLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_hexadecimalLiteral
 	return p
+}
+
+func InitEmptyHexadecimalLiteralContext(p *HexadecimalLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_hexadecimalLiteral
 }
 
 func (*HexadecimalLiteralContext) IsHexadecimalLiteralContext() {}
@@ -5813,7 +6186,7 @@ func (*HexadecimalLiteralContext) IsHexadecimalLiteralContext() {}
 func NewHexadecimalLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *HexadecimalLiteralContext {
 	var p = new(HexadecimalLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_hexadecimalLiteral
@@ -5841,7 +6214,7 @@ func (s *HexadecimalLiteralContext) ToStringTree(ruleNames []string, recog antlr
 
 func (s *HexadecimalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewHexadecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewHexadecimalLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterHexadecimalLiteral(c)
 	}
@@ -5849,54 +6222,56 @@ func (s *HexadecimalLiteralContext) EnterRule(listener antlr.ParseTreeListener) 
 
 func (s *HexadecimalLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewHexadecimalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewHexadecimalLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitHexadecimalLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) HexadecimalLiteral() (localctx IHexadecimalLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewHexadecimalLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 74, EcaruleParserRULE_hexadecimalLiteral)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(310)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserMINUS {
 		{
 			p.SetState(309)
 			p.Match(EcaruleParserMINUS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	}
 	{
 		p.SetState(312)
 		p.Match(EcaruleParserHEX_LIT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IOctalLiteralContext is an interface to support dynamic dispatch.
@@ -5906,20 +6281,29 @@ type IOctalLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	OCT_LIT() antlr.TerminalNode
+	MINUS() antlr.TerminalNode
+
 	// IsOctalLiteralContext differentiates from other interfaces.
 	IsOctalLiteralContext()
 }
 
 type OctalLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyOctalLiteralContext() *OctalLiteralContext {
 	var p = new(OctalLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_octalLiteral
 	return p
+}
+
+func InitEmptyOctalLiteralContext(p *OctalLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_octalLiteral
 }
 
 func (*OctalLiteralContext) IsOctalLiteralContext() {}
@@ -5927,7 +6311,7 @@ func (*OctalLiteralContext) IsOctalLiteralContext() {}
 func NewOctalLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *OctalLiteralContext {
 	var p = new(OctalLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_octalLiteral
@@ -5955,7 +6339,7 @@ func (s *OctalLiteralContext) ToStringTree(ruleNames []string, recog antlr.Recog
 
 func (s *OctalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewOctalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewOctalLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterOctalLiteral(c)
 	}
@@ -5963,54 +6347,56 @@ func (s *OctalLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *OctalLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewOctalLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewOctalLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitOctalLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) OctalLiteral() (localctx IOctalLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewOctalLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 76, EcaruleParserRULE_octalLiteral)
 	var _la int
 
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
-
 	p.EnterOuterAlt(localctx, 1)
 	p.SetState(315)
 	p.GetErrorHandler().Sync(p)
+	if p.HasError() {
+		goto errorExit
+	}
 	_la = p.GetTokenStream().LA(1)
 
 	if _la == EcaruleParserMINUS {
 		{
 			p.SetState(314)
 			p.Match(EcaruleParserMINUS)
+			if p.HasError() {
+				// Recognition error - abort rule
+				goto errorExit
+			}
 		}
 
 	}
 	{
 		p.SetState(317)
 		p.Match(EcaruleParserOCT_LIT)
+		if p.HasError() {
+			// Recognition error - abort rule
+			goto errorExit
+		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IStringLiteralContext is an interface to support dynamic dispatch.
@@ -6020,20 +6406,29 @@ type IStringLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	DQUOTA_STRING() antlr.TerminalNode
+	SQUOTA_STRING() antlr.TerminalNode
+
 	// IsStringLiteralContext differentiates from other interfaces.
 	IsStringLiteralContext()
 }
 
 type StringLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyStringLiteralContext() *StringLiteralContext {
 	var p = new(StringLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_stringLiteral
 	return p
+}
+
+func InitEmptyStringLiteralContext(p *StringLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_stringLiteral
 }
 
 func (*StringLiteralContext) IsStringLiteralContext() {}
@@ -6041,7 +6436,7 @@ func (*StringLiteralContext) IsStringLiteralContext() {}
 func NewStringLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *StringLiteralContext {
 	var p = new(StringLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_stringLiteral
@@ -6069,7 +6464,7 @@ func (s *StringLiteralContext) ToStringTree(ruleNames []string, recog antlr.Reco
 
 func (s *StringLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewStringLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewStringLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterStringLiteral(c)
 	}
@@ -6077,35 +6472,16 @@ func (s *StringLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *StringLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewStringLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewStringLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitStringLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) StringLiteral() (localctx IStringLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewStringLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 78, EcaruleParserRULE_stringLiteral)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
@@ -6120,7 +6496,17 @@ func (p *EcaruleParser) StringLiteral() (localctx IStringLiteralContext) {
 		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 // IBooleanLiteralContext is an interface to support dynamic dispatch.
@@ -6130,20 +6516,29 @@ type IBooleanLiteralContext interface {
 	// GetParser returns the parser.
 	GetParser() antlr.Parser
 
+	// Getter signatures
+	TRUE() antlr.TerminalNode
+	FALSE() antlr.TerminalNode
+
 	// IsBooleanLiteralContext differentiates from other interfaces.
 	IsBooleanLiteralContext()
 }
 
 type BooleanLiteralContext struct {
-	*antlr.BaseParserRuleContext
+	antlr.BaseParserRuleContext
 	parser antlr.Parser
 }
 
 func NewEmptyBooleanLiteralContext() *BooleanLiteralContext {
 	var p = new(BooleanLiteralContext)
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
 	p.RuleIndex = EcaruleParserRULE_booleanLiteral
 	return p
+}
+
+func InitEmptyBooleanLiteralContext(p *BooleanLiteralContext) {
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, nil, -1)
+	p.RuleIndex = EcaruleParserRULE_booleanLiteral
 }
 
 func (*BooleanLiteralContext) IsBooleanLiteralContext() {}
@@ -6151,7 +6546,7 @@ func (*BooleanLiteralContext) IsBooleanLiteralContext() {}
 func NewBooleanLiteralContext(parser antlr.Parser, parent antlr.ParserRuleContext, invokingState int) *BooleanLiteralContext {
 	var p = new(BooleanLiteralContext)
 
-	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
+	antlr.InitBaseParserRuleContext(&p.BaseParserRuleContext, parent, invokingState)
 
 	p.parser = parser
 	p.RuleIndex = EcaruleParserRULE_booleanLiteral
@@ -6179,7 +6574,7 @@ func (s *BooleanLiteralContext) ToStringTree(ruleNames []string, recog antlr.Rec
 
 func (s *BooleanLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewBooleanLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewBooleanLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.EnterBooleanLiteral(c)
 	}
@@ -6187,35 +6582,16 @@ func (s *BooleanLiteralContext) EnterRule(listener antlr.ParseTreeListener) {
 
 func (s *BooleanLiteralContext) ExitRule(listener antlr.ParseTreeListener) {
 	if listenerT, ok := listener.(EcaruleParserListener); ok {
-		c := grulev3.NewBooleanLiteralContext(s.parser, s.BaseParserRuleContext, -1)
+		c := grulev3.NewBooleanLiteralContext(s.parser, &s.BaseParserRuleContext, -1)
 		c.BaseParserRuleContext = s.BaseParserRuleContext
 		listenerT.ExitBooleanLiteral(c)
 	}
 }
 
 func (p *EcaruleParser) BooleanLiteral() (localctx IBooleanLiteralContext) {
-	this := p
-	_ = this
-
 	localctx = NewBooleanLiteralContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 80, EcaruleParserRULE_booleanLiteral)
 	var _la int
-
-	defer func() {
-		p.ExitRule()
-	}()
-
-	defer func() {
-		if err := recover(); err != nil {
-			if v, ok := err.(antlr.RecognitionException); ok {
-				localctx.SetException(v)
-				p.GetErrorHandler().ReportError(p, v)
-				p.GetErrorHandler().Recover(p, v)
-			} else {
-				panic(err)
-			}
-		}
-	}()
 
 	p.EnterOuterAlt(localctx, 1)
 	{
@@ -6230,7 +6606,17 @@ func (p *EcaruleParser) BooleanLiteral() (localctx IBooleanLiteralContext) {
 		}
 	}
 
+errorExit:
+	if p.HasError() {
+		v := p.GetError()
+		localctx.SetException(v)
+		p.GetErrorHandler().ReportError(p, v)
+		p.GetErrorHandler().Recover(p, v)
+		p.SetError(nil)
+	}
+	p.ExitRule()
 	return localctx
+	goto errorExit // Trick to prevent compiler error if the label is not used
 }
 
 func (p *EcaruleParser) Sempred(localctx antlr.RuleContext, ruleIndex, predIndex int) bool {
@@ -6262,9 +6648,6 @@ func (p *EcaruleParser) Sempred(localctx antlr.RuleContext, ruleIndex, predIndex
 }
 
 func (p *EcaruleParser) Expression_Sempred(localctx antlr.RuleContext, predIndex int) bool {
-	this := p
-	_ = this
-
 	switch predIndex {
 	case 0:
 		return p.Precpred(p.GetParserRuleContext(), 7)
@@ -6287,9 +6670,6 @@ func (p *EcaruleParser) Expression_Sempred(localctx antlr.RuleContext, predIndex
 }
 
 func (p *EcaruleParser) ExpressionAtom_Sempred(localctx antlr.RuleContext, predIndex int) bool {
-	this := p
-	_ = this
-
 	switch predIndex {
 	case 5:
 		return p.Precpred(p.GetParserRuleContext(), 4)
@@ -6306,9 +6686,6 @@ func (p *EcaruleParser) ExpressionAtom_Sempred(localctx antlr.RuleContext, predI
 }
 
 func (p *EcaruleParser) Variable_Sempred(localctx antlr.RuleContext, predIndex int) bool {
-	this := p
-	_ = this
-
 	switch predIndex {
 	case 8:
 		return p.Precpred(p.GetParserRuleContext(), 3)

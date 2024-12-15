@@ -5,7 +5,7 @@ package parser
 
 import (
 	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
-	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/antlr4-go/antlr/v4"
 )
 
 // ValidateIdentifiers returns a boolean value for each argument. If the value is true

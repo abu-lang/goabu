@@ -6,7 +6,7 @@ package parser
 import (
 	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/antlr4-go/antlr/v4"
 	grule_parser "github.com/hyperjumptech/grule-rule-engine/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 )

@@ -39,8 +39,8 @@ endef
 ${P_DIR}/ecarule_parser.go: ${P_DIR}/ecarule_parser.go.part
 	$(PRINT_ANTLR_HEADER)
 	sed -n -e '/github\.com/{G;s/\(."github\.com.*\)\(\n\)/\1\2@"github.com\/hyperjumptech\/grule-rule-engine\/antlr\/parser\/grulev3"/;}'\
-		-e '/type GrlContext struct/,$${/listenerT\.Enter/{G;s/listenerT\.Enter\([A-Za-z]*\)(s)\(\n\)/c := grulev3.New\1Context(s.parser, s.BaseParserRuleContext, -1)\2@@c.BaseParserRuleContext = s.BaseParserRuleContext\2@@listenerT.Enter\1(c)/;};}'\
-		-e '/type GrlContext struct/,$${/listenerT\.Exit/{G;s/listenerT\.Exit\([A-Za-z]*\)(s)\(\n\)/c := grulev3.New\1Context(s.parser, s.BaseParserRuleContext, -1)\2@@c.BaseParserRuleContext = s.BaseParserRuleContext\2@@listenerT.Exit\1(c)/;};}'\
+		-e '/type GrlContext struct/,$${/listenerT\.Enter/{G;s/listenerT\.Enter\([A-Za-z]*\)(s)\(\n\)/c := grulev3.New\1Context(s.parser, \&s.BaseParserRuleContext, -1)\2@@c.BaseParserRuleContext = s.BaseParserRuleContext\2@@listenerT.Enter\1(c)/;};}'\
+		-e '/type GrlContext struct/,$${/listenerT\.Exit/{G;s/listenerT\.Exit\([A-Za-z]*\)(s)\(\n\)/c := grulev3.New\1Context(s.parser, \&s.BaseParserRuleContext, -1)\2@@c.BaseParserRuleContext = s.BaseParserRuleContext\2@@listenerT.Exit\1(c)/;};}'\
 		-e '/^package/,$$p' $^ | tr '@' '\011' >> $@
 
 ${P_DIR}/ecaruleparser_listener.go: ${P_DIR}/ecaruleparser_listener.go.part

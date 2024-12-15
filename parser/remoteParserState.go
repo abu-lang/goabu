@@ -10,7 +10,7 @@ import (
 	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
 	"github.com/abu-lang/goabu/stringset"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/antlr4-go/antlr/v4"
 	grule_parser "github.com/hyperjumptech/grule-rule-engine/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/antlr/parser/grulev3"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
@@ -68,7 +68,7 @@ func (l *remoteParserState) ExitTask(ctx *antlr_parser.TaskContext) {
 		return
 	}
 	task := exprRec.RemoteTask
-	modifiedExp := l.rewriter.GetText("default", &antlr.Interval{
+	modifiedExp := l.rewriter.GetText("default", antlr.Interval{
 		Start: ctx.Expression().GetStart().GetTokenIndex(),
 		Stop:  ctx.Expression().GetStop().GetTokenIndex(),
 	})
@@ -93,7 +93,7 @@ func (l *remoteParserState) ExitAssignment(ctx *grulev3.AssignmentContext) {
 		l.StopParse = true
 		return
 	}
-	modifiedExp := l.rewriter.GetText("default", &antlr.Interval{Start: ctx.GetStart().GetTokenIndex(), Stop: ctx.GetStop().GetTokenIndex()})
+	modifiedExp := l.rewriter.GetText("default", antlr.Interval{Start: ctx.GetStart().GetTokenIndex(), Stop: ctx.GetStop().GetTokenIndex()})
 	exprRec.Actions = append(exprRec.Actions, modifiedExp)
 }
 
@@ -123,9 +123,9 @@ func (l *remoteParserState) ExitVariable(ctx *grulev3.VariableContext) {
 		}
 		if l.inAssignLeft {
 			remote = true
-			l.rewriter.InsertBeforeToken(antlr.Default_Program_Name, ctx.SIMPLENAME().GetSymbol(), "this.")
+			l.rewriter.InsertBeforeToken(antlr.DefaultProgramName, ctx.SIMPLENAME().GetSymbol(), "this.")
 		} else {
-			l.rewriter.InsertBeforeToken(antlr.Default_Program_Name, ctx.SIMPLENAME().GetSymbol(), "ext.")
+			l.rewriter.InsertBeforeToken(antlr.DefaultProgramName, ctx.SIMPLENAME().GetSymbol(), "ext.")
 		}
 	case e.Variable != nil && e.Variable.Name == "ext":
 		name = e.Name

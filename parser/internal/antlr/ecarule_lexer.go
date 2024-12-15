@@ -1,13 +1,12 @@
-// Code generated from EcaruleLexer.g4 by ANTLR 4.10.1. DO NOT EDIT.
+// Code generated from EcaruleLexer.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package antlr
 
 import (
 	"fmt"
+	"github.com/antlr4-go/antlr/v4"
 	"sync"
 	"unicode"
-
-	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
 // Suppress unused import error
@@ -22,28 +21,28 @@ type EcaruleLexer struct {
 	// TODO: EOF string
 }
 
-var ecarulelexerLexerStaticData struct {
+var EcaruleLexerLexerStaticData struct {
 	once                   sync.Once
 	serializedATN          []int32
-	channelNames           []string
-	modeNames              []string
-	literalNames           []string
-	symbolicNames          []string
-	ruleNames              []string
-	predictionContextCache *antlr.PredictionContextCache
+	ChannelNames           []string
+	ModeNames              []string
+	LiteralNames           []string
+	SymbolicNames          []string
+	RuleNames              []string
+	PredictionContextCache *antlr.PredictionContextCache
 	atn                    *antlr.ATN
 	decisionToDFA          []*antlr.DFA
 }
 
 func ecarulelexerLexerInit() {
-	staticData := &ecarulelexerLexerStaticData
-	staticData.channelNames = []string{
+	staticData := &EcaruleLexerLexerStaticData
+	staticData.ChannelNames = []string{
 		"DEFAULT_TOKEN_CHANNEL", "HIDDEN",
 	}
-	staticData.modeNames = []string{
+	staticData.ModeNames = []string{
 		"DEFAULT_MODE",
 	}
-	staticData.symbolicNames = []string{
+	staticData.SymbolicNames = []string{
 		"", "", "PLUS", "MINUS", "DIV", "MUL", "MOD", "DOT", "SEMICOLON", "LR_BRACE",
 		"RR_BRACE", "LR_BRACKET", "RR_BRACKET", "LS_BRACKET", "RS_BRACKET",
 		"RULE", "WHEN", "THEN", "AND", "OR", "TRUE", "FALSE", "NIL_LITERAL",
@@ -54,7 +53,7 @@ func ecarulelexerLexerInit() {
 		"OCT_LIT", "SPACE", "COMMENT", "LINE_COMMENT", "ON", "DEFAULT", "FOR",
 		"ALL", "DO",
 	}
-	staticData.ruleNames = []string{
+	staticData.RuleNames = []string{
 		"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
 		"O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "ISC", "IC",
 		"T__0", "PLUS", "MINUS", "DIV", "MUL", "MOD", "DOT", "SEMICOLON", "LR_BRACE",
@@ -68,7 +67,7 @@ func ecarulelexerLexerInit() {
 		"DEC_DIGITS", "OCT_DIGITS", "DEC_DIGIT", "OCT_DIGIT", "HEX_DIGIT", "SPACE",
 		"COMMENT", "LINE_COMMENT",
 	}
-	staticData.predictionContextCache = antlr.NewPredictionContextCache()
+	staticData.PredictionContextCache = antlr.NewPredictionContextCache()
 	staticData.serializedATN = []int32{
 		4, 0, 55, 516, 6, -1, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2,
 		4, 7, 4, 2, 5, 7, 5, 2, 6, 7, 6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 2,
@@ -318,7 +317,7 @@ func ecarulelexerLexerInit() {
 // NewEcaruleLexer(). You can call this function if you wish to initialize the static state ahead
 // of time.
 func EcaruleLexerInit() {
-	staticData := &ecarulelexerLexerStaticData
+	staticData := &EcaruleLexerLexerStaticData
 	staticData.once.Do(ecarulelexerLexerInit)
 }
 
@@ -327,13 +326,13 @@ func NewEcaruleLexer(input antlr.CharStream) *EcaruleLexer {
 	EcaruleLexerInit()
 	l := new(EcaruleLexer)
 	l.BaseLexer = antlr.NewBaseLexer(input)
-	staticData := &ecarulelexerLexerStaticData
-	l.Interpreter = antlr.NewLexerATNSimulator(l, staticData.atn, staticData.decisionToDFA, staticData.predictionContextCache)
-	l.channelNames = staticData.channelNames
-	l.modeNames = staticData.modeNames
-	l.RuleNames = staticData.ruleNames
-	l.LiteralNames = staticData.literalNames
-	l.SymbolicNames = staticData.symbolicNames
+	staticData := &EcaruleLexerLexerStaticData
+	l.Interpreter = antlr.NewLexerATNSimulator(l, staticData.atn, staticData.decisionToDFA, staticData.PredictionContextCache)
+	l.channelNames = staticData.ChannelNames
+	l.modeNames = staticData.ModeNames
+	l.RuleNames = staticData.RuleNames
+	l.LiteralNames = staticData.LiteralNames
+	l.SymbolicNames = staticData.SymbolicNames
 	l.GrammarFileName = "EcaruleLexer.g4"
 	// TODO: l.EOF = antlr.TokenEOF
 

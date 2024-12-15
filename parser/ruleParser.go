@@ -12,7 +12,7 @@ import (
 	"github.com/abu-lang/goabu/ecarule"
 	antlr_parser "github.com/abu-lang/goabu/parser/internal/antlr"
 
-	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"github.com/antlr4-go/antlr/v4"
 	grule_parser "github.com/hyperjumptech/grule-rule-engine/antlr"
 	"github.com/hyperjumptech/grule-rule-engine/ast"
 	"github.com/hyperjumptech/grule-rule-engine/pkg"
