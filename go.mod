@@ -47,10 +47,10 @@ require (
 	github.com/warthog618/gpiod v0.8.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/mod v0.15.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/tools v0.18.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	periph.io/x/conn/v3 v3.7.0 // indirect
